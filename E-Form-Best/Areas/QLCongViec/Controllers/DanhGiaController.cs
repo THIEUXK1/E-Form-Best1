@@ -23,11 +23,13 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         };
 
         private readonly DanhGiaService _danhGia;
+        private readonly DanhGiaSoLieuService _soLieu;
         private readonly IConfiguration _configuration;
 
-        public DanhGiaController(DanhGiaService danhGia, IConfiguration configuration)
+        public DanhGiaController(DanhGiaService danhGia, DanhGiaSoLieuService soLieu, IConfiguration configuration)
         {
             _danhGia = danhGia;
+            _soLieu = soLieu;
             _configuration = configuration;
         }
 
@@ -75,30 +77,79 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         #region API
 
-        /// <summary>Toàn bộ dữ liệu lần tải đầu: đầu phiếu, phiếu đã lưu (gồm Part 3), KPI Part 1, tiêu chí Part 2.</summary>
+        /// <summary>Danh sách kỳ cho ô chọn kỳ dùng chung (ky-danh-gia.js), kể cả người chỉ có quyền quản lý.</summary>
+        [HttpGet("/QLCongViec/DanhGia/DsKy")]
+        public async Task<IActionResult> DsKy()
+        {
+            if (User?.Identity?.IsAuthenticated != true)
+            {
+                Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Json(new { thanhCong = false, thongBao = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại." });
+            }
+            if (!CoQuyen() && !User.IsInRole("DanhGiaQuanLy") && !User.IsInRole("DanhGiaCapTren"))
+            {
+                Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Json(new { thanhCong = false, thongBao = "Bạn không có quyền dùng chức năng đánh giá." });
+            }
+            try
+            {
+                return Json(new { thanhCong = true, duLieu = await _danhGia.DsKyAsync() });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không tải được danh sách kỳ: " + ex.Message });
+            }
+        }
+
+        /// <summary>Toàn bộ dữ liệu của 1 kỳ: đầu phiếu, phiếu đã lưu (gồm Part 3), KPI Part 1, tiêu chí Part 2.</summary>
         [HttpGet("/QLCongViec/DanhGia/DuLieu")]
-        public async Task<IActionResult> DuLieu()
+        public async Task<IActionResult> DuLieu(Guid? idKy)
         {
             if (ChanNeuKhongHopLe(out var maNv) is { } chan) return chan;
             try
             {
-                var phieu = await _danhGia.LayPhieuTuDanhGiaAsync(maNv);
+                var ky = await _danhGia.LayKyAsync(idKy);
+                if (ky == null) return Json(new { thanhCong = false, thongBao = "Chưa có kỳ đánh giá nào." });
+                var phieu = await _danhGia.LayPhieuTuDanhGiaAsync(maNv, ky.IdKy);
+                var dsPhieuKyDong = ky.DangMo ? null : (phieu == null ? Array.Empty<Guid>() : new[] { phieu.IdPhieu });
                 return Json(new
                 {
                     thanhCong = true,
                     duLieu = new
                     {
+                        ky,
                         thongTin = await _danhGia.LayThongTinAsync(maNv),
                         hoSo = await _danhGia.LayHoSoAsync(maNv),
                         phieu,
-                        dsKpi = await _danhGia.LayKpiAsync(maNv, phieu?.IdPhieu),
-                        dsTieuChi = await _danhGia.LayTieuChiAsync(maNv, phieu?.IdPhieu)
+                        dsKpi = await _danhGia.LayKpiAsync(maNv, phieu?.IdPhieu, ky.DangMo),
+                        dsTieuChi = await _danhGia.LayTieuChiAsync(maNv, phieu?.IdPhieu, dsPhieuKyDong)
                     }
                 });
             }
             catch (Exception ex)
             {
                 return Json(new { thanhCong = false, thongBao = "Không tải được dữ liệu đánh giá: " + ex.Message });
+            }
+        }
+
+        /// <summary>Số liệu tham khảo của chính mình; khoảng ngày mặc định theo năm của kỳ.</summary>
+        [HttpGet("/QLCongViec/DanhGia/SoLieuCuaToi")]
+        public async Task<IActionResult> SoLieuCuaToi(Guid? idKy, DateOnly? tuNgay, DateOnly? denNgay)
+        {
+            if (ChanNeuKhongHopLe(out var maNv) is { } chan) return chan;
+            try
+            {
+                var ky = await _danhGia.LayKyAsync(idKy);
+                if (ky == null) return Json(new { thanhCong = false, thongBao = "Chưa có kỳ đánh giá nào." });
+                var (tu, den) = DanhGiaSoLieuService.KhoangMacDinh(ky);
+                tu = tuNgay ?? tu;
+                den = denNgay ?? den;
+                if (den < tu) return Json(new { thanhCong = false, thongBao = "Đến ngày phải sau từ ngày." });
+                return Json(new { thanhCong = true, duLieu = await _soLieu.LayAsync(maNv, tu, den) });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không tải được số liệu: " + ex.Message });
             }
         }
 
@@ -117,7 +168,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 {
                     thanhCong = true,
                     thongBao = vao.HoanThanh ? "Đã gửi bản tự đánh giá." : "Đã lưu.",
-                    duLieu = await _danhGia.LayPhieuTuDanhGiaAsync(maNv)
+                    duLieu = await _danhGia.LayPhieuTuDanhGiaAsync(maNv, vao.IdKy)
                 });
             }
             catch (Exception ex)
@@ -141,10 +192,12 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             try
             {
-                if (await _danhGia.PhieuDaKhoaAsync(maNv))
+                var idKy = await _danhGia.IdKyDangMoAsync();
+                if (idKy == null) return Json(new { thanhCong = false, thongBao = DanhGiaService.LoiKyDong });
+                if (await _danhGia.PhieuDaKhoaAsync(maNv, idKy.Value))
                     return Json(new { thanhCong = false, thongBao = "Phiếu đã được quản lý đánh giá xong, không sửa được nữa." });
 
-                var dong = await _danhGia.LayHoacTaoDongKpiAsync(maNv, idKpiMau);
+                var dong = await _danhGia.LayHoacTaoDongKpiAsync(maNv, idKy.Value, idKpiMau);
                 if (dong == null) return Json(new { thanhCong = false, thongBao = "KPI này không được giao cho bạn." });
 
                 var thuMuc = ThuMucMinhChung();
@@ -171,10 +224,12 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             if (ChanNeuKhongHopLe(out var maNv) is { } chan) return chan;
             try
             {
-                if (await _danhGia.PhieuDaKhoaAsync(maNv))
+                var idKy = await _danhGia.IdKyDangMoAsync();
+                if (idKy == null) return Json(new { thanhCong = false, thongBao = DanhGiaService.LoiKyDong });
+                if (await _danhGia.PhieuDaKhoaAsync(maNv, idKy.Value))
                     return Json(new { thanhCong = false, thongBao = "Phiếu đã được quản lý đánh giá xong, không sửa được nữa." });
 
-                var dong = await _danhGia.LayDongKpiAsync(maNv, idKpiMau);
+                var dong = await _danhGia.LayDongKpiAsync(maNv, idKy.Value, idKpiMau);
                 if (dong == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy KPI trong phiếu của bạn." });
 
                 await _danhGia.GanAnhKpiAsync(dong, null);
@@ -191,17 +246,20 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         /// tham số maNv chỉ có hiệu lực với người có quyền quản lý đánh giá (chống IDOR).
         /// </summary>
         [HttpGet("/QLCongViec/DanhGia/AnhKpi/{idKpiMau:guid}")]
-        public async Task<IActionResult> XemAnhKpi(Guid idKpiMau, string? maNv)
+        public async Task<IActionResult> XemAnhKpi(Guid idKpiMau, string? maNv, Guid? idKy)
         {
             if (User?.Identity?.IsAuthenticated != true) return Unauthorized();
-            bool laQuanLy = User.IsInRole("DanhGiaQuanLy") || User.IsInRole("All");
+            bool laQuanLy = User.IsInRole("DanhGiaQuanLy") || User.IsInRole("DanhGiaCapTren") || User.IsInRole("All");
             if (!CoQuyen() && !laQuanLy) return Forbid();
             if (string.IsNullOrWhiteSpace(maNv)) maNv = MaNv();
             else if (!laQuanLy) return Forbid();
             else maNv = maNv.Trim();
             if (string.IsNullOrEmpty(maNv)) return NotFound();
 
-            var dong = await _danhGia.LayDongKpiAsync(maNv, idKpiMau);
+            // Cùng một KPI có ở nhiều kỳ nên phải biết đang xem kỳ nào; ảnh kỳ này không được hiện sang kỳ khác
+            var ky = await _danhGia.LayKyAsync(idKy);
+            if (ky == null) return NotFound();
+            var dong = await _danhGia.LayDongKpiAsync(maNv, ky.IdKy, idKpiMau);
             var tenFile = dong?.AnhMinhChung;
             // Tên file trong DB luôn là tên trần do hệ thống sinh; vẫn chặn ký tự phân tách cho chắc
             if (string.IsNullOrEmpty(tenFile) || Path.GetFileName(tenFile) != tenFile) return NotFound();

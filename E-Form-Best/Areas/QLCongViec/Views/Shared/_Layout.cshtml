@@ -417,7 +417,14 @@
                         var isDgNhanVien = currentController == "DanhGiaQuanLy" && currentAction == "DanhGiaNhanVien";
                         var isThongKeDg = currentController == "DanhGiaQuanLy" && currentAction == "ThongKe";
                         var isChuaHoanThanh = currentController == "DanhGiaQuanLy" && currentAction == "ChuaHoanThanh";
-                        var isDanhGiaActive = isTuDanhGia || isQlNhanVien || isDgNhanVien || isThongKeDg || isChuaHoanThanh;
+                        var isKyDanhGia = currentController == "DanhGiaQuanLy" && currentAction == "KyDanhGia";
+                        var isNangLucCuaToi = currentController == "DanhGiaNangLuc" && currentAction == "NangLucCuaToi";
+                        var isBanDoNangLuc = currentController == "DanhGiaNangLuc" && currentAction != "NangLucCuaToi";
+                        var isKeHoachCuaToi = currentController == "DanhGiaKeHoach" && currentAction == "KeHoachCuaToi";
+                        var isLoTrinhCuaToi = currentController == "DanhGiaLoTrinh" && currentAction == "LoTrinhCuaToi";
+                        var isDuyetPhieu = currentController == "DanhGiaKyXacNhan" && currentAction == "DuyetPhieu";
+                        var isPhanCong = currentController == "DanhGiaPhanCong";
+                        var isDanhGiaActive = isTuDanhGia || isQlNhanVien || isDgNhanVien || isThongKeDg || isChuaHoanThanh || isKyDanhGia || isNangLucCuaToi || isBanDoNangLuc || currentController == "DanhGiaKeHoach" || currentController == "DanhGiaLoTrinh" || isDuyetPhieu || isPhanCong;
 
                         <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                         <a href="#menuDanhGia" data-bs-toggle="collapse" role="button" aria-controls="menuDanhGia" aria-expanded="@(isDanhGiaActive ? "true" : "false")" class="nav-link-item @(isDanhGiaActive ? "active" : "")" style="justify-content: space-between;">
@@ -431,6 +438,27 @@
                             <a href="/QLCongViec/DanhGia/TuDanhGia" class="submenu-link @(isTuDanhGia ? "active" : "")">
                                 <i class="fa fa-star-o" style="margin-right:12px; width:20px; color:#fbbf24;"></i> <span class="lang-text">@L["Tự đánh giá"]</span>
                             </a>
+                            <a href="/QLCongViec/DanhGia/NangLucCuaToi" class="submenu-link @(isNangLucCuaToi ? "active" : "")">
+                                <i class="fa fa-crosshairs" style="margin-right:12px; width:20px; color:#a78bfa;"></i> <span class="lang-text">@L["Năng lực của tôi"]</span>
+                            </a>
+                            <a href="/QLCongViec/DanhGia/KeHoachCuaToi" class="submenu-link @(isKeHoachCuaToi ? "active" : "")">
+                                <i class="fa fa-flag-checkered" style="margin-right:12px; width:20px; color:#34d399;"></i> <span class="lang-text">@L["Kế hoạch của tôi"]</span>
+                            </a>
+                            <a href="/QLCongViec/DanhGia/LoTrinhCuaToi" class="submenu-link @(isLoTrinhCuaToi ? "active" : "")">
+                                <i class="fa fa-road" style="margin-right:12px; width:20px; color:#f59e0b;"></i> <span class="lang-text">@L["Lộ trình của tôi"]</span>
+                            </a>
+                            @if (User.IsInRole("DanhGiaCapTren") || User.IsInRole("All"))
+                            {
+                                <a href="/QLCongViec/DanhGia/DuyetPhieu" class="submenu-link @(isDuyetPhieu ? "active" : "")">
+                                    <i class="fa fa-check-square-o" style="margin-right:12px; width:20px; color:#34d399;"></i> <span class="lang-text">@L["Duyệt phiếu đánh giá"]</span>
+                                </a>
+                            }
+                            @if (User.IsInRole("DanhGiaQuanLy") || User.IsInRole("DanhGiaCapTren") || User.IsInRole("All"))
+                            {
+                                <a href="/QLCongViec/DanhGia/PhanCong" class="submenu-link @(isPhanCong ? "active" : "")">
+                                    <i class="fa fa-th" style="margin-right:12px; width:20px; color:#fb923c;"></i> <span class="lang-text">@L["Phân công & tải việc"]</span>
+                                </a>
+                            }
                             @if (User.IsInRole("DanhGiaQuanLy") || User.IsInRole("All"))
                             {
                                 <a href="/QLCongViec/DanhGia/NhanVien" class="submenu-link @(isQlNhanVien ? "active" : "")">
@@ -441,6 +469,12 @@
                                 </a>
                                 <a href="/QLCongViec/DanhGia/ThongKe" class="submenu-link @(isThongKeDg ? "active" : "")">
                                     <i class="fa fa-pie-chart" style="margin-right:12px; width:20px; color:#84cc16;"></i> <span class="lang-text">@L["Thống kê đánh giá"]</span>
+                                </a>
+                                <a href="/QLCongViec/DanhGia/NangLuc" class="submenu-link @(isBanDoNangLuc ? "active" : "")">
+                                    <i class="fa fa-map-o" style="margin-right:12px; width:20px; color:#a78bfa;"></i> <span class="lang-text">@L["Bản đồ năng lực"]</span>
+                                </a>
+                                <a href="/QLCongViec/DanhGia/KyDanhGia" class="submenu-link @(isKyDanhGia ? "active" : "")">
+                                    <i class="fa fa-calendar" style="margin-right:12px; width:20px; color:#60a5fa;"></i> <span class="lang-text">@L["Kỳ đánh giá"]</span>
                                 </a>
                                 <a href="/QLCongViec/DanhGia/ChuaHoanThanh" class="submenu-link @(isChuaHoanThanh ? "active" : "")">
                                     <i class="fa fa-hourglass-half" style="margin-right:12px; width:20px; color:#f59e0b;"></i> <span class="lang-text">@L["Chưa hoàn thành đánh giá"]</span>

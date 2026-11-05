@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace E_Form_Best.Models.ITForm;
 
 /// <summary>
-/// Phiếu đánh giá. Mỗi nhân viên một phiếu cho mỗi loại (self/manager) — UNIQUE ở DB
-/// chống bấm lưu 2 lần sinh 2 phiếu. TrangThai pending = chờ quản lý đánh giá.
+/// Phiếu đánh giá. Mỗi nhân viên một phiếu cho mỗi loại (self/manager) trong một kỳ — UNIQUE
+/// (id_ky, ma_nhan_vien, loai) ở DB chống bấm lưu 2 lần sinh 2 phiếu. TrangThai pending = chờ quản lý đánh giá.
 /// </summary>
 [Table("DG_PhieuDanhGia")]
 public partial class DgPhieuDanhGia
@@ -14,6 +14,9 @@ public partial class DgPhieuDanhGia
     [Key]
     [Column("id_phieu")]
     public Guid IdPhieu { get; set; }
+
+    [Column("id_ky")]
+    public Guid IdKy { get; set; }
 
     [Column("ma_nhan_vien")]
     [StringLength(20)]
@@ -82,4 +85,34 @@ public partial class DgPhieuDanhGia
 
     [Column("nhan_xet")]
     public string? NhanXet { get; set; }
+
+    // Luồng ký 3 cấp, chỉ dùng trên phiếu manager. BuocKy null = chưa vào luồng hoặc chốt trước khi có luồng ký
+    public const string BuocChoDuyet = "cho_duyet";
+    public const string BuocTuChoi = "tu_choi";
+    public const string BuocChoKy = "cho_ky";
+    public const string BuocDaKy = "da_ky";
+
+    [Column("buoc_ky")]
+    [StringLength(20)]
+    public string? BuocKy { get; set; }
+
+    [Column("nguoi_duyet")]
+    [StringLength(20)]
+    public string? NguoiDuyet { get; set; }
+
+    [Column("ngay_duyet", TypeName = "datetime")]
+    public DateTime? NgayDuyet { get; set; }
+
+    [Column("ly_do_tu_choi")]
+    [StringLength(1000)]
+    public string? LyDoTuChoi { get; set; }
+
+    [Column("ngay_nv_ky", TypeName = "datetime")]
+    public DateTime? NgayNvKy { get; set; }
+
+    [Column("nv_dong_y")]
+    public bool? NvDongY { get; set; }
+
+    [Column("nhan_xet_nv")]
+    public string? NhanXetNv { get; set; }
 }

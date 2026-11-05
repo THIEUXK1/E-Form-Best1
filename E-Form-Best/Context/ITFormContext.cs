@@ -313,6 +313,26 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<DgPhieuTieuChi> DgPhieuTieuChis { get; set; }
 
+    public virtual DbSet<DgKyDanhGia> DgKyDanhGias { get; set; }
+
+    public virtual DbSet<DgNhomCongViecNangLuc> DgNhomCongViecNangLucs { get; set; }
+
+    public virtual DbSet<DgMucTieuPhatTrien> DgMucTieuPhatTriens { get; set; }
+
+    public virtual DbSet<DgGoiYDaoTao> DgGoiYDaoTaos { get; set; }
+
+    public virtual DbSet<DgBacLoTrinh> DgBacLoTrinhs { get; set; }
+
+    public virtual DbSet<DgThiThangBac> DgThiThangBacs { get; set; }
+
+    public virtual DbSet<DgLichSuBac> DgLichSuBacs { get; set; }
+
+    public virtual DbSet<DgPhieuKyLichSu> DgPhieuKyLichSus { get; set; }
+
+    public virtual DbSet<DgDauViec> DgDauViecs { get; set; }
+
+    public virtual DbSet<DgDauViecPhanCong> DgDauViecPhanCongs { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer(GetConnectionStringFromConfig());
 

@@ -226,6 +226,18 @@
   <data name="Tự đánh giá" xml:space="preserve">
     <value>自我评估</value>
   </data>
+  <data name="Năng lực của tôi" xml:space="preserve">
+    <value>我的能力</value>
+  </data>
+  <data name="Bản đồ năng lực" xml:space="preserve">
+    <value>能力地图</value>
+  </data>
+  <data name="Kỳ đánh giá" xml:space="preserve">
+    <value>评估周期</value>
+  </data>
+  <data name="Kế hoạch của tôi" xml:space="preserve">
+    <value>我的发展计划</value>
+  </data>
   <data name="Quản lý nhân viên" xml:space="preserve">
     <value>员工管理</value>
   </data>
@@ -273,5 +285,14 @@
   </data>
   <data name="Tổng quan" xml:space="preserve">
     <value>概览</value>
+  </data>
+  <data name="Lộ trình của tôi" xml:space="preserve">
+    <value>我的晋升路线</value>
+  </data>
+  <data name="Duyệt phiếu đánh giá" xml:space="preserve">
+    <value>审批评估表</value>
+  </data>
+  <data name="Phân công &amp; tải việc" xml:space="preserve">
+    <value>任务分配与工作量</value>
   </data>
 </root>

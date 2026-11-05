@@ -57,17 +57,24 @@
 
     // ---------- Tải dữ liệu ----------
     function taiDuLieu() {
-        goiApi('/QLCongViec/DanhGia/DuLieu', { headers: { 'Accept': 'application/json' } })
+        var tt = $('tdgTrangThai');
+        tt.hidden = false;
+        tt.classList.remove('tdg-error');
+        tt.textContent = 'Đang tải dữ liệu đánh giá...';
+        $('tdgNoiDung').hidden = true;
+        goiApi(KyDanhGia.thamSo('/QLCongViec/DanhGia/DuLieu'), { headers: { 'Accept': 'application/json' } })
             .then(function (kq) {
                 var d = kq.duLieu;
                 st.duLieu = d;
                 st.dsKpi = d.dsKpi || [];
                 st.dsTieuChi = d.dsTieuChi || [];
-                st.khoa = !!(d.phieu && d.phieu.trangThai === 'completed');
+                st.khoa = !d.ky.dangMo || !!(d.phieu && d.phieu.trangThai === 'completed');
                 veThongTin();
                 veKpi();
                 veTieuChi();
                 veP3();
+                SoLieuKpi.ve('tdgSoLieu', KyDanhGia.thamSo('/QLCongViec/DanhGia/SoLieuCuaToi'));
+                KyXacNhan.ve('tdgKyXacNhan', { url: KyDanhGia.thamSo('/QLCongViec/DanhGia/KyXacNhanApi/CuaToi'), idKy: d.ky.idKy });
                 $('tdgTrangThai').hidden = true;
                 $('tdgNoiDung').hidden = false;
                 chuyenBuoc(1);
@@ -87,6 +94,8 @@
         $('tdgChucVu').value = t.chucVu || '';
         $('tdgPhongBan').value = t.phongBan || '';
         $('tdgDaKhoa').hidden = !st.khoa;
+        $('tdgDaKhoaChu').textContent = st.duLieu.ky.dangMo ? 'Phiếu đã được quản lý đánh giá xong — chỉ xem, không sửa được nữa.'
+            : 'Kỳ “' + st.duLieu.ky.ten + '” đã đóng — chỉ xem.';
     }
 
     // ---------- Bước 2: Part 1 ----------
@@ -141,7 +150,7 @@
 
     function vungAnh(k) {
         var hop = el('div', { class: 'tdg-anh', 'data-anh': k.idKpiMau });
-        var url = '/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?t=' + Date.now();
+        var url = KyDanhGia.thamSo('/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?t=' + Date.now());
         if (k.coAnh) {
             if (k.laAnh) hop.appendChild(el('img', { src: url, alt: 'Ảnh minh chứng KPI', 'data-mo-anh': url }));
             else hop.appendChild(el('a', { href: url, target: '_blank', rel: 'noopener', class: 'btn btn-sm btn-outline-primary' },
@@ -368,6 +377,7 @@
                 return { idKpiMau: k.idKpiMau, chiSoKpi: k.chiSoKpi, ketQua: k.ketQua, mucTuDanhGia: coGiaTri(k.mucTuDanhGia) ? k.mucTuDanhGia : null };
             }),
             dsTieuChi: st.dsTieuChi.map(function (t) { return { idTieuChi: t.idTieuChi, tomTat: t.tomTat, diem: t.diem }; }),
+            idKy: st.duLieu.ky.idKy,
             hoanThanh: !!hoanThanh
         };
         Object.keys(P3).forEach(function (k) { body[k] = $(P3[k]).value; });
@@ -482,6 +492,7 @@
         taiAnh(o.getAttribute('data-dan-file'), fileTuClipboard(e.dataTransfer));
     });
 
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', taiDuLieu);
-    else taiDuLieu();
+    function batDau() { KyDanhGia.khoiTao('tdgKy', taiDuLieu); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', batDau);
+    else batDau();
 })();

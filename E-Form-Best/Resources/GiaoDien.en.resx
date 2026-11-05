@@ -226,6 +226,18 @@
   <data name="Tự đánh giá" xml:space="preserve">
     <value>Self-evaluation</value>
   </data>
+  <data name="Năng lực của tôi" xml:space="preserve">
+    <value>My competencies</value>
+  </data>
+  <data name="Bản đồ năng lực" xml:space="preserve">
+    <value>Competency map</value>
+  </data>
+  <data name="Kỳ đánh giá" xml:space="preserve">
+    <value>Evaluation periods</value>
+  </data>
+  <data name="Kế hoạch của tôi" xml:space="preserve">
+    <value>My development plan</value>
+  </data>
   <data name="Quản lý nhân viên" xml:space="preserve">
     <value>Employee management</value>
   </data>
@@ -273,5 +285,14 @@
   </data>
   <data name="Tổng quan" xml:space="preserve">
     <value>Overview</value>
+  </data>
+  <data name="Lộ trình của tôi" xml:space="preserve">
+    <value>My career path</value>
+  </data>
+  <data name="Duyệt phiếu đánh giá" xml:space="preserve">
+    <value>Evaluation approval</value>
+  </data>
+  <data name="Phân công &amp; tải việc" xml:space="preserve">
+    <value>Assignments &amp; workload</value>
   </data>
 </root>

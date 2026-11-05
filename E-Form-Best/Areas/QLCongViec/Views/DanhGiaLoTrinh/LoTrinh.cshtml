@@ -1,0 +1,103 @@
+@{
+    // Dùng chung: maNv rỗng = nhân viên chỉ xem (/LoTrinhCuaToi), có mã = quản lý (/LoTrinh/{maNv})
+    var maNv = ViewBag.MaNv as string ?? "";
+    var laCuaToi = string.IsNullOrEmpty(maNv);
+    ViewData["Title"] = laCuaToi ? "Lộ trình của tôi" : "Lộ trình thăng tiến";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
+
+<div id="ltt" class="tdg tdg-rong" data-ma-nv="@maNv">
+    <div class="tdg-toolbar">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            @if (!laCuaToi)
+            {
+                <a class="btn btn-sm btn-outline-secondary" href="/QLCongViec/DanhGia/NhanVien"><i class="fa fa-arrow-left"></i> Danh sách nhân viên</a>
+            }
+            <h1 class="tdg-title m-0"><i class="fa fa-road"></i> <span id="lttTieuDe">@ViewData["Title"]</span></h1>
+        </div>
+        <a class="btn btn-sm btn-outline-primary" href="@(laCuaToi ? "/QLCongViec/DanhGia/NangLucCuaToi" : "/QLCongViec/DanhGia/NangLuc/" + maNv)"><i class="fa fa-crosshairs"></i> Xem năng lực</a>
+    </div>
+
+    <div id="lttTrangThai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>
+
+    <div id="lttNoiDung" hidden>
+        <div id="lttCanhBao" class="tdg-alert tdg-alert-warn" hidden><i class="fa fa-exclamation-triangle"></i><div id="lttCanhBaoChu"></div></div>
+
+        <div class="kh-tom-tat">
+            <div class="kh-o"><span>Bậc hiện tại</span><b id="lttBac">—</b></div>
+            <div class="kh-o"><span>Bậc theo HRM</span><b id="lttBacHrm">—</b></div>
+            <div class="kh-o"><span>Đã giữ bậc</span><b id="lttDaGiu">—</b></div>
+            <div class="kh-o"><span>Thời gian quy định</span><b id="lttQuyDinh">—</b></div>
+            <div class="kh-o"><span>Bậc kế tiếp</span><b id="lttKeTiep">—</b></div>
+        </div>
+
+        <section class="tdg-card">
+            <h2 class="tdg-card-title">Lộ trình 7 bậc</h2>
+            <p class="tdg-card-desc">Theo tài liệu IT 25090401 (BP-HR-PR-026 A/2). Đáp ứng yêu cầu công việc và vượt qua bài kiểm tra thì có thể xét tăng bậc trước thời gian quy định. Mỗi 6–12 tháng đánh giá kỹ năng 1 lần.</p>
+            <ol class="lt-duong" id="lttDuong"></ol>
+            <div class="lt-chi-tiet" id="lttChiTiet"></div>
+        </section>
+
+        <section class="tdg-card" id="lttKhungNgay" hidden>
+            <h2 class="tdg-card-title">Ngày bắt đầu giữ bậc</h2>
+            <p class="tdg-card-desc">Dữ liệu cũ không có ngày này nên cần nhập tay; lên bậc qua xác nhận thì tự cập nhật.</p>
+            <form id="lttFormNgay" class="lt-hang-form" autocomplete="off">
+                <label class="tdg-field"><span>Ngày giữ bậc</span><input type="date" class="form-control" id="lttNgayGiu" /></label>
+                <button type="submit" class="btn btn-primary" id="lttLuuNgay"><i class="fa fa-save"></i> Lưu</button>
+                <span class="nl-loi" id="lttLoiNgay" role="alert"></span>
+            </form>
+        </section>
+
+        <section class="tdg-card" id="lttKhungThi" hidden>
+            <h2 class="tdg-card-title">Ghi kết quả thi</h2>
+            <p class="tdg-card-desc">Đạt không tự đổi bậc: quản lý bấm “Xác nhận lên bậc” sau khi đã thống nhất với HR.</p>
+            <form id="lttFormThi" autocomplete="off">
+                <div class="lt-luoi-thi">
+                    <label class="tdg-field"><span>Bậc đề xuất</span><select class="form-select" id="lttDeXuat" required></select></label>
+                    <label class="tdg-field"><span>Ngày thi</span><input type="date" class="form-control" id="lttNgayThi" required /></label>
+                    <label class="tdg-field"><span>Điểm (nếu có)</span><input type="number" class="form-control" id="lttDiem" min="0" max="1000" step="0.5" /></label>
+                    <label class="tdg-field"><span>Kết quả</span>
+                        <select class="form-select" id="lttKetQua" required>
+                            <option value="">Chọn</option>
+                            <option value="pass">Đạt</option>
+                            <option value="fail">Không đạt</option>
+                        </select>
+                    </label>
+                </div>
+                <label class="tdg-field mt-2"><span>Ghi chú</span><textarea class="form-control" id="lttGhiChu" rows="2" maxlength="1000"></textarea></label>
+                <div class="nl-luu">
+                    <span class="nl-loi" id="lttLoiThi" role="alert"></span>
+                    <button type="submit" class="btn btn-primary tdg-btn-main" id="lttLuuThi"><i class="fa fa-save"></i> Ghi kết quả</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="tdg-card">
+            <h2 class="tdg-card-title">Kết quả thi</h2>
+            <span class="nl-loi" id="lttLoiBang" role="alert"></span>
+            <div class="table-responsive">
+                <table class="tdg-bang kh-bang">
+                    <thead><tr><th>Ngày thi</th><th>Từ bậc</th><th>Lên bậc</th><th>Điểm</th><th>Kết quả</th><th>Ghi chú</th><th>Người ghi</th><th></th></tr></thead>
+                    <tbody id="lttBangThi"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="tdg-card">
+            <h2 class="tdg-card-title">Lịch sử bậc</h2>
+            <div class="table-responsive">
+                <table class="tdg-bang kh-bang">
+                    <thead><tr><th>Ngày hiệu lực</th><th>Từ bậc</th><th>Sang bậc</th><th>Ghi chú</th><th>Người thực hiện</th></tr></thead>
+                    <tbody id="lttBangLichSu"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/lo-trinh-thang-tien.js?v=1"></script>
+}

@@ -41,7 +41,12 @@
 
     function tai() {
         var ma = $('ctnv').getAttribute('data-ma-nv');
-        fetch('/QLCongViec/DanhGia/QuanLy/DuLieuDanhGia?maNv=' + encodeURIComponent(ma), { headers: { 'Accept': 'application/json' } })
+        var tt = $('ctnvTrangThai');
+        tt.hidden = false;
+        tt.classList.remove('tdg-error');
+        tt.textContent = 'Đang tải dữ liệu...';
+        $('ctnvNoiDung').hidden = true;
+        fetch(KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/DuLieuDanhGia?maNv=' + encodeURIComponent(ma)), { headers: { 'Accept': 'application/json' } })
             .then(function (res) {
                 if (res.status === 401) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
                 if (!res.ok && res.status !== 403) throw new Error('Máy chủ trả lỗi ' + res.status + '.');
@@ -60,7 +65,25 @@
             });
     }
 
+    // Đổi kỳ vẽ lại từ đầu trên cùng khung trang
+    var dsBieuDo = [];
+    function xoaCu() {
+        ['ctnvTrangThaiPhieu', 'ctnvXepLoai', 'ctnvDsThieu', 'ctnvBangKpi', 'ctnvBangTc', 'ctnvTongHop'].forEach(function (id) { $(id).textContent = ''; });
+        dsBieuDo.forEach(function (c) { c.destroy(); });
+        dsBieuDo = [];
+        document.querySelectorAll('#ctnv [data-bd-trong]').forEach(function (o) { o.remove(); });
+        $('ctnvRadar').hidden = false;
+        $('ctnvKpiChart').hidden = false;
+    }
+
+    // Canvas giữ lại trong DOM để kỳ khác còn vẽ được
+    function bieuDoTrong(canvas, chu) {
+        canvas.hidden = true;
+        canvas.after(el('div', { class: 'tdg-empty', 'data-bd-trong': '1', text: chu }));
+    }
+
     function ve(d) {
+        xoaCu();
         var tu = d.phieuTu, ql = d.phieuQuanLy, t = d.thongTin || {};
         var urlDanhGia = '/QLCongViec/DanhGia/DanhGiaNhanVien?maNv=' + encodeURIComponent(d.maNv);
         var urlHoSo = '/QLCongViec/DanhGia/NhanVien';
@@ -78,7 +101,9 @@
         $('ctnvTong').textContent = chinh && coGT(chinh.diemThucTe) ? fmt(so(chinh.diemThucTe)) : '—';
         $('ctnvXepLoai').appendChild(chinh && chinh.xepLoai ? el('span', { class: 'tdg-xl ' + lopXepLoai(chinh.xepLoai), text: chinh.xepLoai }) : el('span', { class: 'text-muted', text: 'Chưa đánh giá' }));
         $('ctnvDanhGia').href = urlDanhGia;
-        $('ctnvExcel').href = '/QLCongViec/DanhGia/QuanLy/Excel?maNv=' + encodeURIComponent(d.maNv);
+        $('ctnvExcel').href = KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/Excel?maNv=' + encodeURIComponent(d.maNv));
+        SoLieuKpi.ve('ctnvSoLieu', KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/SoLieu?maNv=' + encodeURIComponent(d.maNv)));
+        KyXacNhan.ve('ctnvKyXacNhan', { url: KyDanhGia.thamSo('/QLCongViec/DanhGia/KyXacNhanApi/NhanVien?maNv=' + encodeURIComponent(d.maNv)), maNv: d.maNv, idKy: d.ky.idKy });
 
         // --- Dữ liệu còn thiếu, kèm chỗ sửa ---
         var thieu = [];
@@ -99,7 +124,7 @@
             var net = function (mau, nen) {
                 return { borderColor: mau, backgroundColor: nen, borderWidth: 3, pointRadius: 4, pointBorderWidth: 2, pointBackgroundColor: '#fff', pointBorderColor: mau };
             };
-            new Chart($('ctnvRadar'), {
+            dsBieuDo.push(new Chart($('ctnvRadar'), {
                 type: dsTc.length >= 3 ? 'radar' : 'bar',
                 data: {
                     labels: dsTc.map(function (x) { return tachDong(x.ten); }),
@@ -125,14 +150,14 @@
                         tooltip: { callbacks: { title: function (it) { var l = it[0].label; return Array.isArray(l) ? l.join(' ') : l; }, label: function (it) { return it.dataset.label + ': ' + it.formattedValue + '%'; } } }
                     }
                 }
-            });
+            }));
         } else {
-            $('ctnvRadar').replaceWith(el('div', { class: 'tdg-empty', text: 'Chưa có dữ liệu đồ thị' }));
+            bieuDoTrong($('ctnvRadar'), 'Chưa có dữ liệu đồ thị');
         }
 
         // --- Part 1 ---
         if (dsKpi.length && window.Chart) {
-            new Chart($('ctnvKpiChart'), {
+            dsBieuDo.push(new Chart($('ctnvKpiChart'), {
                 type: 'bar',
                 data: {
                     labels: dsKpi.map(function (k, i) { return 'NV ' + (i + 1); }),
@@ -146,16 +171,16 @@
                     scales: { y: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } } },
                     plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { title: function (it) { return dsKpi[it[0].dataIndex].congViec; } } } }
                 }
-            });
+            }));
         } else {
-            $('ctnvKpiChart').replaceWith(el('div', { class: 'tdg-empty', text: 'Chưa có dữ liệu KPI' }));
+            bieuDoTrong($('ctnvKpiChart'), 'Chưa có dữ liệu KPI');
         }
 
         var mucDiem = function (muc, trongSo) { return coGT(muc) ? muc + ' / ' + fmt(so(trongSo) * muc / 5) : '—'; };
         var bang = $('ctnvBangKpi');
         if (!dsKpi.length) bang.appendChild(el('tr', null, [el('td', { colspan: 7, class: 'text-muted', text: 'Chưa có nhiệm vụ Part 1' })]));
         dsKpi.forEach(function (k) {
-            var urlMc = '/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?maNv=' + encodeURIComponent(d.maNv);
+            var urlMc = KyDanhGia.thamSo('/QLCongViec/DanhGia/AnhKpi/' + k.idKpiMau + '?maNv=' + encodeURIComponent(d.maNv));
             var anh = !k.coAnh ? document.createTextNode('—')
                 : k.laAnh ? el('img', { src: urlMc, alt: 'Ảnh minh chứng', 'data-mo-anh': '1' })
                 : el('a', { href: urlMc, target: '_blank', rel: 'noopener', text: 'Tài liệu' });
@@ -206,6 +231,7 @@
         if (anh) window.open(anh.getAttribute('src'), '_blank', 'noopener');
     });
 
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tai);
-    else tai();
+    function batDau() { KyDanhGia.khoiTao('ctnvKy', tai); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', batDau);
+    else batDau();
 })();

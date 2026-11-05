@@ -5,6 +5,7 @@
 }
 
 <link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
 
 <div id="ctnv" class="tdg tdg-rong" data-ma-nv="@maNv">
     <div class="tdg-toolbar">
@@ -14,9 +15,12 @@
         </div>
     </div>
 
+    <div id="ctnvKy" class="ky-dg"></div>
+
     <div id="ctnvTrangThai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>
 
     <div id="ctnvNoiDung" hidden>
+        <div id="ctnvKyXacNhan"></div>
         <div id="ctnvThieu" class="tdg-alert tdg-alert-warn" hidden>
             <i class="fa fa-exclamation-triangle"></i>
             <div class="flex-grow-1"><b>Dữ liệu còn thiếu</b><ul id="ctnvDsThieu" class="tdg-ds-thieu"></ul></div>
@@ -32,7 +36,13 @@
                 <div class="tdg-nv-dong"><span>Tổng (100)</span><b id="ctnvTong"></b></div>
                 <div class="tdg-nv-dong"><span>Xếp loại</span><span id="ctnvXepLoai"></span></div>
                 <div class="d-flex gap-2 flex-wrap mt-3">
-                    <a class="btn btn-sm btn-primary tdg-btn-main" style="min-width:0" id="ctnvDanhGia" href="#"><i class="fa fa-pencil-square-o"></i> Đánh giá</a>
+                    @if (ViewBag.LaQuanLy == true)
+                    {
+                        <a class="btn btn-sm btn-primary tdg-btn-main" style="min-width:0" id="ctnvDanhGia" href="#"><i class="fa fa-pencil-square-o"></i> Đánh giá</a>
+                    }
+                    <a class="btn btn-sm btn-outline-primary" href="/QLCongViec/DanhGia/NangLuc/@maNv"><i class="fa fa-crosshairs"></i> Năng lực</a>
+                    <a class="btn btn-sm btn-outline-primary" href="/QLCongViec/DanhGia/KeHoach/@maNv"><i class="fa fa-flag-checkered"></i> Kế hoạch</a>
+                    <a class="btn btn-sm btn-outline-primary" href="/QLCongViec/DanhGia/LoTrinh/@maNv"><i class="fa fa-road"></i> Lộ trình</a>
                     <a class="btn btn-sm btn-outline-success" id="ctnvExcel" href="#"><i class="fa fa-file-excel-o"></i> Excel</a>
                 </div>
             </section>
@@ -62,6 +72,7 @@
         <section class="tdg-card">
             <h2 class="tdg-card-title">Part 1 : Work Performance Measurement</h2>
             <p class="tdg-card-desc">Nhiệm vụ, KPI, kết quả, trọng số và mức đánh giá (điểm = trọng số × mức / 5)</p>
+            <div id="ctnvSoLieu"></div>
             <div class="table-responsive">
                 <table class="tdg-bang tdg-bang-kpi">
                     <thead><tr><th>Nhiệm vụ</th><th>Key Performance Index</th><th>Result</th><th>Weight</th><th>Tự ĐG (mức / điểm)</th><th>Quản lý (mức / điểm)</th><th>Minh chứng</th></tr></thead>
@@ -96,5 +107,8 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="~/js/chi-tiet-nhan-vien-danh-gia.js?v=4"></script>
+    <script src="~/js/ky-danh-gia.js?v=1"></script>
+    <script src="~/js/so-lieu-kpi.js?v=1"></script>
+    <script src="~/js/ky-xac-nhan.js?v=1"></script>
+    <script src="~/js/chi-tiet-nhan-vien-danh-gia.js?v=7"></script>
 }

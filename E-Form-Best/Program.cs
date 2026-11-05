@@ -157,6 +157,13 @@ builder.Services.AddHostedService<SwitchPingWorker>();
 // Tự đánh giá hiệu suất (/QLCongViec/DanhGia), bảng DG_*
 builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaService>();
 builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaQuanLyService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaNangLucService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaSoLieuService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaMucTieuService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaLoTrinhService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaKyXacNhanService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.DanhGiaPhanCongService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QLCongViec.Services.TongQuanCaNhanService>();
 // Quét dải IP máy chủ (tab "Máy chủ" trang Switch, mặc định PFVN 10.0.193.x). Tắt bằng QuetIp__Bat=false
 builder.Services.AddHostedService<QuetIpWorker>();
 // Server và lưu trữ (/QLServer): cùng khuôn Switch, chỉ ping. Tắt job bằng Server__GhiLichSu=false

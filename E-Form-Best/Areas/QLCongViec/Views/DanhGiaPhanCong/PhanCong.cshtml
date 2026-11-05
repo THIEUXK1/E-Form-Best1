@@ -1,0 +1,92 @@
+@{
+    ViewData["Title"] = "Phân công & tải việc";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+    var duocSua = ViewBag.DuocSua == true;
+}
+
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
+
+<div id="pcv" class="tdg tdg-rong" data-duoc-sua="@(duocSua ? "1" : "0")">
+    <div class="tdg-head">
+        <h1 class="tdg-title"><span class="tdg-title-icon"><i class="fa fa-th"></i></span> Phân công & tải việc</h1>
+        <p class="tdg-sub">Overload = số lượng chia số người phụ trách chính, vượt chuẩn mỗi người. Đầu việc chưa có đủ số lượng và chuẩn thì chưa kết luận được.</p>
+    </div>
+
+    <div id="pcvTrangThai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>
+
+    <div id="pcvNoiDung" hidden>
+        <div class="kh-tom-tat">
+            <div class="kh-o"><span>Đầu việc</span><b id="pcvTong">0</b></div>
+            <div class="kh-o kh-o-tre"><span>Overload</span><b id="pcvOverload">0</b></div>
+            <div class="kh-o kh-o-tre"><span>Chỉ 1 người nắm</span><b id="pcvMotNguoi">0</b></div>
+            <div class="kh-o"><span>Không có dự phòng</span><b id="pcvKhongDp">0</b></div>
+            <div class="kh-o kh-o-tre"><span>Chưa có người</span><b id="pcvChuaCo">0</b></div>
+            <div class="kh-o"><span>Chưa đủ số liệu xét tải</span><b id="pcvChuaChuan">0</b></div>
+        </div>
+
+        <section class="tdg-card">
+            <h2 class="tdg-card-title">Tải theo người</h2>
+            <p class="tdg-card-desc">Đơn IT tính từ đầu năm tới nay, đơn nhiều người hỗ trợ được tính cho từng người. Dùng để đối chiếu phân công trên giấy với việc thực tế.</p>
+            <div class="table-responsive">
+                <table class="tdg-bang kh-bang">
+                    <thead><tr><th>Người</th><th>Việc chính</th><th>Dự phòng</th><th>Việc Overload</th><th>Chỉ mình nắm</th><th>Đơn IT</th></tr></thead>
+                    <tbody id="pcvBangNguoi"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="tdg-card">
+            <div class="pcv-dau">
+                <div>
+                    <h2 class="tdg-card-title">Ma trận đầu việc × người</h2>
+                    <p class="tdg-card-desc">@(duocSua ? "Bấm vào ô để đổi vai trò: trống → C (chính) → D1 → D2 → trống." : "C = chính, D1/D2 = dự phòng.")</p>
+                </div>
+                <div class="pcv-loc">
+                    <label class="pcv-chon"><input type="checkbox" id="pcvChiCanhBao" /> Chỉ việc có cảnh báo</label>
+                    <label class="pcv-chon"><input type="checkbox" id="pcvChiCoViec" checked /> Chỉ người đang có việc</label>
+                    @if (duocSua)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" id="pcvThem"><i class="fa fa-plus"></i> Thêm đầu việc</button>
+                    }
+                </div>
+            </div>
+            <span class="nl-loi" id="pcvLoi" role="alert"></span>
+            <div class="pcv-cuon">
+                <table class="pcv-bang">
+                    <thead id="pcvDau"></thead>
+                    <tbody id="pcvThan"></tbody>
+                </table>
+            </div>
+        </section>
+
+        @if (duocSua)
+        {
+            <section class="tdg-card" id="pcvKhungForm" hidden>
+                <h2 class="tdg-card-title" id="pcvTieuDeForm">Thêm đầu việc</h2>
+                <form id="pcvForm" autocomplete="off">
+                    <div class="tdg-grid2">
+                        <label class="tdg-field"><span>Nhóm</span><input class="form-control" id="pcvNhom" list="pcvDsNhom" maxlength="50" required /><datalist id="pcvDsNhom"></datalist></label>
+                        <label class="tdg-field"><span>Tên đầu việc</span><input class="form-control" id="pcvTen" maxlength="300" required /></label>
+                        <label class="tdg-field"><span>Tên tiếng Anh</span><input class="form-control" id="pcvTenEn" maxlength="300" /></label>
+                        <div class="lt-hang-form">
+                            <label class="tdg-field"><span>Số lượng phục vụ</span><input type="number" class="form-control" id="pcvSoLuong" min="0" /></label>
+                            <label class="tdg-field"><span>Chuẩn mỗi người</span><input type="number" class="form-control" id="pcvChuan" min="1" /></label>
+                        </div>
+                    </div>
+                    <label class="tdg-field mt-2"><span>Mô tả</span><textarea class="form-control" id="pcvMoTa" rows="2"></textarea></label>
+                    <div class="nl-luu">
+                        <span class="nl-loi" id="pcvLoiForm" role="alert"></span>
+                        <button type="button" class="btn btn-outline-danger" id="pcvXoa" hidden>Xoá đầu việc</button>
+                        <button type="button" class="btn btn-outline-secondary" id="pcvHuy">Huỷ</button>
+                        <button type="submit" class="btn btn-primary tdg-btn-main" id="pcvLuu"><i class="fa fa-save"></i> Lưu</button>
+                    </div>
+                </form>
+            </section>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/phan-cong-tai-viec.js?v=1"></script>
+}

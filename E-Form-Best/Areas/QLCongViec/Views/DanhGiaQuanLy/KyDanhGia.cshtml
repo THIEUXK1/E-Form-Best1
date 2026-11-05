@@ -1,0 +1,42 @@
+@{
+    ViewData["Title"] = "Kỳ đánh giá";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
+
+<div id="kydg" class="tdg tdg-rong">
+    <div class="tdg-head">
+        <h1 class="tdg-title"><span class="tdg-title-icon"><i class="fa fa-calendar"></i></span> Kỳ đánh giá</h1>
+        <p class="tdg-sub">Mỗi lần có một kỳ đang mở. Đóng kỳ thì phiếu của kỳ đó chỉ còn xem được, kỳ mới bắt đầu phiếu trắng.</p>
+    </div>
+
+    <section class="tdg-card">
+        <h2 class="tdg-card-title" id="kydgTieuDeForm">Mở kỳ mới</h2>
+        <p class="tdg-card-desc">KPI và tiêu chí được giao ở “Hồ sơ & KPI” tự áp dụng cho kỳ đang mở.</p>
+        <form id="kydgForm" class="ky-form" autocomplete="off">
+            <label class="tdg-field"><span>Tên kỳ</span><input type="text" class="form-control" id="kydgTen" maxlength="100" placeholder="vd Năm 2027" required /></label>
+            <label class="tdg-field"><span>Ngày bắt đầu</span><input type="date" class="form-control" id="kydgBatDau" /></label>
+            <label class="tdg-field"><span>Hạn nộp</span><input type="date" class="form-control" id="kydgHanNop" /></label>
+            <button type="submit" class="btn btn-primary tdg-btn-main" id="kydgLuu" style="min-width:0"><i class="fa fa-plus"></i> Mở kỳ</button>
+            <button type="button" class="btn btn-outline-secondary" id="kydgHuySua" hidden>Huỷ sửa</button>
+        </form>
+        <div class="nl-loi mt-2" id="kydgLoi"></div>
+    </section>
+
+    <section class="tdg-card">
+        <h2 class="tdg-card-title">Danh sách kỳ</h2>
+        <div id="kydgTai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải...</div>
+        <div class="table-responsive">
+            <table class="tdg-bang ky-bang">
+                <thead><tr><th></th><th>Tên kỳ</th><th>Ngày bắt đầu</th><th>Hạn nộp</th><th>Số phiếu</th><th></th></tr></thead>
+                <tbody id="kydgBang"></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/quan-ly-ky-danh-gia.js?v=1"></script>
+}

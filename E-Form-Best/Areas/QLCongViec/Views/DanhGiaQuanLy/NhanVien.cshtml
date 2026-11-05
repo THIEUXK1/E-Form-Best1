@@ -5,6 +5,7 @@
 
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
 <link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
 
 <div id="qlnv" class="tdg tdg-rong fp-page">
     <div class="tdg-toolbar">
@@ -15,9 +16,11 @@
         <form class="tdg-them" id="qlnvFormThem" autocomplete="off">
             <input type="text" class="form-control" id="qlnvMaThem" placeholder="Mã NV, vd V240298" maxlength="20" />
             <button type="submit" class="btn btn-primary tdg-btn-main" style="min-width:0"><i class="fa fa-user-plus"></i> Thêm</button>
-            <a class="btn btn-outline-success" href="/QLCongViec/DanhGia/QuanLy/ExcelTatCa" title="Mỗi nhân viên 1 sheet theo mẫu Performance Evaluation Form 2025"><i class="fa fa-file-excel-o"></i> Excel tất cả</a>
+            <a class="btn btn-outline-success" id="qlnvExcelTatCa" href="/QLCongViec/DanhGia/QuanLy/ExcelTatCa" title="Mỗi nhân viên 1 sheet theo mẫu Performance Evaluation Form 2025"><i class="fa fa-file-excel-o"></i> Excel tất cả</a>
         </form>
     </div>
+
+    <div id="qlnvKy" class="ky-dg"></div>
 
     <section class="tdg-card" data-fp-filter>
         <div class="tdg-loc">
@@ -97,6 +100,7 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/quan-ly-nhan-vien-danh-gia.js?v=6"></script>
+    <script src="~/js/ky-danh-gia.js?v=1"></script>
+    <script src="~/js/quan-ly-nhan-vien-danh-gia.js?v=9"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }

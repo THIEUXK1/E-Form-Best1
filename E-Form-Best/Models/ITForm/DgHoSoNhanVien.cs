@@ -34,4 +34,8 @@ public partial class DgHoSoNhanVien
     [Column("nguoi_ngung")]
     [StringLength(255)]
     public string? NguoiNgung { get; set; }
+
+    /// <summary>Ngày bắt đầu giữ bậc hiện tại: quản lý nhập tay, tự cập nhật khi xác nhận lên bậc.</summary>
+    [Column("ngay_giu_bac")]
+    public DateOnly? NgayGiuBac { get; set; }
 }

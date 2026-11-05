@@ -11,12 +11,17 @@ namespace E_Form_Best.Areas.QLCongViec.Services
     ///   Part 2 (50đ): tiêu chí năng lực riêng từng người (DG_TieuChiNangLuc), chấm 0 → điểm tối đa của tiêu chí.
     ///   Part 3: điểm mạnh, điểm yếu, lộ trình 1–3 năm, kế hoạch phát triển 1 năm (chữ, không tính điểm).
     ///   Tổng = Part 1 + Part 2 (thang 100). Chuẩn = mức 3 "As a standard" = 60/100 → chênh lệch = tổng − 60 → xếp loại.
-    /// Cột cũ (diem_tu_danh_gia %, DG_PhieuNangLuc, ma trận cấp bậc) giữ nguyên trong DB, code không ghi nữa.
+    /// Cột cũ (diem_tu_danh_gia %) giữ nguyên trong DB, code không ghi nữa. Khung năng lực + GAP theo cấp bậc: DanhGiaNangLucService.
+    /// Từ 05/11/2026 phiếu thuộc từng kỳ (DG_KyDanhGia): chỉ kỳ đang mở ghi được; kỳ đã đóng đọc theo dòng đã lưu trong phiếu
+    /// (KPI/tiêu chí bỏ giao sau đó vẫn phải hiện lại đúng như lúc chấm).
     /// </summary>
     public class DanhGiaService
     {
         public const string LoaiTuDanhGia = "self";
         public const string LoaiQuanLy = "manager";
+        public const string KyDangMo = "open";
+        public const string KyDaDong = "closed";
+        public const string LoiKyDong = "Kỳ đánh giá này đã đóng, chỉ xem được.";
         // App cũ dùng 6B khi nhân viên chưa được gán cấp bậc
         public const string CapBacMacDinh = "6B";
         public const decimal DiemMoiPhan = 50m;
@@ -32,6 +37,18 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         }
 
         #region DTO
+
+        public class KyDto
+        {
+            public Guid IdKy { get; set; }
+            public string Ten { get; set; } = "";
+            public DateOnly? NgayBatDau { get; set; }
+            public DateOnly? HanNop { get; set; }
+            public string TrangThai { get; set; } = "";
+            public bool ThangCu { get; set; }
+            public bool DangMo => TrangThai == KyDangMo;
+            public int SoPhieu { get; set; }
+        }
 
         public class HoSoDanhGia
         {
@@ -122,6 +139,8 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             public string? DiemYeu { get; set; }
             public string? LoTrinh { get; set; }
             public string? KeHoach { get; set; }
+            // Kỳ đang xem trên trình duyệt: tab mở từ kỳ trước không được ghi nhầm sang kỳ mới
+            public Guid IdKy { get; set; }
             // true = bấm "Hoàn thành" (ghi ngày nộp); false = lưu nháp khi chuyển bước
             public bool HoanThanh { get; set; }
         }
@@ -160,6 +179,32 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             if (string.IsNullOrEmpty(t)) return null;
             return t.Length > DoDaiChuToiDa ? t[..DoDaiChuToiDa] : t;
         }
+
+        #endregion
+
+        #region Kỳ đánh giá
+
+        public async Task<List<KyDto>> DsKyAsync()
+        {
+            var ds = await _context.DgKyDanhGias.AsNoTracking()
+                .Select(k => new KyDto
+                {
+                    IdKy = k.IdKy, Ten = k.Ten, NgayBatDau = k.NgayBatDau, HanNop = k.HanNop, TrangThai = k.TrangThai, ThangCu = k.ThangCu,
+                    SoPhieu = _context.DgPhieuDanhGias.Count(p => p.IdKy == k.IdKy)
+                })
+                .ToListAsync();
+            return ds.OrderByDescending(x => x.DangMo).ThenByDescending(x => x.NgayBatDau).ThenBy(x => x.Ten).ToList();
+        }
+
+        /// <summary>Kỳ theo id; không truyền thì kỳ đang mở, không có kỳ mở thì kỳ gần nhất (null nếu chưa có kỳ nào).</summary>
+        public async Task<KyDto?> LayKyAsync(Guid? idKy)
+        {
+            var ds = await DsKyAsync();
+            return idKy == null ? ds.FirstOrDefault() : ds.FirstOrDefault(x => x.IdKy == idKy);
+        }
+
+        public Task<Guid?> IdKyDangMoAsync()
+            => _context.DgKyDanhGias.AsNoTracking().Where(x => x.TrangThai == KyDangMo).Select(x => (Guid?)x.IdKy).FirstOrDefaultAsync();
 
         #endregion
 
@@ -217,6 +262,21 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 .Select(x => new DgNhomCongViec { IdNhomCongViec = x.IdNhomCongViec, MaNhom = x.MaNhom, TenNhom = x.TenNhom })
                 .ToListAsync();
 
+        /// <summary>
+        /// Hai bên đã gửi → phiếu chờ cấp trên duyệt; quản lý gửi lại sau khi bị từ chối cũng đi vào đây.
+        /// Phiếu đã qua bước duyệt giữ nguyên để lưu lại không làm mất chữ ký.
+        /// </summary>
+        public void VaoLuongKy(DgPhieuDanhGia phieuQl, string nguoi, DateTime bayGio)
+        {
+            if (phieuQl.BuocKy is not (null or DgPhieuDanhGia.BuocTuChoi)) return;
+            phieuQl.BuocKy = DgPhieuDanhGia.BuocChoDuyet;
+            phieuQl.LyDoTuChoi = null;
+            _context.DgPhieuKyLichSus.Add(new DgPhieuKyLichSu
+            {
+                IdLichSu = Guid.NewGuid(), IdPhieu = phieuQl.IdPhieu, HanhDong = DgPhieuKyLichSu.GuiDuyet, Nguoi = nguoi, Ngay = bayGio
+            });
+        }
+
         public static PhieuDto? SangDto(DgPhieuDanhGia? p) => p == null ? null : new PhieuDto
         {
             IdPhieu = p.IdPhieu, TrangThai = p.TrangThai,
@@ -225,20 +285,46 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             DiemManh = p.DiemManh, DiemYeu = p.DiemYeu, LoTrinh = p.LoTrinh, KeHoach = p.KeHoach
         };
 
-        public async Task<PhieuDto?> LayPhieuTuDanhGiaAsync(string maNv)
+        public async Task<PhieuDto?> LayPhieuTuDanhGiaAsync(string maNv, Guid idKy)
             => SangDto(await _context.DgPhieuDanhGias.AsNoTracking()
-                .FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == LoaiTuDanhGia));
+                .FirstOrDefaultAsync(x => x.IdKy == idKy && x.MaNhanVien == maNv && x.Loai == LoaiTuDanhGia));
 
-        /// <summary>KPI được giao (còn hiệu lực), ghép phần đã nhập trong phiếu nếu có.</summary>
-        public async Task<List<KpiDto>> LayKpiAsync(string maNv, Guid? idPhieu)
+        public class KpiMauDto
         {
-            var dsMau = await (
-                from pc in _context.DgKpiPhanCongs
-                join m in _context.DgKpiMaus on pc.IdKpiMau equals m.IdKpiMau
-                where pc.MaNhanVien == maNv && pc.TrangThai == "active" && m.TrangThai == "active"
-                orderby m.ThuTu, m.CongViec
-                select new { m.IdKpiMau, m.CongViec, m.KpiGoiY, m.KetQuaGoiY, m.TrongSoBoPhan }
-            ).AsNoTracking().ToListAsync();
+            public Guid IdKpiMau { get; set; }
+            public string CongViec { get; set; } = "";
+            public string? KpiGoiY { get; set; }
+            public string? KetQuaGoiY { get; set; }
+            public decimal? TrongSoBoPhan { get; set; }
+        }
+
+        /// <summary>
+        /// Danh sách KPI hiển thị: kỳ đang mở theo phân công hiện tại; kỳ đã đóng theo đúng các dòng đã lưu trong phiếu,
+        /// để việc giao lại KPI sau này không làm đổi phiếu cũ.
+        /// </summary>
+        public async Task<List<KpiMauDto>> LayDsKpiMauAsync(string maNv, bool kyDangMo, IReadOnlyCollection<Guid> dsIdPhieu)
+        {
+            if (kyDangMo)
+                return await (
+                    from pc in _context.DgKpiPhanCongs
+                    join m in _context.DgKpiMaus on pc.IdKpiMau equals m.IdKpiMau
+                    where pc.MaNhanVien == maNv && pc.TrangThai == "active" && m.TrangThai == "active"
+                    orderby m.ThuTu, m.CongViec
+                    select new KpiMauDto { IdKpiMau = m.IdKpiMau, CongViec = m.CongViec, KpiGoiY = m.KpiGoiY, KetQuaGoiY = m.KetQuaGoiY, TrongSoBoPhan = m.TrongSoBoPhan }
+                ).AsNoTracking().ToListAsync();
+
+            var dsId = await _context.DgPhieuKpis.AsNoTracking().Where(x => dsIdPhieu.Contains(x.IdPhieu)).Select(x => x.IdKpiMau).Distinct().ToListAsync();
+            return await _context.DgKpiMaus.AsNoTracking()
+                .Where(m => dsId.Contains(m.IdKpiMau))
+                .OrderBy(m => m.ThuTu).ThenBy(m => m.CongViec)
+                .Select(m => new KpiMauDto { IdKpiMau = m.IdKpiMau, CongViec = m.CongViec, KpiGoiY = m.KpiGoiY, KetQuaGoiY = m.KetQuaGoiY, TrongSoBoPhan = m.TrongSoBoPhan })
+                .ToListAsync();
+        }
+
+        /// <summary>KPI được giao (hoặc KPI đã lưu trong phiếu nếu kỳ đã đóng), ghép phần đã nhập trong phiếu nếu có.</summary>
+        public async Task<List<KpiDto>> LayKpiAsync(string maNv, Guid? idPhieu, bool kyDangMo)
+        {
+            var dsMau = await LayDsKpiMauAsync(maNv, kyDangMo, idPhieu == null ? Array.Empty<Guid>() : new[] { idPhieu.Value });
 
             var daNhap = idPhieu == null
                 ? new Dictionary<Guid, DgPhieuKpi>()
@@ -266,11 +352,21 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             }).ToList();
         }
 
-        /// <summary>Tiêu chí Part 2 đang dùng của maNv, ghép tóm tắt + điểm trong phiếu idPhieu (nếu có).</summary>
-        public async Task<List<TieuChiDto>> LayTieuChiAsync(string maNv, Guid? idPhieu)
+        /// <summary>
+        /// Tiêu chí Part 2 đang dùng của maNv (kỳ đã đóng: các tiêu chí đã lưu trong dsIdPhieu, kể cả tiêu chí đã bỏ sau đó),
+        /// ghép tóm tắt + điểm trong phiếu idPhieu (nếu có).
+        /// </summary>
+        public async Task<List<TieuChiDto>> LayTieuChiAsync(string maNv, Guid? idPhieu, IReadOnlyCollection<Guid>? dsIdPhieuKyDong = null)
         {
-            var ds = await _context.DgTieuChiNangLucs.AsNoTracking()
-                .Where(x => x.MaNhanVien == maNv && x.TrangThai == "active")
+            var truyVan = _context.DgTieuChiNangLucs.AsNoTracking().Where(x => x.MaNhanVien == maNv);
+            if (dsIdPhieuKyDong == null)
+                truyVan = truyVan.Where(x => x.TrangThai == "active");
+            else
+            {
+                var dsId = await _context.DgPhieuTieuChis.AsNoTracking().Where(x => dsIdPhieuKyDong.Contains(x.IdPhieu)).Select(x => x.IdTieuChi).Distinct().ToListAsync();
+                truyVan = truyVan.Where(x => dsId.Contains(x.IdTieuChi));
+            }
+            var ds = await truyVan
                 .OrderBy(x => x.ThuTu).ThenBy(x => x.Ten)
                 .Select(x => new TieuChiDto { IdTieuChi = x.IdTieuChi, Ten = x.Ten, MoTa = x.MoTa, DiemToiDa = x.DiemToiDa })
                 .ToListAsync();
@@ -293,18 +389,19 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         #region Ghi
 
         /// <summary>
-        /// Lấy phiếu theo loại (self/manager), chưa có thì tạo. UNIQUE (ma_nhan_vien, loai) ở DB: hai request song song
+        /// Lấy phiếu của kỳ theo loại (self/manager), chưa có thì tạo. UNIQUE (id_ky, ma_nhan_vien, loai) ở DB: hai request song song
         /// cùng tạo thì request thua nhận lỗi trùng khoá → đọc lại phiếu bên thắng, không sinh phiếu thứ hai.
         /// </summary>
-        public async Task<DgPhieuDanhGia> LayHoacTaoPhieuAsync(string maNv, string loai = LoaiTuDanhGia)
+        public async Task<DgPhieuDanhGia> LayHoacTaoPhieuAsync(string maNv, Guid idKy, string loai = LoaiTuDanhGia)
         {
-            var p = await _context.DgPhieuDanhGias.FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == loai);
+            var p = await _context.DgPhieuDanhGias.FirstOrDefaultAsync(x => x.IdKy == idKy && x.MaNhanVien == maNv && x.Loai == loai);
             if (p != null) return p;
 
             var hoSo = await LayHoSoAsync(maNv);
             p = new DgPhieuDanhGia
             {
                 IdPhieu = Guid.NewGuid(),
+                IdKy = idKy,
                 MaNhanVien = maNv,
                 Loai = loai,
                 TrangThai = "pending",
@@ -321,7 +418,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
             {
                 _context.Entry(p).State = EntityState.Detached;
-                return await _context.DgPhieuDanhGias.FirstAsync(x => x.MaNhanVien == maNv && x.Loai == loai);
+                return await _context.DgPhieuDanhGias.FirstAsync(x => x.IdKy == idKy && x.MaNhanVien == maNv && x.Loai == loai);
             }
         }
 
@@ -351,6 +448,8 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         /// <summary>Trả null nếu hợp lệ, ngược lại là thông báo lỗi cho người dùng.</summary>
         public async Task<string?> LuuTuDanhGiaAsync(string maNv, LuuTuDanhGiaVao vao)
         {
+            if (vao.IdKy != await IdKyDangMoAsync()) return LoiKyDong;
+
             // KPI: chỉ ghi cho KPI đang được giao, nhân viên không tự thêm KPI ngoài phân công
             var kpiDuocGiao = await _context.DgKpiPhanCongs
                 .Where(x => x.MaNhanVien == maNv && x.TrangThai == "active")
@@ -382,7 +481,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                     return "Chưa chấm đủ các tiêu chí năng lực ở Part 2.";
             }
 
-            var phieu = await LayHoacTaoPhieuAsync(maNv);
+            var phieu = await LayHoacTaoPhieuAsync(maNv, vao.IdKy);
             if (phieu.TrangThai == "completed")
                 return "Phiếu đã được quản lý đánh giá xong, không sửa được nữa.";
 
@@ -392,7 +491,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             // KPI: upsert theo (phiếu, KPI mẫu); giữ nguyên trọng số/điểm quản lý/ảnh đã có
             var kpiCu = await _context.DgPhieuKpis.Where(x => x.IdPhieu == phieu.IdPhieu).ToDictionaryAsync(x => x.IdKpiMau);
             // Quản lý chấm trước thì trọng số lấy theo phiếu quản lý, không lấy trọng số gợi ý của KPI mẫu
-            var phieuQl = await _context.DgPhieuDanhGias.FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == LoaiQuanLy);
+            var phieuQl = await _context.DgPhieuDanhGias.FirstOrDefaultAsync(x => x.IdKy == vao.IdKy && x.MaNhanVien == maNv && x.Loai == LoaiQuanLy);
             var trongSoQl = phieuQl == null ? new Dictionary<Guid, decimal>()
                 : await _context.DgPhieuKpis.Where(x => x.IdPhieu == phieuQl.IdPhieu).ToDictionaryAsync(x => x.IdKpiMau, x => x.TrongSo);
             foreach (var k in kpiVao)
@@ -435,6 +534,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             {
                 phieu.TrangThai = "completed";
                 phieuQl.TrangThai = "completed";
+                VaoLuongKy(phieuQl, maNv, bayGio);
             }
 
             await _context.SaveChangesAsync();
@@ -444,9 +544,9 @@ namespace E_Form_Best.Areas.QLCongViec.Services
 
         /// <summary>
         /// Dòng KPI để gắn ảnh minh chứng. App cũ bắt "lưu KPI trước khi upload"; ở đây tự tạo phiếu + dòng
-        /// KPI nếu chưa có. Trả null nếu KPI không được giao cho người này (chống IDOR theo id gửi lên).
+        /// KPI nếu chưa có, trong kỳ đang mở. Trả null nếu KPI không được giao cho người này (chống IDOR theo id gửi lên).
         /// </summary>
-        public async Task<DgPhieuKpi?> LayHoacTaoDongKpiAsync(string maNv, Guid idKpiMau)
+        public async Task<DgPhieuKpi?> LayHoacTaoDongKpiAsync(string maNv, Guid idKy, Guid idKpiMau)
         {
             var mau = await _context.DgKpiPhanCongs
                 .Where(x => x.MaNhanVien == maNv && x.IdKpiMau == idKpiMau && x.TrangThai == "active")
@@ -454,7 +554,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 .FirstOrDefaultAsync();
             if (mau == null) return null;
 
-            var phieu = await LayHoacTaoPhieuAsync(maNv);
+            var phieu = await LayHoacTaoPhieuAsync(maNv, idKy);
             var dong = await _context.DgPhieuKpis.FirstOrDefaultAsync(x => x.IdPhieu == phieu.IdPhieu && x.IdKpiMau == idKpiMau);
             if (dong != null) return dong;
 
@@ -482,11 +582,11 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             }
         }
 
-        /// <summary>Dòng KPI trong phiếu tự đánh giá của chính maNv (null nếu chưa có / không phải của người này).</summary>
-        public Task<DgPhieuKpi?> LayDongKpiAsync(string maNv, Guid idKpiMau)
+        /// <summary>Dòng KPI trong phiếu tự đánh giá kỳ idKy của chính maNv (null nếu chưa có / không phải của người này).</summary>
+        public Task<DgPhieuKpi?> LayDongKpiAsync(string maNv, Guid idKy, Guid idKpiMau)
             => _context.DgPhieuKpis
                 .Where(k => k.IdKpiMau == idKpiMau
-                            && _context.DgPhieuDanhGias.Any(p => p.IdPhieu == k.IdPhieu && p.MaNhanVien == maNv && p.Loai == LoaiTuDanhGia))
+                            && _context.DgPhieuDanhGias.Any(p => p.IdPhieu == k.IdPhieu && p.IdKy == idKy && p.MaNhanVien == maNv && p.Loai == LoaiTuDanhGia))
                 .FirstOrDefaultAsync();
 
         public async Task GanAnhKpiAsync(DgPhieuKpi dong, string? tenFile)
@@ -496,8 +596,8 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> PhieuDaKhoaAsync(string maNv)
-            => await _context.DgPhieuDanhGias.AnyAsync(x => x.MaNhanVien == maNv && x.Loai == LoaiTuDanhGia && x.TrangThai == "completed");
+        public async Task<bool> PhieuDaKhoaAsync(string maNv, Guid idKy)
+            => await _context.DgPhieuDanhGias.AnyAsync(x => x.IdKy == idKy && x.MaNhanVien == maNv && x.Loai == LoaiTuDanhGia && x.TrangThai == "completed");
 
         #endregion
     }

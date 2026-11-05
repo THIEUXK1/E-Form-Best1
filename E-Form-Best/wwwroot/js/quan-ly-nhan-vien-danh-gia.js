@@ -62,7 +62,7 @@
 
     // ---------- Danh sách ----------
     function taiDanhSach() {
-        goiApi('/QLCongViec/DanhGia/QuanLy/DanhSach')
+        goiApi(KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/DanhSach'))
             .then(function (kq) {
                 st.ds = kq.duLieu || [];
                 $('qlnvTrangThaiTai').hidden = true;
@@ -149,7 +149,10 @@
                 el('a', { class: 'btn btn-sm btn-outline-secondary tdg-nut-rong', href: '/QLCongViec/DanhGia/ChiTiet/' + encodeURIComponent(nv.maNv) }, [el('i', { class: 'fa fa-eye' }), ' Xem chi tiết']),
                 el('a', { class: 'btn btn-sm btn-primary tdg-btn-main', style: 'min-width:0', href: '/QLCongViec/DanhGia/DanhGiaNhanVien?maNv=' + encodeURIComponent(nv.maNv) }, [el('i', { class: 'fa fa-pencil-square-o' }), ' Đánh giá']),
                 el('button', { type: 'button', class: 'btn btn-sm btn-outline-primary', 'data-sua': nv.maNv }, [el('i', { class: 'fa fa-sliders' }), ' Hồ sơ & KPI']),
-                el('a', { class: 'btn btn-sm btn-outline-success', href: '/QLCongViec/DanhGia/QuanLy/Excel?maNv=' + encodeURIComponent(nv.maNv) }, [el('i', { class: 'fa fa-file-excel-o' }), ' Excel']),
+                el('a', { class: 'btn btn-sm btn-outline-primary', href: '/QLCongViec/DanhGia/NangLuc/' + encodeURIComponent(nv.maNv) }, [el('i', { class: 'fa fa-crosshairs' }), ' Năng lực']),
+                el('a', { class: 'btn btn-sm btn-outline-primary', href: '/QLCongViec/DanhGia/KeHoach/' + encodeURIComponent(nv.maNv) }, [el('i', { class: 'fa fa-flag-checkered' }), ' Kế hoạch']),
+                el('a', { class: 'btn btn-sm btn-outline-primary', href: '/QLCongViec/DanhGia/LoTrinh/' + encodeURIComponent(nv.maNv) }, [el('i', { class: 'fa fa-road' }), ' Lộ trình']),
+                el('a', { class: 'btn btn-sm btn-outline-success', href: KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/Excel?maNv=' + encodeURIComponent(nv.maNv)) }, [el('i', { class: 'fa fa-file-excel-o' }), ' Excel']),
                 el('button', { type: 'button', class: 'btn btn-sm btn-outline-danger', 'data-ngung': nv.maNv }, [el('i', { class: 'fa fa-ban' }), ' Ngừng đánh giá'])
             ])
         ]);
@@ -167,7 +170,7 @@
             .then(function (kq) {
                 o.value = '';
                 Swal.fire({ icon: 'success', text: kq.thongBao, timer: 1600, showConfirmButton: false });
-                return goiApi('/QLCongViec/DanhGia/QuanLy/DanhSach').then(function (k2) {
+                return goiApi(KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/DanhSach')).then(function (k2) {
                     st.ds = k2.duLieu || [];
                     veDanhSach();
                     moHoSo(kq.duLieu.maNv);
@@ -348,7 +351,7 @@
             .then(function (kq) {
                 st.modal.hide();
                 Swal.fire({ icon: 'success', text: kq.thongBao, timer: 1500, showConfirmButton: false });
-                return goiApi('/QLCongViec/DanhGia/QuanLy/DanhSach').then(function (k2) { st.ds = k2.duLieu || []; veDanhSach(); });
+                return goiApi(KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/DanhSach')).then(function (k2) { st.ds = k2.duLieu || []; veDanhSach(); });
             })
             .catch(function (e) { $('qlnvModalLoi').textContent = e.message; })
             .finally(function () { nut.disabled = false; });
@@ -408,6 +411,12 @@
         if (e.target.id === 'qlnvFormThem') themNhanVien(e);
     });
 
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', taiDanhSach);
-    else taiDanhSach();
+    function batDau() {
+        KyDanhGia.khoiTao('qlnvKy', function () {
+            $('qlnvExcelTatCa').href = KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/ExcelTatCa');
+            taiDanhSach();
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', batDau);
+    else batDau();
 })();

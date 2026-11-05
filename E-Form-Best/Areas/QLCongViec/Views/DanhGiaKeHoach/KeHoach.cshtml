@@ -1,0 +1,94 @@
+@{
+    // Dùng chung: maNv rỗng = nhân viên (/KeHoachCuaToi), có mã = quản lý (/KeHoach/{maNv})
+    var maNv = ViewBag.MaNv as string ?? "";
+    var laCuaToi = string.IsNullOrEmpty(maNv);
+    ViewData["Title"] = laCuaToi ? "Kế hoạch của tôi" : "Kế hoạch phát triển";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
+
+<div id="khpt" class="tdg tdg-rong" data-ma-nv="@maNv">
+    <div class="tdg-toolbar">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            @if (!laCuaToi)
+            {
+                <a class="btn btn-sm btn-outline-secondary" href="/QLCongViec/DanhGia/NhanVien"><i class="fa fa-arrow-left"></i> Danh sách nhân viên</a>
+            }
+            <h1 class="tdg-title m-0"><i class="fa fa-flag-checkered"></i> <span id="khptTieuDe">@ViewData["Title"]</span></h1>
+        </div>
+        <a class="btn btn-sm btn-outline-primary" href="@(laCuaToi ? "/QLCongViec/DanhGia/NangLucCuaToi" : "/QLCongViec/DanhGia/NangLuc/" + maNv)"><i class="fa fa-crosshairs"></i> Xem năng lực</a>
+    </div>
+
+    <div id="khptKy" class="ky-dg"></div>
+
+    <div id="khptTrangThai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>
+
+    <div id="khptNoiDung" hidden>
+        <div class="kh-tom-tat">
+            <div class="kh-o"><span>Mục tiêu</span><b id="khptTong">0</b></div>
+            <div class="kh-o"><span>Đang làm</span><b id="khptDangLam">0</b></div>
+            <div class="kh-o"><span>Hoàn thành</span><b id="khptXong">0</b></div>
+            <div class="kh-o kh-o-tre"><span>Quá hạn</span><b id="khptQuaHan">0</b></div>
+            <div class="kh-o"><span>Tiến độ trung bình</span><b id="khptTienDo">0%</b></div>
+        </div>
+
+        <section class="tdg-card" id="khptKhungGoiY" hidden>
+            <h2 class="tdg-card-title">Gợi ý từ năng lực có GAP âm</h2>
+            <p class="tdg-card-desc"><span id="khptNguonGoiY"></span>Nội dung lấy từ kế hoạch đào tạo IT. Buổi đào tạo vẫn đăng ký và duyệt ở <a href="/FormCongViec/DaoTao">trang Đào tạo</a>, tạo xong thì gắn vào mục tiêu.</p>
+            <div class="table-responsive">
+                <table class="tdg-bang kh-goi-y">
+                    <thead><tr><th>Năng lực</th><th>GAP</th><th>Nội dung đào tạo gợi ý</th><th></th></tr></thead>
+                    <tbody id="khptGoiY"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="tdg-card" id="khptKhungForm">
+            <h2 class="tdg-card-title" id="khptTieuDeForm">Thêm mục tiêu</h2>
+            <p class="tdg-card-desc" id="khptMoTaForm">Mỗi mục tiêu là một việc cụ thể, có hạn và kết quả đo được.</p>
+            <form id="khptForm" autocomplete="off">
+                <div class="tdg-grid2">
+                    <label class="tdg-field"><span>Mục tiêu</span><textarea class="form-control" id="khptNoiDungMt" rows="2" maxlength="500" required></textarea></label>
+                    <label class="tdg-field"><span>Kết quả mong đợi</span><textarea class="form-control" id="khptMongDoi" rows="2" maxlength="500"></textarea></label>
+                </div>
+                <div class="kh-hang">
+                    <label class="tdg-field"><span>Hạn hoàn thành</span><input type="date" class="form-control" id="khptHan" /></label>
+                    <label class="tdg-field"><span>Năng lực liên quan</span><select class="form-select" id="khptNangLuc"><option value="">Không gắn</option></select></label>
+                    <label class="tdg-field"><span>Buổi đào tạo</span><select class="form-select" id="khptDaoTao"><option value="">Không gắn</option></select></label>
+                    <label class="tdg-field"><span>Tiến độ (%)</span><input type="number" class="form-control" id="khptTienDoMt" min="0" max="100" step="5" value="0" /></label>
+                    <label class="tdg-field"><span>Trạng thái</span>
+                        <select class="form-select" id="khptTrangThaiMt">
+                            <option value="doing">Đang làm</option>
+                            <option value="done">Hoàn thành</option>
+                            <option value="cancelled">Huỷ</option>
+                        </select>
+                    </label>
+                </div>
+                <label class="tdg-field mt-2"><span>Kết quả thực tế</span><textarea class="form-control" id="khptKetQua" rows="2"></textarea></label>
+                <div class="nl-luu">
+                    <span class="nl-loi" id="khptLoi"></span>
+                    <button type="button" class="btn btn-outline-secondary" id="khptHuySua" hidden>Huỷ sửa</button>
+                    <button type="submit" class="btn btn-primary tdg-btn-main" id="khptLuu"><i class="fa fa-save"></i> Lưu mục tiêu</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="tdg-card">
+            <h2 class="tdg-card-title">Danh sách mục tiêu</h2>
+            <p class="tdg-card-desc" id="khptMoTaDs"></p>
+            <div class="table-responsive">
+                <table class="tdg-bang kh-bang">
+                    <thead><tr><th>Mục tiêu</th><th>Hạn</th><th>Tiến độ</th><th>Trạng thái</th><th>Đào tạo</th><th>Kết quả</th><th></th></tr></thead>
+                    <tbody id="khptBang"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/ky-danh-gia.js?v=1"></script>
+    <script src="~/js/ke-hoach-phat-trien.js?v=2"></script>
+}

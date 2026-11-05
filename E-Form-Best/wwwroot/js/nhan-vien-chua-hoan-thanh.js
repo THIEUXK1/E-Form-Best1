@@ -89,7 +89,7 @@
     function taiDuLieu() {
         $('chdgDangTai').hidden = false;
         baoLoi('');
-        fetch('/QLCongViec/DanhGia/QuanLy/DanhSach', { headers: { 'Accept': 'application/json' } })
+        fetch(KyDanhGia.thamSo('/QLCongViec/DanhGia/QuanLy/DanhSach'), { headers: { 'Accept': 'application/json' } })
             .then(function (res) {
                 if (res.status === 401) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
                 if (!res.ok && res.status !== 403) throw new Error('Máy chủ trả lỗi ' + res.status + '.');
@@ -116,5 +116,5 @@
         if (e.target.closest('#chdgLamMoi')) taiDuLieu();
     });
 
-    document.addEventListener('DOMContentLoaded', taiDuLieu);
+    document.addEventListener('DOMContentLoaded', function () { KyDanhGia.khoiTao('chdgKy', taiDuLieu); });
 })();

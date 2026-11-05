@@ -5,12 +5,15 @@
 
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
 <link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
 
 <div id="dgnv" class="tdg fp-page">
     <div class="tdg-head">
         <h1 class="tdg-title"><span class="tdg-title-icon"><i class="fa fa-pencil-square-o"></i></span> Đánh giá nhân viên</h1>
         <p class="tdg-sub">Chấm theo mẫu Performance Evaluation Form 2025, so sánh với bản tự đánh giá</p>
     </div>
+
+    <div id="dgnvKy" class="ky-dg"></div>
 
     <section class="tdg-card">
         <div class="tdg-chon-nv">
@@ -33,6 +36,7 @@
     <div id="dgnvTrangThai" class="tdg-loading" hidden></div>
 
     <div id="dgnvNoiDung" hidden>
+        <div id="dgnvKyXacNhan"></div>
         <div id="dgnvCanhBao" class="tdg-alert tdg-alert-info" hidden><i class="fa fa-info-circle"></i><div id="dgnvCanhBaoChu"></div></div>
 
         <ol class="tdg-steps" id="dgnvSteps">
@@ -62,6 +66,7 @@
             <div class="tdg-thang">
                 <span><b>5</b> = Excellent</span><span><b>4</b> = Good</span><span><b>3</b> = As a standard</span><span><b>2</b> = Poor</span><span><b>1</b> = Very Poor</span>
             </div>
+            <div id="dgnvSoLieu"></div>
             <div id="dgnvDsKpi"></div>
             <div class="tdg-tong-phan">
                 <span>Tổng trọng số: <b id="dgnvTongTrongSo">0</b> / 50</span>
@@ -84,13 +89,14 @@
                 <div class="tdg-field"><span>Career path (1 – 3 year) — Lộ trình</span><div class="tdg-chi-xem" id="dgnvLoTrinh"></div></div>
                 <div class="tdg-field"><span>Weakness — Điểm cần cải thiện</span><div class="tdg-chi-xem" id="dgnvDiemYeu"></div></div>
                 <div class="tdg-field"><span>Development plan (1 year) — Kế hoạch</span><div class="tdg-chi-xem" id="dgnvKeHoach"></div></div>
+                <div class="tdg-span2"><a class="btn btn-sm btn-outline-primary" id="dgnvKeHoach" href="#"><i class="fa fa-flag-checkered"></i> Mục tiêu phát triển của nhân viên</a></div>
                 <label class="tdg-field tdg-span2"><span>Comment — Nhận xét của quản lý</span><textarea class="form-control" id="dgnvNhanXet" maxlength="8000"></textarea></label>
             </div>
         </section>
 
         <section class="tdg-card" data-panel="5" hidden>
             <h2 class="tdg-card-title">Summary & hoàn thành</h2>
-            <p class="tdg-card-desc">Bấm “Hoàn thành” để gửi đánh giá. Khi nhân viên cũng đã gửi tự đánh giá, phiếu được chốt và nhân viên không sửa được nữa.</p>
+            <p class="tdg-card-desc">Bấm “Hoàn thành” để gửi đánh giá. Khi nhân viên cũng đã gửi tự đánh giá, phiếu được chốt và chuyển cấp trên duyệt, sau đó nhân viên ký xác nhận.</p>
             <div id="dgnvDaChot" class="tdg-alert tdg-alert-ok" hidden>
                 <i class="fa fa-check-circle"></i>
                 <div class="flex-grow-1"><b>Phiếu đã hoàn thành.</b> Cần cho nhân viên sửa lại tự đánh giá thì mở lại phiếu.</div>
@@ -116,6 +122,9 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/danh-gia-nhan-vien.js?v=5"></script>
+    <script src="~/js/ky-danh-gia.js?v=1"></script>
+    <script src="~/js/so-lieu-kpi.js?v=1"></script>
+    <script src="~/js/ky-xac-nhan.js?v=1"></script>
+    <script src="~/js/danh-gia-nhan-vien.js?v=8"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }

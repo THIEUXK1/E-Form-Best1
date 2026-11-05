@@ -1,0 +1,39 @@
+@{
+    ViewData["Title"] = "Duyệt phiếu đánh giá";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
+
+<div id="dpdg" class="tdg tdg-rong">
+    <div class="tdg-head">
+        <h1 class="tdg-title"><span class="tdg-title-icon"><i class="fa fa-check-square-o"></i></span> Duyệt phiếu đánh giá</h1>
+        <p class="tdg-sub">Thứ tự ký theo mẫu đánh giá: quản lý chấm, cấp trên duyệt, nhân viên ký. Mở phiếu để đọc trước khi duyệt hoặc từ chối.</p>
+    </div>
+
+    <div id="dpdgKy" class="ky-dg"></div>
+
+    <div class="kh-tom-tat" id="dpdgTomTat" hidden>
+        <div class="kh-o"><span>Chờ duyệt</span><b id="dpdgChoDuyet">0</b></div>
+        <div class="kh-o"><span>Đã trả về chấm lại</span><b id="dpdgTuChoi">0</b></div>
+        <div class="kh-o"><span>Chờ nhân viên ký</span><b id="dpdgChoKy">0</b></div>
+        <div class="kh-o"><span>Đã ký</span><b id="dpdgDaKy">0</b></div>
+        <div class="kh-o kh-o-tre"><span>Nhân viên không đồng ý</span><b id="dpdgKhongDongY">0</b></div>
+    </div>
+
+    <section class="tdg-card">
+        <div id="dpdgTrangThai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>
+        <div class="table-responsive" id="dpdgKhung" hidden>
+            <table class="tdg-bang kh-bang">
+                <thead><tr><th>Nhân viên</th><th>Bậc</th><th>Tổng</th><th>Xếp loại</th><th>Người chấm</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody id="dpdgBang"></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/ky-danh-gia.js?v=1"></script>
+    <script src="~/js/duyet-phieu-danh-gia.js?v=1"></script>
+}

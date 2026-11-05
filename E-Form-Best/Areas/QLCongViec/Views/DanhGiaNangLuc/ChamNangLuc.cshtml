@@ -1,0 +1,74 @@
+@{
+    // Dùng chung: maNv rỗng = nhân viên tự chấm (/NangLucCuaToi), có mã = quản lý chấm (/NangLuc/{maNv})
+    var maNv = ViewBag.MaNv as string ?? "";
+    var laTuCham = string.IsNullOrEmpty(maNv);
+    ViewData["Title"] = laTuCham ? "Năng lực của tôi" : "Chấm năng lực";
+    Layout = "~/Areas/QLCongViec/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
+
+<div id="cnl" class="tdg tdg-rong" data-ma-nv="@maNv">
+    <div class="tdg-toolbar">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            @if (!laTuCham)
+            {
+                <a class="btn btn-sm btn-outline-secondary" href="/QLCongViec/DanhGia/NangLuc"><i class="fa fa-arrow-left"></i> Bản đồ năng lực</a>
+            }
+            <h1 class="tdg-title m-0"><i class="fa fa-crosshairs"></i> @ViewData["Title"]</h1>
+        </div>
+        <a class="btn btn-sm btn-outline-primary" href="@(laTuCham ? "/QLCongViec/DanhGia/KeHoachCuaToi" : "/QLCongViec/DanhGia/KeHoach/" + maNv)"><i class="fa fa-flag-checkered"></i> Kế hoạch phát triển</a>
+    </div>
+
+    <div id="cnlKy" class="ky-dg"></div>
+
+    <div id="cnlTrangThai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>
+
+    <div id="cnlNoiDung" hidden>
+        <div id="cnlThongBao" class="tdg-alert tdg-alert-info" hidden>
+            <i class="fa fa-info-circle"></i>
+            <div id="cnlThongBaoChu"></div>
+        </div>
+
+        <div class="tdg-ct-hang">
+            <section class="tdg-card tdg-ct-tt">
+                <h2 class="tdg-card-title" id="cnlTen"></h2>
+                <p class="tdg-card-desc" id="cnlMa"></p>
+                <div class="tdg-nv-dong"><span>Nhóm công việc</span><b id="cnlNhom"></b></div>
+                <div class="tdg-nv-dong"><span>Cấp bậc</span><b id="cnlCapBac"></b></div>
+                <div class="tdg-nv-dong"><span>Đã chấm</span><b id="cnlDaCham"></b></div>
+                <div class="tdg-nv-dong"><span>GAP chung</span><span id="cnlGap"></span></div>
+                <div class="tdg-nv-dong"><span>Xếp loại</span><b id="cnlXepLoai"></b></div>
+                <p class="tdg-card-desc mt-2 mb-0">GAP = trung bình (điểm quản lý chấm − yêu cầu). Thang 0–<span id="cnlThang"></span>, không cộng vào điểm 100 của phiếu.</p>
+            </section>
+            <section class="tdg-card tdg-ct-bieudo">
+                <h2 class="tdg-card-title">Theo nhóm năng lực</h2>
+                <p class="tdg-card-desc">Điểm trung bình so với yêu cầu của cấp bậc</p>
+                <div class="nl-canvas"><canvas id="cnlRadar"></canvas><div id="cnlRadarTrong" class="tdg-empty" hidden>Chưa có dữ liệu đồ thị</div></div>
+            </section>
+        </div>
+
+        <section class="tdg-card">
+            <h2 class="tdg-card-title">Khung năng lực</h2>
+            <p class="tdg-card-desc">Bỏ trống năng lực chưa đánh giá được; năng lực bỏ trống không tính vào GAP.</p>
+            <div id="cnlTrong" class="tdg-empty" hidden></div>
+            <div class="table-responsive" id="cnlBangBoc">
+                <table class="tdg-bang nl-cham">
+                    <thead><tr><th>Mã</th><th>Năng lực</th><th>Yêu cầu</th><th>Tự chấm</th><th>Quản lý</th><th>GAP</th></tr></thead>
+                    <tbody id="cnlBang"></tbody>
+                </table>
+            </div>
+            <div class="nl-luu" id="cnlThanhLuu">
+                <span class="nl-loi" id="cnlLoi"></span>
+                <button type="button" class="btn btn-primary tdg-btn-main" id="cnlLuu"><i class="fa fa-save"></i> Lưu điểm</button>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/ky-danh-gia.js?v=1"></script>
+    <script src="~/js/cham-nang-luc.js?v=1"></script>
+}

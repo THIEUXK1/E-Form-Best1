@@ -1,6 +1,7 @@
 using ClosedXML.Excel;
 using E_Form_Best.Context;
 using E_Form_Best.Models.ITForm;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace E_Form_Best.Areas.QLCongViec.Services
@@ -91,7 +92,18 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             public List<KpiQuanLyVao>? DsKpi { get; set; }
             public List<DanhGiaService.TieuChiVao>? DsTieuChi { get; set; }
             public string? NhanXet { get; set; }
+            // Kỳ đang xem trên trình duyệt: tab mở từ kỳ trước không được ghi nhầm sang kỳ mới
+            public Guid IdKy { get; set; }
             public bool HoanThanh { get; set; }
+        }
+
+        public class KyVao
+        {
+            // null = mở kỳ mới
+            public Guid? IdKy { get; set; }
+            public string? Ten { get; set; }
+            public DateOnly? NgayBatDau { get; set; }
+            public DateOnly? HanNop { get; set; }
         }
 
         public class TieuChiHoSoVao
@@ -117,8 +129,94 @@ namespace E_Form_Best.Areas.QLCongViec.Services
 
         #region Danh sách nhân viên
 
+        #region Kỳ đánh giá
+
+        /// <summary>Mở kỳ mới. Tối đa 1 kỳ đang mở: phải đóng kỳ cũ trước, UNIQUE lọc ở DB chốt khi 2 người bấm cùng lúc.</summary>
+        public async Task<string?> MoKyAsync(KyVao vao, string nguoiThucHien)
+        {
+            var ten = vao.Ten?.Trim();
+            if (string.IsNullOrEmpty(ten) || ten.Length > 100) return "Nhập tên kỳ (tối đa 100 ký tự).";
+            if (vao.NgayBatDau != null && vao.HanNop != null && vao.HanNop < vao.NgayBatDau) return "Hạn nộp phải sau ngày bắt đầu.";
+            if (await _danhGia.IdKyDangMoAsync() != null) return "Đang có kỳ mở — đóng kỳ đó trước khi mở kỳ mới.";
+            if (await _context.DgKyDanhGias.AnyAsync(x => x.Ten == ten)) return $"Đã có kỳ tên \"{ten}\".";
+
+            _context.DgKyDanhGias.Add(new DgKyDanhGia
+            {
+                IdKy = Guid.NewGuid(),
+                Ten = ten,
+                NgayBatDau = vao.NgayBatDau,
+                HanNop = vao.HanNop,
+                TrangThai = DanhGiaService.KyDangMo,
+                NgayTao = DateTime.Now,
+                NguoiTao = nguoiThucHien
+            });
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+            {
+                return "Kỳ này vừa được người khác mở.";
+            }
+            return null;
+        }
+
+        public async Task<string?> SuaKyAsync(KyVao vao, string nguoiThucHien)
+        {
+            var ky = await _context.DgKyDanhGias.FirstOrDefaultAsync(x => x.IdKy == vao.IdKy);
+            if (ky == null) return "Không tìm thấy kỳ.";
+            var ten = vao.Ten?.Trim();
+            if (string.IsNullOrEmpty(ten) || ten.Length > 100) return "Nhập tên kỳ (tối đa 100 ký tự).";
+            if (vao.NgayBatDau != null && vao.HanNop != null && vao.HanNop < vao.NgayBatDau) return "Hạn nộp phải sau ngày bắt đầu.";
+            if (await _context.DgKyDanhGias.AnyAsync(x => x.Ten == ten && x.IdKy != ky.IdKy)) return $"Đã có kỳ tên \"{ten}\".";
+
+            ky.Ten = ten;
+            ky.NgayBatDau = vao.NgayBatDau;
+            ky.HanNop = vao.HanNop;
+            ky.NgayCapNhat = DateTime.Now;
+            ky.NguoiCapNhat = nguoiThucHien;
+            await _context.SaveChangesAsync();
+            return null;
+        }
+
+        /// <summary>Đóng kỳ: mọi phiếu của kỳ chỉ còn xem được. Phiếu chưa gửi giữ nguyên, không tự chốt.</summary>
+        public async Task<string?> DongKyAsync(Guid idKy, string nguoiThucHien)
+        {
+            var ky = await _context.DgKyDanhGias.FirstOrDefaultAsync(x => x.IdKy == idKy);
+            if (ky == null) return "Không tìm thấy kỳ.";
+            if (ky.TrangThai == DanhGiaService.KyDaDong) return null;
+            ky.TrangThai = DanhGiaService.KyDaDong;
+            ky.NgayCapNhat = DateTime.Now;
+            ky.NguoiCapNhat = nguoiThucHien;
+            await _context.SaveChangesAsync();
+            return null;
+        }
+
+        /// <summary>Mở lại kỳ đã đóng khi đóng nhầm. Kỳ thang cũ không mở lại vì không chấm tiếp theo thang hiện tại được.</summary>
+        public async Task<string?> MoLaiKyAsync(Guid idKy, string nguoiThucHien)
+        {
+            var ky = await _context.DgKyDanhGias.FirstOrDefaultAsync(x => x.IdKy == idKy);
+            if (ky == null) return "Không tìm thấy kỳ.";
+            if (ky.ThangCu) return "Kỳ thang cũ không mở lại được.";
+            if (await _danhGia.IdKyDangMoAsync() != null) return "Đang có kỳ mở — đóng kỳ đó trước.";
+            ky.TrangThai = DanhGiaService.KyDangMo;
+            ky.NgayCapNhat = DateTime.Now;
+            ky.NguoiCapNhat = nguoiThucHien;
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+            {
+                return "Vừa có kỳ khác được mở.";
+            }
+            return null;
+        }
+
+        #endregion
+
         /// <summary>Mã NV đang trong hệ thống đánh giá (chưa bị ngừng).</summary>
-        private async Task<List<string>> DsMaNvAsync()
+        public async Task<List<string>> DsMaNvAsync()
         {
             var ngung = await _context.DgHoSoNhanViens.Where(x => x.NgayNgung != null).Select(x => x.MaNhanVien).ToListAsync();
             var ds = await _context.DgHoSoNhanViens.Where(x => x.NgayNgung == null).Select(x => x.MaNhanVien)
@@ -138,9 +236,15 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         public async Task<bool> TrongHeThongAsync(string maNv)
             => (await DsMaNvAsync()).Contains(maNv, StringComparer.OrdinalIgnoreCase);
 
-        public async Task<List<NhanVienTomTat>> DanhSachAsync()
+        /// <summary>Người thuộc kỳ: kỳ đang mở là danh sách hiện tại, kỳ đã đóng là những người có phiếu trong kỳ.</summary>
+        public async Task<List<string>> DsMaNvTheoKyAsync(DanhGiaService.KyDto ky)
+            => ky.DangMo
+                ? await DsMaNvAsync()
+                : await _context.DgPhieuDanhGias.AsNoTracking().Where(x => x.IdKy == ky.IdKy).Select(x => x.MaNhanVien).Distinct().ToListAsync();
+
+        public async Task<List<NhanVienTomTat>> DanhSachAsync(DanhGiaService.KyDto ky)
         {
-            var dsMa = await DsMaNvAsync();
+            var dsMa = await DsMaNvTheoKyAsync(ky);
             if (dsMa.Count == 0) return new();
 
             var nguoiDung = await _context.Users.AsNoTracking()
@@ -153,7 +257,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 .ToListAsync();
             var hoSo = await _context.DgHoSoNhanViens.AsNoTracking().Where(x => dsMa.Contains(x.MaNhanVien)).ToListAsync();
             var nhomCv = await _context.DgNhomCongViecs.AsNoTracking().ToDictionaryAsync(x => x.IdNhomCongViec, x => x.TenNhom);
-            var phieu = await _context.DgPhieuDanhGias.AsNoTracking().Where(x => dsMa.Contains(x.MaNhanVien)).ToListAsync();
+            var phieu = await _context.DgPhieuDanhGias.AsNoTracking().Where(x => x.IdKy == ky.IdKy && dsMa.Contains(x.MaNhanVien)).ToListAsync();
             var soKpi = await _context.DgKpiPhanCongs.AsNoTracking()
                 .Where(x => x.TrangThai == "active" && dsMa.Contains(x.MaNhanVien))
                 .GroupBy(x => x.MaNhanVien).Select(g => new { g.Key, SoLuong = g.Count() })
@@ -173,6 +277,9 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 bool daTu = tu?.NgayNop != null, daQl = ql?.NgayNop != null;
                 // Số liệu hiển thị: ưu tiên phiếu quản lý (kết quả chính thức), chưa có thì phiếu tự đánh giá
                 var hien = ql?.NgayNop != null ? ql : (tu ?? ql);
+                // Kỳ đã đóng giữ đúng cấp bậc/nhóm lúc chấm, hồ sơ có thể đã đổi sau đó
+                var capBacKy = ky.DangMo ? hs?.CapBac : (hien?.CapBac ?? tu?.CapBac ?? ql?.CapBac);
+                var idNhomKy = ky.DangMo ? hs?.IdNhomCongViec : (hien?.IdNhomCongViec ?? tu?.IdNhomCongViec ?? ql?.IdNhomCongViec);
                 return new NhanVienTomTat
                 {
                     MaNv = ma,
@@ -183,10 +290,10 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                     CapBacHrm = h?.CapBac,
                     NgayVaoLam = h?.NgayVaoLam,
                     DangLamViec = h?.DangLamViec,
-                    CapBac = string.IsNullOrWhiteSpace(hs?.CapBac) ? DanhGiaService.CapBacMacDinh : hs!.CapBac!,
-                    CoHoSo = !string.IsNullOrWhiteSpace(hs?.CapBac),
-                    IdNhomCongViec = hs?.IdNhomCongViec,
-                    TenNhomCongViec = hs?.IdNhomCongViec != null && nhomCv.TryGetValue(hs.IdNhomCongViec.Value, out var ten) ? ten : null,
+                    CapBac = string.IsNullOrWhiteSpace(capBacKy) ? DanhGiaService.CapBacMacDinh : capBacKy,
+                    CoHoSo = !string.IsNullOrWhiteSpace(capBacKy),
+                    IdNhomCongViec = idNhomKy,
+                    TenNhomCongViec = idNhomKy != null && nhomCv.TryGetValue(idNhomKy.Value, out var ten) ? ten : null,
                     SoKpi = soKpi.TryGetValue(ma, out var n) ? n : 0,
                     SoTieuChi = soTieuChi.TryGetValue(ma, out var t) ? t : 0,
                     DaTuDanhGia = daTu,
@@ -195,8 +302,9 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                     DiemKpi = hien?.DiemKpi,
                     DiemNangLuc = hien?.DiemNangLuc,
                     DiemThucTe = hien?.DiemThucTe,
-                    ChenhLech = hien?.ChenhLech,
-                    XepLoai = hien?.XepLoai,
+                    // Kỳ thang cũ chấm theo %, không so được với chuẩn 60/100 nên không tính dưới chuẩn / xếp loại
+                    ChenhLech = ky.ThangCu ? null : hien?.ChenhLech,
+                    XepLoai = ky.ThangCu ? null : hien?.XepLoai,
                     NgayCapNhat = new[] { tu?.NgayCapNhat, ql?.NgayCapNhat }.Max()
                 };
             }).OrderBy(x => x.MaNv).ToList();
@@ -351,6 +459,22 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                 hs = new DgHoSoNhanVien { MaNhanVien = maNv };
                 _context.DgHoSoNhanViens.Add(hs);
             }
+            // Sửa bậc ở hồ sơ cũng phải để lại dấu vết; ngày giữ bậc cũ không còn đúng với bậc mới
+            if (!string.Equals(hs.CapBac, capBac, StringComparison.OrdinalIgnoreCase))
+            {
+                _context.DgLichSuBacs.Add(new DgLichSuBac
+                {
+                    IdLichSu = Guid.NewGuid(),
+                    MaNhanVien = maNv,
+                    BacCu = hs.CapBac,
+                    BacMoi = capBac,
+                    NgayHieuLuc = DateOnly.FromDateTime(bayGio),
+                    GhiChu = "Sửa ở hồ sơ",
+                    NguoiThucHien = nguoiThucHien,
+                    NgayTao = bayGio
+                });
+                hs.NgayGiuBac = null;
+            }
             hs.CapBac = capBac;
             hs.IdNhomCongViec = vao.IdNhomCongViec;
             hs.NgayCapNhat = bayGio;
@@ -411,20 +535,26 @@ namespace E_Form_Best.Areas.QLCongViec.Services
 
         #region Đánh giá nhân viên
 
-        public async Task<object> DuLieuDanhGiaAsync(string maNv)
+        public async Task<object> DuLieuDanhGiaAsync(string maNv, DanhGiaService.KyDto ky)
         {
-            var tu = await _context.DgPhieuDanhGias.AsNoTracking().FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == DanhGiaService.LoaiTuDanhGia);
-            var ql = await _context.DgPhieuDanhGias.AsNoTracking().FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == DanhGiaService.LoaiQuanLy);
+            var (tu, ql) = await LayHaiPhieuAsync(maNv, ky.IdKy);
             return new
             {
+                ky,
                 maNv,
                 thongTin = await _danhGia.LayThongTinAsync(maNv),
                 hoSo = await _danhGia.LayHoSoAsync(maNv),
                 phieuTu = DanhGiaService.SangDto(tu),
                 phieuQuanLy = TomTatPhieuQl(ql, ql?.NguoiDanhGia == null ? null : await TenNguoiDungAsync(ql.NguoiDanhGia)),
-                dsKpi = await LayKpiQuanLyAsync(maNv, tu?.IdPhieu, ql?.IdPhieu),
-                dsTieuChi = await LayTieuChiQuanLyAsync(maNv, tu?.IdPhieu, ql?.IdPhieu)
+                dsKpi = await LayKpiQuanLyAsync(maNv, tu?.IdPhieu, ql?.IdPhieu, ky.DangMo),
+                dsTieuChi = await LayTieuChiQuanLyAsync(maNv, tu?.IdPhieu, ql?.IdPhieu, ky.DangMo)
             };
+        }
+
+        private async Task<(DgPhieuDanhGia? Tu, DgPhieuDanhGia? Ql)> LayHaiPhieuAsync(string maNv, Guid idKy)
+        {
+            var ds = await _context.DgPhieuDanhGias.AsNoTracking().Where(x => x.IdKy == idKy && x.MaNhanVien == maNv).ToListAsync();
+            return (ds.FirstOrDefault(x => x.Loai == DanhGiaService.LoaiTuDanhGia), ds.FirstOrDefault(x => x.Loai == DanhGiaService.LoaiQuanLy));
         }
 
         private static object? TomTatPhieuQl(DgPhieuDanhGia? p, string? tenNguoiDanhGia) => p == null ? null : new
@@ -433,17 +563,10 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             p.NgayNop, p.NgayCapNhat, p.NguoiDanhGia, tenNguoiDanhGia, p.NhanXet
         };
 
-        private async Task<List<KpiQuanLyDto>> LayKpiQuanLyAsync(string maNv, Guid? idPhieuTu, Guid? idPhieuQl)
+        private async Task<List<KpiQuanLyDto>> LayKpiQuanLyAsync(string maNv, Guid? idPhieuTu, Guid? idPhieuQl, bool kyDangMo)
         {
-            var dsMau = await (
-                from pc in _context.DgKpiPhanCongs
-                join m in _context.DgKpiMaus on pc.IdKpiMau equals m.IdKpiMau
-                where pc.MaNhanVien == maNv && pc.TrangThai == "active" && m.TrangThai == "active"
-                orderby m.ThuTu, m.CongViec
-                select new { m.IdKpiMau, m.CongViec, m.KpiGoiY, m.KetQuaGoiY, m.TrongSoBoPhan }
-            ).AsNoTracking().ToListAsync();
-
             var ids = new[] { idPhieuTu, idPhieuQl }.Where(x => x != null).Select(x => x!.Value).ToList();
+            var dsMau = await _danhGia.LayDsKpiMauAsync(maNv, kyDangMo, ids);
             var dong = await _context.DgPhieuKpis.AsNoTracking().Where(x => ids.Contains(x.IdPhieu)).ToListAsync();
 
             return dsMau.Select(m =>
@@ -466,10 +589,10 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             }).ToList();
         }
 
-        private async Task<List<TieuChiQuanLyDto>> LayTieuChiQuanLyAsync(string maNv, Guid? idPhieuTu, Guid? idPhieuQl)
+        private async Task<List<TieuChiQuanLyDto>> LayTieuChiQuanLyAsync(string maNv, Guid? idPhieuTu, Guid? idPhieuQl, bool kyDangMo)
         {
-            var ds = await _danhGia.LayTieuChiAsync(maNv, null);
             var ids = new[] { idPhieuTu, idPhieuQl }.Where(x => x != null).Select(x => x!.Value).ToList();
+            var ds = await _danhGia.LayTieuChiAsync(maNv, null, kyDangMo ? null : ids);
             var diem = await _context.DgPhieuTieuChis.AsNoTracking().Where(x => ids.Contains(x.IdPhieu)).ToListAsync();
             return ds.Select(t =>
             {
@@ -490,6 +613,7 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         public async Task<string?> LuuDanhGiaAsync(LuuDanhGiaVao vao, string maQuanLy)
         {
             var maNv = vao.MaNv!.Trim();
+            if (vao.IdKy != await _danhGia.IdKyDangMoAsync()) return DanhGiaService.LoiKyDong;
 
             var kpiGiao = await _context.DgKpiPhanCongs
                 .Where(x => x.MaNhanVien == maNv && x.TrangThai == "active")
@@ -526,8 +650,10 @@ namespace E_Form_Best.Areas.QLCongViec.Services
                     return "Chưa chấm đủ các tiêu chí năng lực ở Part 2.";
             }
 
-            var phieuQl = await _danhGia.LayHoacTaoPhieuAsync(maNv, DanhGiaService.LoaiQuanLy);
-            var phieuTu = await _context.DgPhieuDanhGias.FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == DanhGiaService.LoaiTuDanhGia);
+            var phieuQl = await _danhGia.LayHoacTaoPhieuAsync(maNv, vao.IdKy, DanhGiaService.LoaiQuanLy);
+            if (phieuQl.BuocKy is DgPhieuDanhGia.BuocChoKy or DgPhieuDanhGia.BuocDaKy)
+                return "Phiếu đã được cấp trên duyệt, không sửa được. Cần sửa thì cấp trên mở lại phiếu.";
+            var phieuTu = await _context.DgPhieuDanhGias.FirstOrDefaultAsync(x => x.IdKy == vao.IdKy && x.MaNhanVien == maNv && x.Loai == DanhGiaService.LoaiTuDanhGia);
             var bayGio = DateTime.Now;
 
             await using var tx = await _context.Database.BeginTransactionAsync();
@@ -584,24 +710,51 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             // Cả hai đã gửi → hoàn tất, khoá phiếu tự đánh giá (nhân viên không sửa sau khi quản lý chốt)
             bool hoanTat = phieuQl.NgayNop != null && phieuTu?.NgayNop != null;
             phieuQl.TrangThai = hoanTat ? "completed" : "pending";
-            if (phieuTu != null) phieuTu.TrangThai = hoanTat ? "completed" : "pending";
+            // Đang chấm lại vì cấp trên từ chối: nhân viên vẫn khoá, chỉ phiếu quản lý mở
+            if (phieuTu != null && (hoanTat || phieuQl.BuocKy != DgPhieuDanhGia.BuocTuChoi))
+                phieuTu.TrangThai = hoanTat ? "completed" : "pending";
+            if (hoanTat) _danhGia.VaoLuongKy(phieuQl, maQuanLy, bayGio);
 
             await _context.SaveChangesAsync();
             await tx.CommitAsync();
             return null;
         }
 
-        /// <summary>Mở lại phiếu đã hoàn tất để nhân viên sửa tự đánh giá (bỏ ngày gửi của quản lý).</summary>
-        public async Task MoLaiAsync(string maNv)
+        /// <summary>
+        /// Mở lại phiếu đã hoàn tất để nhân viên sửa tự đánh giá (bỏ ngày gửi của quản lý).
+        /// Phiếu đã qua bước duyệt chỉ cấp trên mở được vì việc này bỏ chữ ký; nội dung cũ còn ở lịch sử ký.
+        /// </summary>
+        public async Task<string?> MoLaiAsync(string maNv, Guid idKy, string nguoi, bool laCapTren)
         {
-            var ds = await _context.DgPhieuDanhGias.Where(x => x.MaNhanVien == maNv).ToListAsync();
+            if (idKy != await _danhGia.IdKyDangMoAsync()) return DanhGiaService.LoiKyDong;
+            var ds = await _context.DgPhieuDanhGias.Where(x => x.IdKy == idKy && x.MaNhanVien == maNv).ToListAsync();
+            var ql = ds.FirstOrDefault(x => x.Loai == DanhGiaService.LoaiQuanLy);
+            if (ql?.BuocKy is DgPhieuDanhGia.BuocChoKy or DgPhieuDanhGia.BuocDaKy && !laCapTren)
+                return "Phiếu đã được cấp trên duyệt, chỉ cấp trên mở lại được.";
+            var bayGio = DateTime.Now;
             foreach (var p in ds)
             {
                 p.TrangThai = "pending";
                 if (p.Loai == DanhGiaService.LoaiQuanLy) p.NgayNop = null;
-                p.NgayCapNhat = DateTime.Now;
+                p.NgayCapNhat = bayGio;
+            }
+            if (ql?.BuocKy != null)
+            {
+                _context.DgPhieuKyLichSus.Add(new DgPhieuKyLichSu
+                {
+                    IdLichSu = Guid.NewGuid(), IdPhieu = ql.IdPhieu, HanhDong = DgPhieuKyLichSu.MoLai, Nguoi = nguoi,
+                    GhiChu = "Bước trước đó: " + ql.BuocKy, Ngay = bayGio
+                });
+                ql.BuocKy = null;
+                ql.NguoiDuyet = null;
+                ql.NgayDuyet = null;
+                ql.LyDoTuChoi = null;
+                ql.NgayNvKy = null;
+                ql.NvDongY = null;
+                ql.NhanXetNv = null;
             }
             await _context.SaveChangesAsync();
+            return null;
         }
 
         #endregion
@@ -614,20 +767,20 @@ namespace E_Form_Best.Areas.QLCongViec.Services
         // Độ rộng cột A–H của file mẫu
         private static readonly double[] DoRongCot = { 29.6, 50.9, 51.9, 30.3, 16.8, 9, 14.4, 9.4 };
 
-        public async Task<byte[]> XuatExcelAsync(string maNv)
+        public async Task<byte[]> XuatExcelAsync(string maNv, DanhGiaService.KyDto ky)
         {
             using var wb = new XLWorkbook();
-            await VeSheetAsync(wb, maNv, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            await VeSheetAsync(wb, maNv, ky, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
             return LuuWorkbook(wb);
         }
 
-        /// <summary>Mọi nhân viên đang trong danh sách đánh giá, mỗi người 1 sheet (giống file mẫu 5 sheet).</summary>
-        public async Task<byte[]> XuatExcelTatCaAsync()
+        /// <summary>Mọi nhân viên thuộc kỳ, mỗi người 1 sheet (giống file mẫu 5 sheet).</summary>
+        public async Task<byte[]> XuatExcelTatCaAsync(DanhGiaService.KyDto ky)
         {
-            var ds = (await DsMaNvAsync()).OrderBy(x => x).ToList();
+            var ds = (await DsMaNvTheoKyAsync(ky)).OrderBy(x => x).ToList();
             using var wb = new XLWorkbook();
             var tenDaDung = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var ma in ds) await VeSheetAsync(wb, ma, tenDaDung);
+            foreach (var ma in ds) await VeSheetAsync(wb, ma, ky, tenDaDung);
             if (ds.Count == 0) wb.Worksheets.Add("Trong").Cell(1, 1).Value = "Chưa có nhân viên nào trong danh sách đánh giá.";
             return LuuWorkbook(wb);
         }
@@ -668,13 +821,25 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             return Math.Min(409, Math.Max(toiThieu, dong * 15.5 + 4));
         }
 
-        private async Task VeSheetAsync(XLWorkbook wb, string maNv, HashSet<string> tenDaDung)
+        // Ô "Development plan" của mẫu: chữ nhân viên viết, thêm các mục tiêu theo dõi của kỳ
+        private async Task<string?> KeHoachKemMucTieuAsync(string maNv, Guid idKy, string? keHoach)
+        {
+            var ds = await _context.DgMucTieuPhatTriens.AsNoTracking()
+                .Where(x => x.IdKy == idKy && x.MaNhanVien == maNv && x.NgayXoa == null && x.TrangThai != DgMucTieuPhatTrien.DaHuy)
+                .OrderBy(x => x.NgayTao)
+                .Select(x => new { x.NoiDung, x.HanHoanThanh, x.TienDo })
+                .ToListAsync();
+            if (ds.Count == 0) return keHoach;
+            var dong = ds.Select(x => $"- {x.NoiDung}{(x.HanHoanThanh != null ? $" (hạn {x.HanHoanThanh:dd/MM/yyyy})" : "")}: {x.TienDo}%");
+            return (string.IsNullOrWhiteSpace(keHoach) ? "" : keHoach.TrimEnd() + "\n\n") + "Mục tiêu theo dõi:\n" + string.Join("\n", dong);
+        }
+
+        private async Task VeSheetAsync(XLWorkbook wb, string maNv, DanhGiaService.KyDto ky, HashSet<string> tenDaDung)
         {
             var tt = await _danhGia.LayThongTinAsync(maNv);
-            var tu = await _context.DgPhieuDanhGias.AsNoTracking().FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == DanhGiaService.LoaiTuDanhGia);
-            var ql = await _context.DgPhieuDanhGias.AsNoTracking().FirstOrDefaultAsync(x => x.MaNhanVien == maNv && x.Loai == DanhGiaService.LoaiQuanLy);
-            var dsKpi = await LayKpiQuanLyAsync(maNv, tu?.IdPhieu, ql?.IdPhieu);
-            var dsTc = await LayTieuChiQuanLyAsync(maNv, tu?.IdPhieu, ql?.IdPhieu);
+            var (tu, ql) = await LayHaiPhieuAsync(maNv, ky.IdKy);
+            var dsKpi = await LayKpiQuanLyAsync(maNv, tu?.IdPhieu, ql?.IdPhieu, ky.DangMo);
+            var dsTc = await LayTieuChiQuanLyAsync(maNv, tu?.IdPhieu, ql?.IdPhieu, ky.DangMo);
             var tenQl = ql?.NguoiDanhGia == null ? null : await TenNguoiDungAsync(ql.NguoiDanhGia) ?? ql.NguoiDanhGia;
             var ngayDanhGia = ql?.NgayNop ?? tu?.NgayNop;
 
@@ -889,23 +1054,29 @@ namespace E_Form_Best.Areas.QLCongViec.Services
             HaiO("Strength Điểm mạnh:", "Career path and duration (1 - 3 year) :", true);
             HaiO(tu?.DiemManh, tu?.LoTrinh, false);
             HaiO("Weakness (Need to improve) :", "Development plan (1 year) :", true);
-            HaiO(tu?.DiemYeu, tu?.KeHoach, false);
+            HaiO(tu?.DiemYeu, await KeHoachKemMucTieuAsync(maNv, ky.IdKy, tu?.KeHoach), false);
             Khung(dauP3, 1, r - 1, 5);
 
             ws.Cell(r, 1).Value = $"Evaluated by____{tenQl}______________________";
-            ws.Cell(r, 3).Value = "Approved by__________________________";
+            var tenDuyet = ql?.NguoiDuyet == null ? null : await TenNguoiDungAsync(ql.NguoiDuyet) ?? ql.NguoiDuyet;
+            ws.Cell(r, 3).Value = $"Approved by____{tenDuyet}______________________";
             Gop(r, 1, r, 2); Gop(r, 3, r, 5);
             ws.Row(r++).Height = 24;
             var ngayQl = ql?.NgayNop;
             ws.Cell(r, 1).Value = "Immediate Supervisor " + (ngayQl != null ? ngayQl.Value.ToString("dd/MM/yyyy") : "______/______/______");
-            ws.Cell(r, 3).Value = "Next Level Supervisor ______/______/______";
+            ws.Cell(r, 3).Value = "Next Level Supervisor " + (ql?.NgayDuyet != null ? ql.NgayDuyet.Value.ToString("dd/MM/yyyy") : "______/______/______");
             Gop(r, 1, r, 2); Gop(r, 3, r, 5);
             ws.Row(r++).Height = 24;
-            ws.Cell(r, 1).Value = "Employee signed__________________________________         "
-                + (tu?.NgayNop != null ? tu.NgayNop.Value.ToString("dd/MM/yyyy") : "______/______/______");
+            // Phiếu chốt trước khi có luồng ký không có chữ ký riêng nên giữ ngày nhân viên gửi như cũ
+            var tenNv = ql?.NgayNvKy == null ? "" : await TenNguoiDungAsync(maNv) ?? maNv;
+            var ngayKy = ql?.NgayNvKy ?? (ql?.BuocKy == null ? tu?.NgayNop : null);
+            ws.Cell(r, 1).Value = $"Employee signed____{tenNv}______________________         "
+                + (ngayKy != null ? ngayKy.Value.ToString("dd/MM/yyyy") : "______/______/______");
             Gop(r, 1, r, 5);
             ws.Row(r++).Height = 24;
-            ws.Cell(r, 1).Value = "Comment:" + (string.IsNullOrWhiteSpace(ql?.NhanXet) ? "" : "\n" + ql!.NhanXet);
+            var yKienNv = ql?.NvDongY == null ? "" : "\nEmployee: " + (ql.NvDongY == true ? "Đồng ý" : "Không đồng ý")
+                + (string.IsNullOrWhiteSpace(ql.NhanXetNv) ? "" : " - " + ql.NhanXetNv);
+            ws.Cell(r, 1).Value = "Comment:" + (string.IsNullOrWhiteSpace(ql?.NhanXet) ? "" : "\n" + ql!.NhanXet) + yKienNv;
             Gop(r, 1, r, 5).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Top);
             ws.Row(r).Height = ChieuCao(97.5, (ws.Cell(r, 1).GetString(), DoRongCot.Take(5).Sum()));
 

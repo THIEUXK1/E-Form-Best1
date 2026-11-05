@@ -5,6 +5,7 @@
 
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
 <link rel="stylesheet" href="~/css/tu-danh-gia.css?v=7" />
+<link rel="stylesheet" href="~/css/nang-luc-danh-gia.css?v=4" />
 
 <div id="tdg" class="tdg fp-page">
     <div class="tdg-head">
@@ -12,12 +13,14 @@
         <p class="tdg-sub">Performance Evaluation Form — Part 1 Hiệu suất (50đ) · Part 2 Năng lực (50đ) · Part 3 Kế hoạch phát triển</p>
     </div>
 
+    <div id="tdgKy" class="ky-dg"></div>
+
     <div id="tdgTrangThai" class="tdg-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu đánh giá...</div>
 
     <div id="tdgNoiDung" hidden>
         <div id="tdgDaKhoa" class="tdg-alert tdg-alert-info" hidden>
             <i class="fa fa-lock"></i>
-            <div>Phiếu đã được quản lý đánh giá xong — chỉ xem, không sửa được nữa.</div>
+            <div id="tdgDaKhoaChu">Phiếu đã được quản lý đánh giá xong — chỉ xem, không sửa được nữa.</div>
         </div>
 
         <ol class="tdg-steps" id="tdgSteps">
@@ -29,6 +32,7 @@
         </ol>
 
         <div class="tdg-cuon" data-fp-scroll>
+        <div id="tdgKyXacNhan"></div>
         <section class="tdg-card" data-panel="1">
             <h2 class="tdg-card-title">Thông tin nhân viên</h2>
             <p class="tdg-card-desc">Xác nhận thông tin trước khi đánh giá</p>
@@ -59,6 +63,7 @@
                 <span><b>2</b> = Below the standard (Poor)</span>
                 <span><b>1</b> = (Very Poor) Very Low the circumstance</span>
             </div>
+            <div id="tdgSoLieu"></div>
             <div id="tdgDsKpi"></div>
             <div class="tdg-tong-phan">
                 <span>Tổng trọng số: <b id="tdgTongTrongSo">0</b> / 50</span>
@@ -75,7 +80,7 @@
 
         <section class="tdg-card tdg-p3" data-panel="4" hidden>
             <h2 class="tdg-card-title">Part 3 : Career and Improvement Plan — Kế hoạch phát triển / Thăng tiến</h2>
-            <p class="tdg-card-desc">Không tính điểm; quản lý xem và nhận xét.</p>
+            <p class="tdg-card-desc">Không tính điểm; quản lý xem và nhận xét. Việc cụ thể cần theo dõi tiến độ ghi ở <a href="/QLCongViec/DanhGia/KeHoachCuaToi">Kế hoạch của tôi</a>.</p>
             <div class="tdg-grid2">
                 <label class="tdg-field"><span>Strength — Điểm mạnh</span><textarea class="form-control" id="tdgDiemManh" maxlength="8000"></textarea></label>
                 <label class="tdg-field"><span>Career path and duration (1 – 3 year) — Lộ trình</span><textarea class="form-control" id="tdgLoTrinh" maxlength="8000"></textarea></label>
@@ -109,6 +114,9 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/tu-danh-gia.js?v=4"></script>
+    <script src="~/js/ky-danh-gia.js?v=1"></script>
+    <script src="~/js/so-lieu-kpi.js?v=1"></script>
+    <script src="~/js/ky-xac-nhan.js?v=1"></script>
+    <script src="~/js/tu-danh-gia.js?v=7"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }
