@@ -4,16 +4,27 @@
 }
 
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
-<link rel="stylesheet" href="~/css/lich-cong-viec.css?v=5" />
+<link rel="stylesheet" href="~/css/lich-cong-viec.css?v=7" />
 
 <div class="lcv-container">
     <div class="lcv-header">
         <h2>
             <i class="fa fa-calendar" style="color: #65a30d;"></i> LỊCH THỰC HIỆN CÔNG VIỆC
         </h2>
-        <button type="button" id="btnFullscreenCalendar" class="btn-fullscreen-calendar">
-            <i class="fa fa-expand" id="iconFullscreenCalendar"></i> <span id="textFullscreenCalendar">Toàn màn hình</span>
-        </button>
+        <div class="lcv-header-nut">
+            @if (ViewBag.CoTheXuatLich == true)
+            {
+                <span id="lcvXuatLoi" class="lcv-xuat-loi"></span>
+                <label class="lcv-xuat-ngay">Từ <input type="date" id="lcvXuatTu" /></label>
+                <label class="lcv-xuat-ngay">Đến <input type="date" id="lcvXuatDen" /></label>
+                <button type="button" id="btnXuatLichAdminIT" class="btn-fullscreen-calendar" title="Xuất Excel theo khoảng ngày đã chọn">
+                    <i class="fa fa-file-excel-o"></i> <span>Xuất Excel Admin IT</span>
+                </button>
+            }
+            <button type="button" id="btnFullscreenCalendar" class="btn-fullscreen-calendar">
+                <i class="fa fa-expand" id="iconFullscreenCalendar"></i> <span id="textFullscreenCalendar">Toàn màn hình</span>
+            </button>
+        </div>
     </div>
 
     <div class="lcv-body">
@@ -58,5 +69,5 @@
 
 @section Scripts {
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
-    <script src="~/js/lich-cong-viec.js?v=6"></script>
+    <script src="~/js/lich-cong-viec.js?v=8"></script>
 }

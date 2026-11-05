@@ -134,6 +134,68 @@
         }
     });
 
+    // ---- Xuất Excel Admin IT ---------------------------------------------
+    // Tải qua fetch để khoá nút trong lúc chờ và báo lỗi tại chỗ thay vì nhảy sang trang lỗi
+    function dinhDangNgay(ngay) {
+        return ngay.getFullYear() + '-' + String(ngay.getMonth() + 1).padStart(2, '0') + '-' + String(ngay.getDate()).padStart(2, '0');
+    }
+
+    // Lật lịch tới đâu thì gợi ý sẵn đúng khoảng đang xem, người dùng vẫn chọn lại được
+    function dienKhoangDangXem(arg) {
+        var oTu = document.getElementById('lcvXuatTu');
+        var oDen = document.getElementById('lcvXuatDen');
+        if (!oTu || !oDen) return;
+        var cuoi = new Date(arg.view.currentEnd);
+        cuoi.setDate(cuoi.getDate() - 1); // currentEnd là mốc loại trừ
+        oTu.value = dinhDangNgay(arg.view.currentStart);
+        oDen.value = dinhDangNgay(cuoi);
+    }
+
+    function xuatLichAdminIT(btn) {
+        var tuNgay = document.getElementById('lcvXuatTu').value;
+        var denNgay = document.getElementById('lcvXuatDen').value;
+        var boxLoi = document.getElementById('lcvXuatLoi');
+        var nhan = btn.querySelector('span');
+        var nhanCu = nhan.textContent;
+        var thongBaoLoi = 'Không xuất được file, vui lòng thử lại';
+
+        boxLoi.textContent = '';
+        btn.disabled = true;
+        nhan.textContent = 'Đang xuất…';
+
+        var thamSo = new URLSearchParams({ tuNgay: tuNgay, denNgay: denNgay });
+        fetch('/FormCongViec/XuatLichAdminIT?' + thamSo.toString(), { credentials: 'same-origin' })
+            .then(function (res) {
+                // Hết phiên thì bị chuyển sang trang đăng nhập (200 HTML), không được lưu thành file Excel
+                if (res.redirected) throw new Error('Lỗi xuất file');
+                if (res.status === 400) {
+                    return res.json().then(function (loi) {
+                        thongBaoLoi = loi.thongBao || thongBaoLoi;
+                        throw new Error(thongBaoLoi);
+                    });
+                }
+                if (!res.ok) throw new Error('Lỗi xuất file');
+                return res.blob();
+            })
+            .then(function (blob) {
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'LichCongViec_AdminIT_' + tuNgay.replace(/-/g, '') + '_' + denNgay.replace(/-/g, '') + '.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            })
+            .catch(function () {
+                boxLoi.textContent = thongBaoLoi;
+            })
+            .finally(function () {
+                btn.disabled = false;
+                nhan.textContent = nhanCu;
+            });
+    }
+
     // ---- Khởi tạo --------------------------------------------------------
     document.addEventListener('DOMContentLoaded', function () {
         var el = document.getElementById('calendar');
@@ -155,6 +217,7 @@
             events: '/FormCongViec/GetLichCongViecData',
             // Chỉ đếm lại số lượng — tuyệt đối không sửa event trong callback này
             eventsSet: capNhatSoLuongChip,
+            datesSet: dienKhoangDangXem,
             eventClassNames: function (arg) {
                 return ['lcv-' + (arg.event.extendedProps.nhomLoc || 'condu')];
             },
@@ -202,6 +265,9 @@
 
         var btnFull = document.getElementById('btnFullscreenCalendar');
         if (btnFull) btnFull.addEventListener('click', batTatToanManHinh);
+
+        var btnXuat = document.getElementById('btnXuatLichAdminIT');
+        if (btnXuat) btnXuat.addEventListener('click', function () { xuatLichAdminIT(btnXuat); });
 
         // Chip lọc — event delegation để vẫn chạy nếu sau này chip được vẽ động
         var boxChip = document.getElementById('lcvFilters');

@@ -166,6 +166,7 @@
         int total3 = Model.ItDangKiSuDungWifi3s.Count();
         // Nút thêm nhanh MAC lên WLC: chỉ người có quyền và công ty của đơn đã cấu hình WLC
         bool hienThemMac = E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy);
+        bool suaDuocMaThietBi = User.IsInRole("All");
         foreach (var ct in Model.ItDangKiSuDungWifi3s)
         {
             if (total3 > 1)
@@ -211,7 +212,12 @@
                         string bgRow = (i % 2 == 0) ? "#ffffff" : "#fbfcfd";
                         bangThietBi += $"<tr style='background:{bgRow}; border-bottom:1px solid #f1f5f9;'>";
                         bangThietBi += $"<td style='padding:12px 10px; text-align:center; font-weight:700; color:#94a3b8; width:1%; white-space:nowrap;'>{i + 1}</td>";
-                        bangThietBi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{System.Net.WebUtility.HtmlEncode(arrMa[i].Trim())}</td>";
+                        string maHtml = System.Net.WebUtility.HtmlEncode(arrMa[i].Trim());
+                        if (suaDuocMaThietBi)
+                        {
+                            maHtml = $"<div class='o-ma-thiet-bi'><span class='ma-thiet-bi-gia-tri'>{maHtml}</span><button type='button' class='btn-sua-ma-thiet-bi' data-id-form='{Model.Id}' data-id-chi-tiet='{ct.Id}' data-vi-tri='{i}' title='Sửa mã thiết bị' aria-label='Sửa mã thiết bị'>✎</button></div>";
+                        }
+                        bangThietBi += $"<td style='padding:12px 15px; color:#1e293b; font-weight:600;'>{maHtml}</td>";
                         bangThietBi += $"<td style='padding:12px 15px; text-align:center; font-weight:800; color:#10b981; white-space:nowrap;'>{System.Net.WebUtility.HtmlEncode(arrMac[i].Trim())}</td>";
                         if (cotThemMac)
                         {
@@ -1398,6 +1404,11 @@
 <script src="~/js/formit-binhluan-dan-anh.js?v=20260917"></script>
 <script src="~/js/formit-nguoi-co-the-duyet.js?v=20261001"></script>
 <script src="~/js/formit-yeu-cau-quan-ly.js?v=20261104"></script>
+@if (Model?.ItDangKiSuDungWifi3s?.Any() == true && User.IsInRole("All"))
+{
+    <link rel="stylesheet" href="~/css/formit-sua-ma-thiet-bi.css?v=20261105" />
+    <script src="~/js/formit-sua-ma-thiet-bi.js?v=20261105"></script>
+}
 
 @if (Model?.ItDangKiSuDungWifi3s?.Any() == true && E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy))
 {
@@ -1498,5 +1509,5 @@
         </div>
     </div>
     <link rel="stylesheet" href="~/css/formit-them-mac-wlc.css?v=20261103b" />
-    <script src="~/js/formit-them-mac-wlc.js?v=20261104a"></script>
+    <script src="~/js/formit-them-mac-wlc.js?v=20261105"></script>
 }

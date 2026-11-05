@@ -234,6 +234,64 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return TraKetQua(mac, ds);
         }
 
+        public class SuaMaThietBiVao
+        {
+            public int IdFormIt { get; set; }
+            public int IdChiTiet { get; set; }
+            public int ViTri { get; set; }
+            public string? MaCu { get; set; }
+            public string? MaMoi { get; set; }
+        }
+
+        /// <summary>
+        /// Quyền 'All' sửa Mã thiết bị / Định danh của một dòng trong đơn đã gửi (người dùng hay gõ sai tên).
+        /// Chỉ đổi đúng phần tử theo vị trí, MacTb giữ nguyên để nút WLC/RADIUS vẫn lấy đúng MAC của dòng đó.
+        /// </summary>
+        [HttpPost("/FormIT/SuaMaThietBiWifi")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SuaMaThietBi([FromBody] SuaMaThietBiVao? vao)
+        {
+            if (!User.IsInRole("All")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền sửa mã thiết bị." });
+            if (vao == null) return Json(new { thanhCong = false, thongBao = "Thiếu dữ liệu." });
+
+            var maMoi = vao.MaMoi?.Trim() ?? "";
+            if (maMoi.Length == 0) return Json(new { thanhCong = false, thongBao = "Nhập mã thiết bị / định danh." });
+            // '|' là dấu ngăn cách các dòng trong cột gộp: lọt vào sẽ làm lệch mã với MAC của các dòng sau
+            if (maMoi.Contains('|')) return Json(new { thanhCong = false, thongBao = "Mã thiết bị không được chứa ký tự |." });
+
+            var ct = await _context.ItDangKiSuDungWifi3s
+                .FirstOrDefaultAsync(x => x.Id == vao.IdChiTiet && x.IdFormIt == vao.IdFormIt);
+            if (ct == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy thiết bị trong đơn." });
+
+            var dsMa = (ct.MaThietBi ?? "").Split('|', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
+            if (vao.ViTri < 0 || vao.ViTri >= dsMa.Length) return Json(new { thanhCong = false, thongBao = "Dòng thiết bị không hợp lệ." });
+
+            var maHienTai = dsMa[vao.ViTri];
+            var moTa = WlcMacService.ChuanHoaMoTa(maMoi);
+
+            // Chốt idempotency: bấm lặp hoặc giữ nguyên giá trị thì không ghi thêm dòng lịch sử
+            if (maHienTai == maMoi)
+                return Json(new { thanhCong = true, thongBao = "Không có thay đổi.", duLieu = new { maThietBi = maMoi, moTa } });
+            if (maHienTai != (vao.MaCu?.Trim() ?? ""))
+                return Json(new { thanhCong = false, thongBao = $"Mã đã được đổi thành '{maHienTai}', tải lại trang rồi sửa lại." });
+
+            dsMa[vao.ViTri] = maMoi;
+            var chuoiMoi = string.Join(" | ", dsMa);
+            if (chuoiMoi.Length > 4000) return Json(new { thanhCong = false, thongBao = "Danh sách mã thiết bị của đơn vượt quá 4000 ký tự." });
+            ct.MaThietBi = chuoiMoi;
+
+            _context.LichSuFormIts.Add(new LichSuFormIt
+            {
+                IdFormIt = vao.IdFormIt,
+                TieuDe = "Sửa mã thiết bị",
+                Mota = $"{User.FindFirst(ClaimTypes.Name)?.Value} ({User.FindFirst("MaNv")?.Value}) đã sửa dòng {vao.ViTri + 1}: '{maHienTai}' → '{maMoi}'.",
+                Time = DateTime.Now
+            });
+            await _context.SaveChangesAsync();
+
+            return Json(new { thanhCong = true, thongBao = "Đã sửa mã thiết bị.", duLieu = new { maThietBi = maMoi, moTa } });
+        }
+
         public class ThemRadiusVao
         {
             public int IdFormIt { get; set; }

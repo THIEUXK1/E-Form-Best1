@@ -1,0 +1,19 @@
+/* Sửa Mã thiết bị / Định danh ngay trên bảng thiết bị của đơn Wi-Fi (quyền All) */
+.o-ma-thiet-bi { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ma-thiet-bi-gia-tri { overflow-wrap: anywhere; }
+.ma-thiet-bi-gia-tri[hidden], .btn-sua-ma-thiet-bi[hidden] { display: none; }
+
+.btn-sua-ma-thiet-bi { background: none; border: none; color: #64748b; cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; border-radius: 4px; }
+.btn-sua-ma-thiet-bi:hover { background: #f1f5f9; color: #0369a1; }
+
+.khung-sua-ma-thiet-bi { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; }
+.khung-sua-ma-thiet-bi input { flex: 1 1 200px; min-width: 0; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+.khung-sua-ma-thiet-bi button { padding: 6px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-luu-ma-thiet-bi { background: #0369a1; color: #fff; border: 1px solid #0369a1; }
+.btn-luu-ma-thiet-bi:disabled { opacity: .6; cursor: default; }
+.btn-huy-ma-thiet-bi { background: #fff; color: #475569; border: 1px solid #cbd5e1; }
+.loi-ma-thiet-bi { flex-basis: 100%; color: #b91c1c; font-size: 13px; font-weight: 500; }
+
+@media print {
+    .btn-sua-ma-thiet-bi { display: none; }
+}

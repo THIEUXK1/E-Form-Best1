@@ -155,6 +155,8 @@
     const dsCotWlc = Array.from(document.querySelectorAll('#bangMacWlc th[data-ip]')).map(function (th) { return th.dataset.ip; });
     const coCotRadius = !!document.querySelector('#bangMacWlc th.cot-radius');
     function veBang() { dsThanBang.forEach(veMotBang); }
+    // Bảng MAC lấy tên từ data-mo-ta của nút "+": vẽ lại khi quyền All vừa sửa mã thiết bị
+    document.addEventListener('ma-thiet-bi-da-sua', veBang);
     function veMotBang(thanBang) {
         thanBang.textContent = '';
         const dsNut = document.querySelectorAll('.btn-them-mac-wlc');

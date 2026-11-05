@@ -1,4 +1,5 @@
 ﻿using E_Form_Best.Context;
+using E_Form_Best.Areas.QLCongViec.Services;
 using E_Form_Best.Models.ITForm;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -2876,6 +2877,19 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
         #region BÁO CÁO THỐNG KÊ THEO NGÀY (LỊCH CÔNG VIỆC)
 
+        // Dùng chung cho lịch trên web và file Excel để hai nơi cùng một bảng màu
+        private static (string mau, string nhomLoc, string nhanHan) PhanLoaiHan(bool daHuy, bool hoanTat, int? soNgayConLai)
+        {
+            if (daHuy) return ("#94a3b8", "huy", "Đã hủy");
+            if (hoanTat) return ("#16a34a", "hoantat", "Đã hoàn tất");
+            if (soNgayConLai == null) return ("#8b5cf6", "khonghan", "Chưa đặt hạn");
+            if (soNgayConLai < 0) return ("#dc2626", "quahan", $"Quá hạn {-soNgayConLai} ngày");
+            if (soNgayConLai == 0) return ("#ea580c", "quahan", "Hết hạn hôm nay");
+            if (soNgayConLai <= 3) return ("#f59e0b", "sapden", $"Còn {soNgayConLai} ngày");
+            if (soNgayConLai <= 7) return ("#0ea5e9", "sapden", $"Còn {soNgayConLai} ngày");
+            return ("#0891b2", "condu", $"Còn {soNgayConLai} ngày");
+        }
+
         /// <summary>
         /// Dữ liệu cho lịch công việc. Mỗi đơn là một thanh trải từ ngày tạo tới HẠN HOÀN THÀNH
         /// (CV_CongViec_Order_1.ThoiHanHoanThanh) để nhìn là biết ngay việc nào sắp/đã hết hạn.
@@ -2921,15 +2935,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 // Số ngày còn lại tính theo ngày (âm = đã quá hạn)
                 int? soNgayConLai = hanChot.HasValue ? (int?)(hanChot.Value.Date - homNay).Days : null;
 
-                string mau, nhomLoc, nhanHan;
-                if (daHuy) { mau = "#94a3b8"; nhomLoc = "huy"; nhanHan = "Đã hủy"; }
-                else if (hoanTat) { mau = "#16a34a"; nhomLoc = "hoantat"; nhanHan = "Đã hoàn tất"; }
-                else if (soNgayConLai == null) { mau = "#8b5cf6"; nhomLoc = "khonghan"; nhanHan = "Chưa đặt hạn"; }
-                else if (soNgayConLai < 0) { mau = "#dc2626"; nhomLoc = "quahan"; nhanHan = $"Quá hạn {-soNgayConLai} ngày"; }
-                else if (soNgayConLai == 0) { mau = "#ea580c"; nhomLoc = "quahan"; nhanHan = "Hết hạn hôm nay"; }
-                else if (soNgayConLai <= 3) { mau = "#f59e0b"; nhomLoc = "sapden"; nhanHan = $"Còn {soNgayConLai} ngày"; }
-                else if (soNgayConLai <= 7) { mau = "#0ea5e9"; nhomLoc = "sapden"; nhanHan = $"Còn {soNgayConLai} ngày"; }
-                else { mau = "#0891b2"; nhomLoc = "condu"; nhanHan = $"Còn {soNgayConLai} ngày"; }
+                var (mau, nhomLoc, nhanHan) = PhanLoaiHan(daHuy, hoanTat, soNgayConLai);
 
                 string trangThaiText = daHuy ? "Đã hủy"
                     : hoanTat ? "Hoàn tất"
@@ -3040,7 +3046,105 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         [HttpGet("/FormCongViec/LichCongViec")]
         public IActionResult LichCongViec()
         {
+            ViewBag.CoTheXuatLich = CoTheXuatLich();
             return View();
+        }
+
+        private bool CoTheXuatLich() => User.IsInRole("AdminCV") || User.IsInRole("AdminIT") || User.IsInRole("All");
+
+        private const int SoNgayXuatLichToiDa = 366;
+
+        /// <summary>
+        /// Xuất Excel kiểu lịch theo khoảng ngày: mỗi AdminIT một hàng, thấy ngày nào đang có việc gì.
+        /// Khác lịch web: thanh kết thúc ở ngày thực xong (TimeAdmin) thay vì hạn chót, việc chưa xong
+        /// kéo tới hôm nay dù đã quá hạn hay chưa đặt hạn, vì vẫn đang nằm trên tay người đó.
+        /// </summary>
+        [HttpGet("/FormCongViec/XuatLichAdminIT")]
+        public async Task<IActionResult> XuatLichAdminIT(DateTime? tuNgay, DateTime? denNgay)
+        {
+            if (!CoTheXuatLich()) return StatusCode(StatusCodes.Status403Forbidden);
+
+            if (tuNgay == null || denNgay == null)
+                return BadRequest(new { thanhCong = false, thongBao = "Vui lòng chọn đủ từ ngày và đến ngày" });
+            var dau = tuNgay.Value.Date;
+            var cuoi = denNgay.Value.Date;
+            if (dau > cuoi)
+                return BadRequest(new { thanhCong = false, thongBao = "Từ ngày phải trước hoặc bằng đến ngày" });
+            // Mỗi ngày một cột: quá dài thì file không còn đọc được như một tờ lịch
+            if ((cuoi - dau).Days + 1 > SoNgayXuatLichToiDa)
+                return BadRequest(new { thanhCong = false, thongBao = $"Chỉ xuất tối đa {SoNgayXuatLichToiDa} ngày một lần" });
+
+            var homNay = DateTime.Now.Date;
+
+            // Chỉ lấy mã NV thật (đầu V/M/Y), bỏ tài khoản hệ thống — cùng quy ước với DanhGiaQuanLyService
+            var dsAdminIT = await _context.Users.AsNoTracking()
+                .Where(u => u.Tk != null
+                    && (u.Tk.StartsWith("V") || u.Tk.StartsWith("M") || u.Tk.StartsWith("Y"))
+                    && u.TrangThai != "Đã nghỉ"
+                    && u.UserQuyens.Any(q => q.IdQuyenNavigation != null && q.IdQuyenNavigation.TenQuyen == "AdminIT"))
+                .Select(u => new { u.IdNguoiDung, u.Tk, u.HoTen })
+                .ToListAsync();
+            var idAdminIT = dsAdminIT.Select(u => u.IdNguoiDung).ToList();
+
+            // Bỏ sớm việc đã xong trước khoảng chọn; không dùng Include vì bảng chi tiết có cột ảnh rất nặng
+            var dsDon = await _context.FormCongViecs.AsNoTracking()
+                .Where(f => f.FormCongViecNguoiLienQuans.Any(x => idAdminIT.Contains(x.IdNguoiDung))
+                    && f.TrangThai != "Huy"
+                    && (f.TenForm == null || !f.TenForm.Contains("[ĐÃ HỦY]"))
+                    && (f.IdAdmin == null || f.TimeAdmin == null || f.TimeAdmin >= dau))
+                .Select(f => new
+                {
+                    f.TenForm,
+                    f.IdAdmin,
+                    f.TimeAdmin,
+                    f.TimeNguoiTao,
+                    NguoiLam = f.FormCongViecNguoiLienQuans.Select(x => x.IdNguoiDung).ToList(),
+                    Ten = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.Ten).FirstOrDefault(),
+                    HanChot = f.CvCongViecOrder1s.OrderBy(o => o.ThoiHanHoanThanh).Select(o => o.ThoiHanHoanThanh).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            var viecTheoNguoi = new Dictionary<int, List<LichCongViecExcel.ThanhViec>>();
+            foreach (var f in dsDon)
+            {
+                bool hoanTat = f.IdAdmin != null;
+                var han = f.HanChot?.Date;
+                var batDau = (f.TimeNguoiTao ?? han ?? homNay).Date;
+                var ketThuc = hoanTat ? (f.TimeAdmin ?? han ?? batDau).Date
+                    : han.HasValue && han.Value > homNay ? han.Value : homNay;
+                if (ketThuc < batDau) ketThuc = batDau;
+                if (batDau > cuoi || ketThuc < dau) continue;
+
+                int? soNgayConLai = han.HasValue ? (han.Value - homNay).Days : null;
+                var (mau, _, _) = PhanLoaiHan(false, hoanTat, soNgayConLai);
+                string ten = !string.IsNullOrEmpty(f.Ten) ? f.Ten : (f.TenForm ?? "Công việc không tiêu đề");
+                var thanh = new LichCongViecExcel.ThanhViec(
+                    han.HasValue ? $"{ten} (hạn {han:dd/MM})" : ten,
+                    batDau < dau ? dau : batDau,
+                    ketThuc > cuoi ? cuoi : ketThuc,
+                    mau);
+
+                foreach (var id in f.NguoiLam.Distinct())
+                {
+                    if (!viecTheoNguoi.TryGetValue(id, out var ds)) viecTheoNguoi[id] = ds = new();
+                    ds.Add(thanh);
+                }
+            }
+
+            // Một người có thể có 2 tài khoản (V… và M…): gộp theo họ tên cho khỏi hiện 2 hàng,
+            // Distinct để việc giao cho cả 2 tài khoản không bị vẽ 2 lần.
+            var dsHang = dsAdminIT
+                .GroupBy(u => (u.HoTen ?? u.Tk!).Trim())
+                .OrderBy(g => g.Key)
+                .Select(g => new LichCongViecExcel.HangNhanSu(
+                    g.Key,
+                    string.Join(", ", g.Select(u => u.Tk).OrderBy(x => x)),
+                    g.SelectMany(u => viecTheoNguoi.GetValueOrDefault(u.IdNguoiDung) ?? new()).Distinct().ToList()))
+                .ToList();
+
+            return File(LichCongViecExcel.TaoFile(dau, cuoi, dsHang),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"LichCongViec_AdminIT_{dau:yyyyMMdd}_{cuoi:yyyyMMdd}.xlsx");
         }
 
         #endregion
