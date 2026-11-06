@@ -105,7 +105,7 @@
 
     function oNhap(nl, giaTri) {
         var o = el('input', { type: 'number', class: 'form-control form-control-sm', min: 0, max: st.d.thangToiDa, step: 1,
-            'data-nl': nl.idNangLuc, 'aria-label': 'Điểm ' + nl.ten });
+            placeholder: '0–' + fmt(st.d.thangToiDa), 'data-nl': nl.idNangLuc, 'aria-label': 'Điểm ' + nl.ten });
         o.value = coGT(giaTri) ? fmt(giaTri) : '';
         return o;
     }
@@ -203,6 +203,10 @@
     document.addEventListener('input', function (e) {
         var t = e.target;
         if (!t.matches('#cnlBang [data-nl]')) return;
+        // min/max của input number chỉ chặn nút tăng giảm, gõ tay hoặc dán vẫn vượt thang nên phải kẹp lại ở đây
+        var so = parseFloat(t.value);
+        if (so > st.d.thangToiDa) t.value = fmt(st.d.thangToiDa);
+        else if (so < 0) t.value = '0';
         var id = t.getAttribute('data-nl');
         var nl = st.d.ketQua.dsNangLuc.filter(function (x) { return x.idNangLuc === id; })[0];
         var o = document.querySelector('#cnlBang [data-gap="' + CSS.escape(id) + '"]');

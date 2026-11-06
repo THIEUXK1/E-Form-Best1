@@ -18,8 +18,9 @@ function DungTienTrinh($ds) { foreach ($p in @($ds)) { try { Stop-Process -Id $p
 DungTienTrinh (Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" |
     Where-Object { $_.CommandLine -like "*watch-supervisor.ps1*" -and $_.ProcessId -ne $PID }).ProcessId
 DungTienTrinh (Get-Process -Name "E-Form-Best" -ErrorAction SilentlyContinue).Id
+# Dòng lệnh của watch không chứa "E-Form-Best": lọc sót thì watch mồ côi tự build và giữ .pdb/.dll -> lỗi CS2012.
 DungTienTrinh (Get-CimInstance Win32_Process -Filter "Name='dotnet.exe'" |
-    Where-Object { $_.CommandLine -like "*E-Form-Best*" }).ProcessId
+    Where-Object { $_.CommandLine -like "*E-Form-Best*" -or $_.CommandLine -like "*watch run*localhost:$cong*" -or $_.CommandLine -like "*dotnet-watch*" }).ProcessId
 # watch bị dừng giữa lúc build sẽ để lại VBCSCompiler giữ E-Form-Best.dll -> build sau lỗi CS2012.
 # Chờ một nhịp cho nó kịp sinh ra rồi mới dọn.
 Start-Sleep -Seconds 2
