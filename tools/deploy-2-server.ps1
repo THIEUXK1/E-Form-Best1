@@ -34,7 +34,9 @@ $dongHo = [Diagnostics.Stopwatch]::StartNew()
 
 $goc = Split-Path $PSScriptRoot -Parent
 $duAn = Join-Path $goc 'E-Form-Best'
-$User = 'BESTPACIFIC\vnsuperman'
+# Tài khoản local (admin cục bộ, tạo 09/11/2026) thay tài khoản domain: lộ cũng không vào được máy khác trong domain.
+# Admin cục bộ dùng chung key trong administrators_authorized_keys nên vẫn là 2 key dưới đây
+$User = 'thieuxk'
 $ThuMucMayChu = 'C:\inetpub\Web'
 # Site chỉ bind IP:8002 (không bind localhost) nên gọi thử từ máy dev qua IP
 $DsMay = [ordered]@{

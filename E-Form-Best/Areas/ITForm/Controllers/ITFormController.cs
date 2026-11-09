@@ -4187,6 +4187,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     .ToListAsync();
             }
 
+            // Đơn Mail: AdminIT + All thấy nút sang trang quản trị Mail; ghi chú nội bộ chỉ gửi xuống khi là AdminIT
+            // (lọc ở server, không ẩn bằng CSS, để quyền All không đọc được qua mã nguồn trang).
+            if (don.IdForm == "IT_Mail_1" && (User.IsInRole("AdminIT") || User.IsInRole("All")))
+            {
+                ViewBag.MailQuanTriUrl = _config["MailQuanTri:Url"];
+                if (User.IsInRole("AdminIT"))
+                    ViewBag.MailQuanTriGhiChu = _config["MailQuanTri:GhiChu"]?.Replace("\\n", "\n").Trim();
+            }
+
             ViewBag.CurrentUserId = userId;
             ViewBag.UserEmail = userEmail;
 

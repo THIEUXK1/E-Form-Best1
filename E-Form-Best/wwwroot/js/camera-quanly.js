@@ -84,7 +84,9 @@
             idCongTy: $('#filterCongTy').val(),
             idBoPhan: $('#filterBoPhan').val(),
             tinhTrang: $('#filterTinhTrang').val(),
-            trucTuyen: $('#filterTrucTuyen').val()
+            trucTuyen: $('#filterTrucTuyen').val(),
+            // Trang PFVN/MEGA dùng chung tab này: server kiểm quyền theo công ty của trang
+            congTy: $('section.content[data-cong-ty]').attr('data-cong-ty') || 'BPVN'
         };
 
         dongTrangThai('Đang tải dữ liệu và kiểm tra kết nối...', 'text-muted');

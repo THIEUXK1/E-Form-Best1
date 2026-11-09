@@ -1111,6 +1111,25 @@
                         </div>
                     </div>
 
+                    @if (!string.IsNullOrEmpty(ViewBag.MailQuanTriUrl as string))
+                    {
+                        var ghiChuMail = ViewBag.MailQuanTriGhiChu as string;
+                        <div style="margin-top: 30px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 28px; padding: 20px 25px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start;">
+                            <div style="flex: 1; min-width: 240px;">
+                                <div style="font-weight: 900; color: #92400e; font-size: 16px;"><i class="fa fa-envelope-o"></i> QUẢN TRỊ MAIL</div>
+                                <div style="font-size: 13px; color: #78350f; margin-top: 4px;">Mở trang quản trị hộp thư công ty để tạo / sửa / thu hồi tài khoản theo đơn này.</div>
+                                @if (!string.IsNullOrEmpty(ghiChuMail))
+                                {
+                                    <div style="margin-top: 10px; background: white; border: 1px dashed #f59e0b; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #451a03; white-space: pre-line;"><b>📝 Ghi chú (chỉ AdminIT):</b>
+@ghiChuMail</div>
+                                }
+                            </div>
+                            <a href="@ViewBag.MailQuanTriUrl" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #d97706; color: white; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 14px; white-space: nowrap;">
+                                <i class="fa fa-external-link"></i> Sang trang quản trị Mail
+                            </a>
+                        </div>
+                    }
+
                     @if (Model?.ItDangKiSuDungWifi3s?.Any() == true && E_Form_Best.Areas.ITForm.Controllers.WifiMacController.CoQuyen(User) && WlcMac.CoCauHinh(Model.TenCongTy))
                     {
                         <div id="bangMacWlc" class="bang-mac-wlc">

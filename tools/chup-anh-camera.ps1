@@ -78,7 +78,9 @@ if ($gocNvr.Count -gt 0) {
 }
 
 $ffmpeg = $cauHinh['CameraNvr__FfmpegPath']
-if (-not $ffmpeg) { $ffmpeg = 'C:\go2rtc\ffmpeg.exe' }
+# Đường dẫn khai trong .env đã mất (từng trỏ vào thư mục tạm bị dọn) thì dùng bản cài sẵn cùng go2rtc,
+# không thì cả bước lấy ảnh từ bản ghi lẫn kiểm ảnh hỏng đều bị tắt âm thầm
+if (-not $ffmpeg -or -not (Test-Path $ffmpeg)) { $ffmpeg = 'C:\go2rtc\ffmpeg.exe' }
 
 # Ảnh hỏng do luồng H.265 mất dữ liệu: các mảng xanh lá / hồng đặc. Thu ảnh về 64x36 điểm rồi đếm điểm có một kênh
 # màu lệch hẳn hai kênh kia; ảnh thật đo được 0%, ảnh hỏng từ ~30% -> ngưỡng 5%. Ảnh hỏng thì không ghi đè ảnh cũ.
@@ -350,8 +352,13 @@ $coLoi = $false
 foreach ($m in $mayChu) {
     $key = Join-Path $env:USERPROFILE ".ssh\$($m.Key)"
     $dichScp = "BESTPACIFIC\vnsuperman@$($m.Ip):C:/inetpub/CameraAnhLuu/"
-    & scp -i $key -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -q -p "$thuMucAnh\*.jpg" $dichScp 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) { GhiLog "Day len $($m.Ip): OK" } else { GhiLog "Day len $($m.Ip): LOI scp exit=$LASTEXITCODE"; $coLoi = $true }
+    # Như khối PFVN: scp ghi cảnh báo (host key, post-quantum KEX...) ra stderr, để 'Stop' thì PowerShell 5.1
+    # dừng cả script ngay tại đây -> ảnh BPVN không lên máy chủ, log không có dòng "Day len", task báo lỗi 1
+    & {
+        $ErrorActionPreference = 'Continue'
+        & scp -i $key -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -q -p "$thuMucAnh\*.jpg" $dichScp 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) { GhiLog "Day len $($m.Ip): OK" } else { GhiLog "Day len $($m.Ip): LOI scp exit=$LASTEXITCODE"; $script:coLoi = $true }
+    }
 
     # Ảnh PFVN vào thư mục con PFVN (trang /QLCamera/PFVN đọc ở đó); scp không tự tạo thư mục nên tạo trước
     if ($coPfvn) {

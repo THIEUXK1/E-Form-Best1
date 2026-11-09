@@ -11,8 +11,8 @@
     var dsTrangThaiDauGhi = ViewBag.DsTrangThaiDauGhi as IEnumerable<string> ?? Enumerable.Empty<string>();
     // Chỉ quyền "All" được thêm/sửa/xoá; CamBPVN chỉ xem (server vẫn chặn lại ở từng action)
     var coQuyenSua = ViewBag.CoQuyenSua as bool? ?? false;
-    // PFVN/MEGA dùng chung trang này nhưng chỉ có tab Giám sát + ảnh lưu (không có hệ thống giám sát,
-    // lịch sử, đầu ghi chi nhánh, tài sản; máy chủ không thông mạng đầu ghi nên không xem trực tiếp)
+    // PFVN/MEGA dùng chung trang này, giao diện giống hệt BPVN; chỉ khác nguồn dữ liệu (ảnh lưu + "_kenh.json"
+    // thay cho hệ thống ISAPI) và xem trực tiếp tuỳ cấu hình bên dưới
     var congTy = ViewBag.CongTy as string ?? "BPVN";
     var laBpvn = congTy == "BPVN";
     // Xem trực tiếp: BPVN luôn có; PFVN/MEGA có khi đã khai go2rtc bên công ty đó (Camera{CÔNG TY}__Go2rtcUrl)
@@ -54,14 +54,11 @@
                         <i class="fas fa-server me-1"></i> Đầu ghi chi nhánh
                     </button>
                 </li>
-                @if (laBpvn)
-                {
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="tabTaiSanBtn" data-bs-toggle="pill" data-bs-target="#paneTaiSan" type="button" role="tab">
                         <i class="fas fa-tags me-1"></i> Tài sản camera
                     </button>
                 </li>
-                }
             </ul>
 
             @* Báo cáo định kỳ riêng công ty này: trang in + Excel (dùng chung trang Tổng quan, lọc 1 công ty) *@
@@ -88,16 +85,11 @@
                             <div class="cam-tile cam-tile-up cam-tile-loc" data-loc="UP" title="Bấm để chỉ xem camera đang hoạt động"><div class="cam-tile-nhan">Hoạt động</div><div class="cam-tile-so" id="gsUp">–</div></div>
                             <div class="cam-tile cam-tile-down cam-tile-loc" data-loc="DOWN" title="Bấm để chỉ xem camera mất kết nối"><div class="cam-tile-nhan">Mất kết nối</div><div class="cam-tile-so" id="gsDown">–</div><div class="cam-tile-phu" id="gsTyLe"></div></div>
                             <div class="cam-tile"><div class="cam-tile-nhan">Đầu ghi sẵn sàng</div><div class="cam-tile-so" id="gsNvr">–</div><div class="cam-tile-phu" id="gsNvrLoi"></div></div>
-                            @if (laBpvn)
-                            {
                             <div class="cam-tile cam-tile-loc" data-loc="chu-y" title="Bấm để chỉ xem camera chú ý"><div class="cam-tile-nhan">Đã loại trừ / Chú ý</div><div class="cam-tile-so" id="gsLoaiTru">–</div></div>
-                            }
                             <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="gsLanCuoi">–</div><div class="cam-tile-phu" id="gsLanCuoiTrangThai"></div></div>
                         </div>
 
                         <div class="row g-2 mb-2">
-                            @if (laBpvn)
-                            {
                             <div class="col-lg-7">
                                 <div class="cam-khung">
                                     <div class="d-flex align-items-center mb-1">
@@ -111,8 +103,7 @@
                                     <div class="cam-bieu-do"><canvas id="gsBieuDo"></canvas></div>
                                 </div>
                             </div>
-                            }
-                            <div class="@(laBpvn ? "col-lg-5" : "col-12")">
+                            <div class="col-lg-5">
                                 <div class="cam-khung">
                                     <div class="fw-bold small text-muted mb-1"><i class="fas fa-server me-1"></i> Đầu ghi @congTy (bấm để lọc camera)</div>
                                     <div class="cam-bang-nvr">
@@ -147,8 +138,6 @@
                                 <input class="form-check-input" type="checkbox" id="gsChiGhim">
                                 <label class="form-check-label small" for="gsChiGhim"><i class="fas fa-thumbtack"></i> Chỉ camera đã ghim</label>
                             </div>
-                            @if (laBpvn)
-                            {
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" id="gsChiChuY">
                                 <label class="form-check-label small" for="gsChiChuY">★ Chỉ camera chú ý</label>
@@ -157,7 +146,6 @@
                                 <input class="form-check-input" type="checkbox" id="gsGomLoaiTru" checked>
                                 <label class="form-check-label small" for="gsGomLoaiTru">Gồm camera đã loại trừ</label>
                             </div>
-                            }
                             <span class="flex-grow-1"></span>
                             <span class="small text-muted" id="gsDemCamera"></span>
                             <div class="form-check form-switch mb-0" title="@(laBpvn ? "Hệ thống ISAPI kiểm tra khoảng 5 phút một lần" : "Trạng thái kiểm tra 5 phút/lần; ảnh lưu chụp lúc 08:30 và 14:00")">
@@ -361,9 +349,7 @@
                         </div>
                     </div>
 
-                    @if (laBpvn)
-                    {
-                    @* ================= TAB TÀI SẢN CAMERA (KK_Camera, nhập tay) ================= *@
+                    @* ================= TAB TÀI SẢN CAMERA (KK_Camera, nhập tay; PFVN/MEGA lọc sẵn công ty của trang) ================= *@
                     <div class="tab-pane fade" id="paneTaiSan" role="tabpanel">
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                             <input type="text" id="filterTuKhoa" class="form-control form-control-sm" style="max-width:260px;"
@@ -373,7 +359,7 @@
                                 <option value="">-- Tất cả công ty --</option>
                                 @foreach (var ct in dsCongTy)
                                 {
-                                    <option value="@ct.IdcongTy">@ct.TenCongTy</option>
+                                    <option value="@ct.IdcongTy" selected="@(!laBpvn && ct.TenCongTy == congTy)">@ct.TenCongTy</option>
                                 }
                             </select>
 
@@ -458,7 +444,6 @@
                             </table>
                         </div>
                     </div>
-                    }
 
                 </div>@* /tab-content *@
             </div>
@@ -770,11 +755,8 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=202610270831" defer></script>
-    @if (laBpvn)
-    {
-    <script src="/js/camera-quanly.js?v=20261006b"></script>
-    }
-    <script src="/js/camera-giam-sat.js?v=20261028b"></script>
+    <script src="/js/camera-quanly.js?v=20261109a"></script>
+    <script src="/js/camera-giam-sat.js?v=20261109a"></script>
     <script src="/js/camera-luoi.js?v=20261009a"></script>
     <script src="/js/camera-lich-su.js?v=20261007b"></script>
     <script src="/js/camera-dau-ghi.js?v=20261007b"></script>

@@ -50,6 +50,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             if (!CoQuyenXem("BPVN"))
                 return Forbid();
 
+            await NapDanhMucTaiSanAsync();
+            return View();
+        }
+
+        /// <summary>Danh mục cho tab "Tài sản camera" / "Đầu ghi chi nhánh" — dùng chung trang BPVN và PFVN/MEGA.</summary>
+        private async Task NapDanhMucTaiSanAsync()
+        {
             // Chiếu vào entity public, không dùng anonymous type (xem ghi chú ở QLCCDCController.Index)
             ViewBag.DsCongTy = await _context.KkCongTies
                 .OrderBy(x => x.TenCongTy)
@@ -64,8 +71,6 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             ViewBag.DsTinhTrang = DsTinhTrang;
             ViewBag.DsTrangThaiDauGhi = DsTrangThaiDauGhi;
             ViewBag.CoQuyenSua = CoQuyenSua();
-
-            return View();
         }
 
         /// <summary>
@@ -88,7 +93,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var (capNhat, kenh) = await xem.DanhSachKenhCongTyAsync(cty, HttpContext.RequestAborted);
             if (capNhat == null && kenh.Count == 0) return View("CongTyKhac");
 
-            ViewBag.CoQuyenSua = CoQuyenSua();
+            // Giao diện giống hệt trang BPVN (biểu đồ xu hướng, ô chú ý, tab Tài sản camera)
+            await NapDanhMucTaiSanAsync();
             ViewBag.CoXemTrucTiep = xem.CoXemTrucTiepCongTy(cty);
             ViewBag.CoVideo = xem.CoVideoCongTy(cty);
             return View("Index");
@@ -197,8 +203,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         /// Dữ liệu tab Giám sát cho PFVN/MEGA, dựng từ "_kenh.json" theo đúng khuôn JSON của hệ thống giám sát
         /// BPVN (snake_case) để camera-giam-sat.js dùng lại nguyên cách vẽ. Trạng thái là lúc chụp ảnh gần nhất.
         /// </summary>
-        [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/GiamSat/{loai:regex(^(TongQuan|Camera|DauGhi|DsAnhLuu|DiaChiDauGhi)$)}")]
-        public async Task<IActionResult> CongTyKhacGiamSat(string congTy, string loai, [FromServices] CameraXemTrucTiepService xem)
+        [HttpGet("/QLCamera/{congTy:regex(^(PFVN|MEGA)$)}/GiamSat/{loai:regex(^(TongQuan|Camera|DauGhi|DsAnhLuu|DiaChiDauGhi|LichSu)$)}")]
+        public async Task<IActionResult> CongTyKhacGiamSat(string congTy, string loai, [FromServices] CameraXemTrucTiepService xem,
+            bool chiCanChuY = false, int soLan = 72)
         {
             var cty = CongTyHopLe(congTy);
             if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
@@ -206,6 +213,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             try
             {
                 var (capNhat, ds) = await xem.DanhSachKenhCongTyAsync(cty, HttpContext.RequestAborted);
+                if (loai == "LichSu") return Json(new { thanhCong = true, duLieu = new { runs = await XuHuongCongTyAsync(ds, capNhat, soLan) } });
+                // PFVN/MEGA không có danh sách "cần chú ý" như hệ thống ISAPI BPVN -> lọc chú ý ra rỗng
+                if (chiCanChuY && loai == "Camera") ds = new List<CameraXemTrucTiepService.KenhCongTy>();
                 // Mốc đổi trạng thái do job CameraLichSuWorker ghi (KK_CameraTrangThai), giống BPVN
                 var dsIp = ds.Select(x => x.Nvr).Distinct().ToList();
                 var doiLuc = loai == "Camera"
@@ -286,6 +296,44 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 return Json(new { thanhCong = false, thongBao = "Không đọc được dữ liệu camera " + cty + ": " + ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Xu hướng Hoạt động / Mất kết nối cho PFVN/MEGA theo mốc 5 phút (cùng nhịp kiểm tra của BPVN).
+        /// Không có bản chụp từng lần kiểm tra như hệ thống ISAPI nên dựng ngược: lấy trạng thái hiện tại
+        /// rồi hoàn tác dần các sự kiện đổi trạng thái trong KK_CameraLichSu (do CameraLichSuWorker ghi).
+        /// </summary>
+        private async Task<List<object>> XuHuongCongTyAsync(List<CameraXemTrucTiepService.KenhCongTy> ds, DateTime? capNhat, int soLan)
+        {
+            soLan = Math.Clamp(soLan, 12, 864);
+            var moc = capNhat ?? DateTime.Now;
+            var tu = moc.AddMinutes(-5 * (soLan - 1));
+            var dsIp = ds.Select(x => x.Nvr).Distinct().ToList();
+            var coKenh = ds.Select(x => (x.Nvr, x.Kenh)).ToHashSet();
+            var dangMat = ds.Where(x => !x.Online).Select(x => (x.Nvr, x.Kenh)).ToHashSet();
+
+            var suKien = (await _context.KkCameraLichSus
+                    .Where(x => dsIp.Contains(x.NvrIp) && x.ThoiGian > tu)
+                    .OrderByDescending(x => x.ThoiGian)
+                    .Select(x => new { x.NvrIp, x.Kenh, x.ThoiGian, x.SangTrangThai })
+                    .ToListAsync(HttpContext.RequestAborted))
+                .Where(x => coKenh.Contains((x.NvrIp, x.Kenh)))
+                .ToList();
+
+            var runs = new List<object>(soLan);
+            var j = 0;
+            for (var i = 0; i < soLan; i++)
+            {
+                var t = moc.AddMinutes(-5 * i);
+                // Sự kiện xảy ra sau mốc t: trước đó camera đang ở trạng thái ngược lại
+                for (; j < suKien.Count && suKien[j].ThoiGian > t; j++)
+                {
+                    var khoa = (suKien[j].NvrIp, suKien[j].Kenh);
+                    if (suKien[j].SangTrangThai == "DOWN") dangMat.Remove(khoa); else dangMat.Add(khoa);
+                }
+                runs.Add(new { finished_at = t, up_count = ds.Count - dangMat.Count, down_count = dangMat.Count });
+            }
+            return runs;
         }
 
 
@@ -1135,9 +1183,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region API danh sách
 
         [HttpGet("/QLCamera/GetDanhSach")]
-        public async Task<IActionResult> GetDanhSach(string? tuKhoa, int? idCongTy, int? idBoPhan, string? tinhTrang, string? trucTuyen)
+        public async Task<IActionResult> GetDanhSach(string? tuKhoa, int? idCongTy, int? idBoPhan, string? tinhTrang, string? trucTuyen, string? congTy)
         {
-            if (!CoQuyenXem("BPVN")) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+            // Trang PFVN/MEGA dùng chung tab này, gửi kèm congTy để kiểm đúng quyền công ty đó
+            var cty = CongTyHopLe(congTy);
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
 
             try
             {
@@ -1158,8 +1208,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 }
 
                 if (idCongTy.HasValue && idCongTy > 0) query = query.Where(x => x.IdcongTy == idCongTy);
-                // Người chỉ có CamBPVN không được thấy tài sản camera của công ty khác
-                if (!CoQuyenSua()) query = query.Where(x => x.IdcongTyNavigation != null && x.IdcongTyNavigation.TenCongTy == "BPVN");
+                // Người chỉ có CamBPVN/CamPFVN/CamMEGA không được thấy tài sản camera của công ty khác
+                if (!CoQuyenSua()) query = query.Where(x => x.IdcongTyNavigation != null && x.IdcongTyNavigation.TenCongTy == cty);
                 if (idBoPhan.HasValue && idBoPhan > 0) query = query.Where(x => x.IdboPhan == idBoPhan);
                 if (!string.IsNullOrWhiteSpace(tinhTrang)) query = query.Where(x => x.TinhTrang == tinhTrang);
 

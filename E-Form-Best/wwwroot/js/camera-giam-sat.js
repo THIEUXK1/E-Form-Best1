@@ -811,8 +811,8 @@
     }
 
     function taiXuHuong() {
-        if (!laBpvn) return;   // PFVN/MEGA không có lịch sử các lần kiểm tra
-        lay('/QLCamera/GiamSat/LichSu', { soLan: $('#gsKhoangXuHuong').val() })
+        // PFVN/MEGA: server dựng xu hướng từ lịch sử đổi trạng thái (không có bản chụp từng lần kiểm tra)
+        lay(urlGs('LichSu'), { soLan: $('#gsKhoangXuHuong').val() })
             .done(function (d) { veBieuDo(d.runs || []); })
             .fail(hienLoi);
     }
