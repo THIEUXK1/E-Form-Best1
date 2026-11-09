@@ -1926,6 +1926,87 @@
         return dsLoc.slice(tu - 1, Math.max(tu, den)).map(taoDongTron);
     }
 
+    // idTu của đúng các dòng dsDongIn() sẽ in — chỉ khi nguồn là tủ (Excel không phải tủ → không ghi lịch sử)
+    function idTuIn() {
+        if (nguonDl !== 'tu' || !dsLoc.length) return [];
+        var pv = phamViIn(), ds;
+        if (pv === 'dangXem') ds = dsLoc[iDong] ? [dsLoc[iDong]] : [];
+        else if (pv === 'tatCa') ds = dsLoc;
+        else if (pv === 'daChon') ds = dsLoc.filter(function (r) { return daChonDong.has(r.__id); });
+        else {
+            var tu = Math.max(1, parseInt($('tkInTu').value, 10) || 1), den = Math.min(dsLoc.length, parseInt($('tkInDen').value, 10) || dsLoc.length);
+            ds = dsLoc.slice(tu - 1, Math.max(tu, den));
+        }
+        return ds.map(function (r) { return r.idTu; }).filter(Boolean);
+    }
+
+    // Tem đã gửi đi rồi → ghi lịch sử lỗi thì chỉ báo ở thanh trạng thái, không coi là in lỗi
+    async function ghiLichSuIn(d) {
+        if (!d.dsIdTu) return;
+        try {
+            var kq = await goiPost(URL_GOC + '/GhiLichSuIn', d);
+            if (!kq.thanhCong) throw new Error(kq.thongBao);
+        } catch (ex) {
+            trangThai('Đã in nhưng chưa ghi được lịch sử in: ' + ex.message);
+        }
+    }
+
+    // ===== Lịch sử in (dòng "In" của /LichSu) =====
+    var henLsIn = 0;
+
+    function moLichSuIn() {
+        $('tkLsInTuKhoa').value = '';
+        bootstrap.Modal.getOrCreateInstance($('tkModalLichSuIn')).show();
+        taiLichSuIn();
+    }
+
+    function oLsIn(tr, text, cls) {
+        var td = document.createElement('td');
+        if (cls) td.className = cls;
+        td.textContent = text == null ? '' : String(text);
+        tr.appendChild(td);
+        return td;
+    }
+
+    function ngayGioLs(s) {
+        var d = new Date(s);
+        if (isNaN(d)) return s || '';
+        function h(n) { return (n < 10 ? '0' : '') + n; }
+        return h(d.getDate()) + '/' + h(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + h(d.getHours()) + ':' + h(d.getMinutes());
+    }
+
+    async function taiLichSuIn() {
+        var body = $('tkLsInBody'), chan = $('tkLsInChan');
+        var p = new URLSearchParams({ hanhDong: 'In' });
+        var tk = $('tkLsInTuKhoa').value.trim();
+        if (tk) p.set('tuKhoa', tk);
+        chan.textContent = 'Đang tải…';
+        try {
+            var d = await layJson(URL_GOC + '/LichSu?' + p.toString());
+            body.replaceChildren();
+            if (!d.dong.length) { chan.textContent = tk ? 'Không có lần in nào khớp từ khoá.' : 'Chưa có lần in tem tủ nào.'; return; }
+            d.dong.forEach(function (r) {
+                var m = {};
+                try { m = JSON.parse(r.duLieuMoi || '{}') || {}; } catch (ex) { m = {}; }
+                var bp = d.boPhan[m.idBoPhan] || d.boPhan[r.idBoPhanHienTai];
+                var tr = document.createElement('tr');
+                oLsIn(tr, ngayGioLs(r.ngay), 'text-nowrap');
+                oLsIn(tr, r.nguoi);
+                var tdTu = oLsIn(tr, m.tenTu || r.tenTuHienTai, 'fw-semibold');
+                if (bp) { var s = document.createElement('div'); s.className = 'small text-muted fw-normal'; s.textContent = (bp.ma ? bp.ma + ' · ' : '') + (bp.ten || ''); tdTu.appendChild(s); }
+                oLsIn(tr, [m.maNhanVien, m.nguoiSuDung].filter(Boolean).join(' · ') || '(tủ trống)');
+                oLsIn(tr, [m.tenMau, m.trangNhan].filter(Boolean).join(' · '));
+                oLsIn(tr, r.nguon === 'Agent' ? (m.mayIn || 'Máy in') : 'Hộp thoại trình duyệt');
+                oLsIn(tr, m.soBan || 1, 'text-end');
+                body.appendChild(tr);
+            });
+            chan.textContent = d.conNua ? 'Hiển thị ' + d.dong.length + ' dòng gần nhất — tìm để xem cũ hơn.' : d.dong.length + ' tem đã in';
+        } catch (ex) {
+            body.replaceChildren();
+            chan.textContent = ex.message;
+        }
+    }
+
     function soBanIn() { return Math.max(1, Math.min(50, parseInt($('tkInSoBan').value, 10) || 1)); }
 
     function capNhatSoNhan() {
@@ -2075,6 +2156,10 @@
         T.luuCaiDatIn(c);
         if (c.mayIn !== $('tkMayIn').value && dsMayIn.some(function (m) { return m.name === c.mayIn; })) { $('tkMayIn').value = c.mayIn; napKhoMay(); }
         var dsDong = dsDongIn();
+        var lichSuIn = {
+            dsIdTu: idTuIn().join(','), tenMau: $('tkTenMau').value || '', trangNhan: trang.Name || '',
+            mayIn: c.mayIn || '', soBan: c.soBan, noiIn: c.mayIn ? 'Agent' : 'TrinhDuyet'
+        };
         nut.disabled = true;
         $('tkInLoi').textContent = '';
         try {
@@ -2087,6 +2172,7 @@
                 await T.inNhan(trang, dsDong, c);
                 bootstrap.Modal.getOrCreateInstance($('tkModalIn')).hide();
             }
+            ghiLichSuIn(lichSuIn);
         } catch (ex) {
             $('tkInLoi').textContent = ex.message;
         } finally {
@@ -2336,6 +2422,7 @@
             case 'xuatPng': await xuatPng(); break;
             case 'xuatPdf': await xuatPdf(); break;
             case 'in': moIn(); break;
+            case 'lichSuIn': moLichSuIn(); break;
             case 'hoanTac': hoanTac(); break;
             case 'lamLai': lamLai(); break;
             case 'cat': cat(); break;
@@ -2484,6 +2571,7 @@
         if (['tkRong', 'tkCao', 'tkLe', 'tkMauGiay'].indexOf(o.id) >= 0) { suaKhoNhan(o); return; }
         if (o.id === 'tkTenMau') { daSua = true; capNhatTen(); ghiNhap(); return; }
         if (o.id === 'tkTimTu') { locDuLieu(); return; }
+        if (o.id === 'tkLsInTuKhoa') { clearTimeout(henLsIn); henLsIn = setTimeout(taiLichSuIn, 300); return; }
         if (o.id === 'tkTimMau') {
             var tk = o.value.trim().toLowerCase();
             $('tkDsMau').querySelectorAll('[data-ten]').forEach(function (x) { x.hidden = tk && x.dataset.ten.indexOf(tk) < 0; });

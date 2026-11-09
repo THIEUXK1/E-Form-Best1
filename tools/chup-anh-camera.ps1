@@ -11,7 +11,12 @@
 
 param(
     [int]$SoLuong = 6,         # số camera chụp song song (10 thì đầu ghi 10.0.21.251 bắt đầu trả 403)
-    [int]$TimeoutMs = 8000
+    [int]$TimeoutMs = 8000,
+    # Chạy thử/chụp lại vài kênh: -ChiKenh 10.0.21.254_1,10.0.21.254_30 (bỏ qua PFVN)
+    [string[]]$ChiKenh,
+    [switch]$ChiPlayback,      # bỏ chụp trực tiếp, lấy thẳng từ bản ghi
+    [switch]$KhongDay,         # không đẩy lên 2 máy chủ (thử trên máy này trước)
+    [switch]$KhongPlayback     # bỏ bước lấy ảnh từ bản ghi (thử nhanh phần chụp trực tiếp)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,6 +81,12 @@ if ($gocNvr.Count -gt 0) {
     $dsCamera = @($dsCamera | Where-Object { $gocNvr.ContainsKey($_.Nvr) })
     if ($dsCamera.Count -ne $truocLoc) { GhiLog ("Bo " + ($truocLoc - $dsCamera.Count) + " kenh khong thuoc dau ghi BPVN") }
 }
+if ($ChiKenh) {
+    # powershell -File truyền "a,b,c" thành 1 chuỗi, không thành mảng
+    $ChiKenh = @($ChiKenh | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    $dsCamera = @($dsCamera | Where-Object { $ChiKenh -contains "$($_.Nvr)_$($_.Kenh)" })
+    GhiLog ("Chi chup " + $dsCamera.Count + " kenh: " + ($ChiKenh -join ','))
+}
 
 $ffmpeg = $cauHinh['CameraNvr__FfmpegPath']
 # Đường dẫn khai trong .env đã mất (từng trỏ vào thư mục tạm bị dọn) thì dùng bản cài sẵn cùng go2rtc,
@@ -99,12 +110,18 @@ $maKiemAnhHong = {
         if (-not $p.WaitForExit(15000)) { $p.Kill(); return $false }
         $b = $ms.ToArray()
         if ($b.Length -lt 3) { return $true }   # ffmpeg không đọc nổi ảnh
-        $lech = 0
+        $lech = 0; $xam = 0; $trang = 0
+        $soDiem = [int]($b.Length / 3)
         for ($i = 0; $i + 2 -lt $b.Length; $i += 3) {
             $r = [int]$b[$i]; $g = [int]$b[$i + 1]; $bl = [int]$b[$i + 2]
             if (($g - [Math]::Max($r, $bl)) -gt 90 -or ([Math]::Min($r, $bl) - $g) -gt 90) { $lech++ }
+            # Thiếu khung tham chiếu, ffmpeg tô xám 128 đều; khung H.265+ giải riêng thì trắng xoá
+            if ([Math]::Abs($r - 128) -le 6 -and [Math]::Abs($g - 128) -le 6 -and [Math]::Abs($bl - 128) -le 6) { $xam++ }
+            if ([Math]::Min($r, [Math]::Min($g, $bl)) -ge 225) { $trang++ }
         }
-        return ($lech * 20 -ge $b.Length / 3)
+        # Ngưỡng đo 09/11/2026 trên 309 ảnh: 298 ảnh thật đều < 20% trắng, 11 ảnh hỏng (10.0.21.254) 71-99% trắng
+        # hoặc 91-99% xám -> hỏng khi >= 60% trắng hoặc >= 50% xám
+        return ($lech * 20 -ge $soDiem) -or ($xam * 2 -ge $soDiem) -or ($trang * 5 -ge $soDiem * 3)
     }
 }.ToString()
 
@@ -118,7 +135,8 @@ $chup = {
     $loiCuoi = 'khong co dia chi'
     foreach ($goc in $dsGoc) {
         # Firmware NVR cũ (10.0.28.5) trả 400 cho /Streaming/..., chỉ chụp được qua /ContentMgmt/StreamingProxy/...
-        foreach ($duong in "/ISAPI/Streaming/channels/${kenh}02/picture", "/ISAPI/ContentMgmt/StreamingProxy/channels/${kenh}02/picture") {
+        # 10.0.21.254 hay ngắt kết nối giữa chừng ở luồng phụ (02) -> thử thêm ảnh luồng chính (01)
+        foreach ($duong in "/ISAPI/Streaming/channels/${kenh}02/picture", "/ISAPI/ContentMgmt/StreamingProxy/channels/${kenh}02/picture", "/ISAPI/Streaming/channels/${kenh}01/picture") {
             try {
                 $req = [Net.HttpWebRequest]::Create("$goc$duong")
                 $req.Credentials = New-Object Net.NetworkCredential($tk, $mk)   # đầu ghi Hikvision dùng Digest
@@ -142,7 +160,8 @@ $chup = {
                 $we = $_.Exception.InnerException
                 $loiCuoi = "$goc $($_.Exception.Message)"
                 # Đầu ghi có trả lời (4xx/5xx) -> thử đường dẫn kế tiếp; không trả lời -> bỏ cổng này
-                if (-not ($we -is [Net.WebException] -and $we.Response)) { break }
+                # Đầu ghi trả lời rồi ngắt giữa chừng (IOException lúc đọc ảnh) cũng là có trả lời
+                if (-not (($we -is [Net.WebException] -and $we.Response) -or $we -is [IO.IOException])) { break }
             }
         }
     }
@@ -151,7 +170,7 @@ $chup = {
 
 $pool = [RunspaceFactory]::CreateRunspacePool(1, $SoLuong)
 $pool.Open()
-$viec = foreach ($c in $dsCamera) {
+$viec = foreach ($c in $(if ($ChiPlayback) { @() } else { $dsCamera })) {
     $dsGoc = @()
     if ($gocNvr.ContainsKey($c.Nvr)) { $dsGoc += $gocNvr[$c.Nvr] }
     if ($dsGoc -notcontains "http://$($c.Nvr):80") { $dsGoc += "http://$($c.Nvr):80" }
@@ -167,6 +186,28 @@ foreach ($v in $viec) {
     if ($kq -eq 'OK') { $ok++ } else { $loi.Add($kq); $dsLoi.Add($v.Cam) }
 }
 $pool.Close()
+
+# Lượt 2 chụp trực tiếp, từng kênh một: đầu ghi 10.0.21.254 hay trả 403 / ngắt kết nối khi bị gọi dồn, chạy riêng
+# thì chụp được ảnh đẹp — tốt hơn hẳn lấy từ bản ghi (H.265+ giải ra ảnh trắng/xám). Kênh đầu ghi không trả lời
+# (timeout) không thử lại kẻo kéo dài cả lượt.
+$thuLai = @(for ($i = 0; $i -lt $dsLoi.Count; $i++) {
+    if ($loi[$i] -match '\(403\)|forcibly closed|anh hong|anh qua nho|content-type') { [pscustomobject]@{ Cam = $dsLoi[$i]; Loi = $loi[$i] } }
+})
+if ($thuLai.Count -gt 0) {
+    $duoc = 0
+    foreach ($t in $thuLai) {
+        $c = $t.Cam
+        $dsGoc = @()
+        if ($gocNvr.ContainsKey($c.Nvr)) { $dsGoc += $gocNvr[$c.Nvr] }
+        if ($dsGoc -notcontains "http://$($c.Nvr):80") { $dsGoc += "http://$($c.Nvr):80" }
+        Start-Sleep -Milliseconds 500
+        $kq = [string](& $chup $c.Nvr $c.Kenh $taiKhoan $matKhau $thuMucAnh ($TimeoutMs * 2) $dsGoc $ffmpeg $maKiemAnhHong | Select-Object -Last 1)
+        if ($kq -eq 'OK') { $duoc++; $ok++; [void]$dsLoi.Remove($c); [void]$loi.Remove($t.Loi) }
+    }
+    GhiLog ("Chup lai tung kenh: duoc=$duoc / " + $thuLai.Count)
+}
+
+if ($ChiPlayback) { foreach ($c in $dsCamera) { $dsLoi.Add($c) } }
 GhiLog ("Chup xong: OK=$ok LOI=" + $loi.Count)
 $loi | Select-Object -First 10 | ForEach-Object { GhiLog ("  " + $_) }
 
@@ -263,7 +304,8 @@ $chupPlayback = {
         $pi = New-Object Diagnostics.ProcessStartInfo $ffmpeg
         # Luồng chính 2688x1520 -> thu về tối đa 1280 ngang cho nhẹ; không ghi URL (có mật khẩu) ra log.
         # -skip_frame nokey: playback bắt đầu giữa nhóm khung, khung đầu không phải khung khoá thì H.265 giải ra
-        # mảng xám/hồng/xanh -> chỉ giải mã khung khoá
+        # mảng xám/hồng/xanh -> chỉ giải mã khung khoá. Đầu ghi bật H.265+ (10.0.21.254) thì cách nào cũng ra ảnh
+        # trắng xoá / xám đặc (đã thử giải mã đủ chuỗi khung 09/11/2026: xám hẳn) -> AnhHong loại, giữ ảnh cũ.
         $pi.Arguments = "-hide_banner -loglevel error -rtsp_transport tcp -timeout 10000000 -skip_frame nokey -i `"$rtsp`" -frames:v 1 " +
             "-vf `"scale='min(1280,iw)':-2`" -q:v 4 -f image2 -vcodec mjpeg -y `"$tam`""
         $pi.UseShellExecute = $false; $pi.CreateNoWindow = $true
@@ -288,7 +330,9 @@ $chupPlayback = {
     return "LOI $nvr k$kenh $loi"
 }
 
-if ($dsLoi.Count -gt 0 -and -not (Test-Path $ffmpeg)) {
+if ($KhongPlayback) {
+    GhiLog 'KhongPlayback: bo qua lay anh tu ban ghi'
+} elseif ($dsLoi.Count -gt 0 -and -not (Test-Path $ffmpeg)) {
     GhiLog "Bo qua lay anh tu playback: khong co ffmpeg ($ffmpeg)"
 } elseif ($dsLoi.Count -gt 0) {
     $pbOk = 0; $pbBoQua = 0; $pbKhac = New-Object System.Collections.Generic.List[string]
@@ -331,7 +375,7 @@ if ($dsLoi.Count -gt 0 -and -not (Test-Path $ffmpeg)) {
 # rồi kéo thư mục anh\ về đây để đẩy lên máy chủ cùng ảnh BPVN. Lỗi PFVN không làm hỏng phần BPVN.
 $thuMucPfvn = Join-Path $PSScriptRoot 'anh-camera-pfvn'
 $coPfvn = $false
-& {
+if (-not $ChiKenh) { & {
     # ssh/scp ghi cảnh báo ra stderr: để Stop thì PowerShell 5.1 coi là lỗi và dừng cả script
     $ErrorActionPreference = 'Continue'
     $mayPfvn = 'Administrator@10.0.193.240'
@@ -341,7 +385,7 @@ $coPfvn = $false
     New-Item -ItemType Directory -Force $thuMucPfvn | Out-Null
     & scp -i $keyPfvn -o BatchMode=yes -o ConnectTimeout=15 -q -p "${mayPfvn}:C:/EForm-Camera/anh/*" "$thuMucPfvn\" 2>&1 | Out-Null
     if ($LASTEXITCODE -eq 0) { GhiLog 'PFVN keo anh ve: OK'; $script:coPfvn = $true } else { GhiLog "PFVN keo anh ve: LOI scp exit=$LASTEXITCODE" }
-}
+} }
 
 # ---- Đẩy lên 2 máy chủ (scp -p giữ giờ chụp làm "Ảnh lưu lúc ...") ----
 $mayChu = @(
@@ -349,6 +393,7 @@ $mayChu = @(
     @{ Ip = '10.0.60.52'; Key = 'df_server_key' }
 )
 $coLoi = $false
+if ($KhongDay) { GhiLog 'KhongDay: khong day len may chu'; $mayChu = @() }
 foreach ($m in $mayChu) {
     $key = Join-Path $env:USERPROFILE ".ssh\$($m.Key)"
     $dichScp = "BESTPACIFIC\vnsuperman@$($m.Ip):C:/inetpub/CameraAnhLuu/"

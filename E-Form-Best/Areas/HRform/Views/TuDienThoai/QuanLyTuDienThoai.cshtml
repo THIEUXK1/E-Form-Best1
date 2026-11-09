@@ -12,7 +12,7 @@
 
 @* Khoá cuộn trang, chỉ vùng bảng (data-fp-scroll) cuộn; màn ≤ 768px trả lại cuộn trang thường *@
 <link rel="stylesheet" href="~/css/fixed-page-layout.css" />
-<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=17" />
+<link rel="stylesheet" href="~/css/tu-dien-thoai.css?v=18" />
 
 <div class="tdt-trang" id="tdtTrang" data-la-quan-ly="@(laQuanLy ? "1" : "0")" data-duoc-gan-tra="@(duocGanTra ? "1" : "0")">
     <div class="tdt-dau">
@@ -48,7 +48,7 @@
                         <li><button type="button" class="dropdown-item" id="tdtBtnNhapExcel"><i class="fa fa-upload"></i> Nhập từ Excel…</button></li>
                     </ul>
                 </div>
-                <button type="button" class="btn tdt-nut-phu" id="tdtBtnLichSu" title="Lịch sử thêm / sửa / xoá tủ, khôi phục tủ xoá nhầm"><i class="fa fa-history"></i><span>Lịch sử</span></button>
+                <button type="button" class="btn tdt-nut-phu" id="tdtBtnLichSu" title="Lịch sử thêm / sửa / xoá / in tem tủ, khôi phục tủ xoá nhầm"><i class="fa fa-history"></i><span>Lịch sử</span></button>
                 <button type="button" class="btn tdt-nut-phu" id="tdtBtnMaBp" title="Đặt mã ngắn cho bộ phận (QC, HR…)"><i class="fa fa-tag"></i><span>Mã bộ phận</span></button>
                 <button type="button" class="btn tdt-nut-phu" id="tdtBtnDriver" title="Tải driver máy in tem"><i class="fa fa-download"></i><span>Driver máy in</span></button>
                 <button type="button" class="btn tdt-nut-phu" id="tdtBtnIn" title="In tem các tủ đã chọn" disabled><i class="fa fa-print"></i><span>In tem</span><b class="tdt-dem" id="tdtSoChon">0</b></button>
@@ -275,6 +275,7 @@
                         <option value="Sua">Sửa</option>
                         <option value="Xoa">Xoá</option>
                         <option value="KhoiPhuc">Khôi phục</option>
+                        <option value="In">In tem</option>
                     </select>
                     <button type="button" class="btn btn-link" id="tdtLsBoLocTu" hidden>Xem tất cả tủ</button>
                 </div>
@@ -462,6 +463,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
     <script src="~/js/tem-nhan.js?v=12"></script>
-    <script src="~/js/tu-dien-thoai.js?v=22"></script>
+    <script src="~/js/tu-dien-thoai.js?v=23"></script>
     <script src="~/js/fixed-page-layout.js" defer></script>
 }

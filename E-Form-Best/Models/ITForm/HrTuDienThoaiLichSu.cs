@@ -15,7 +15,7 @@ public partial class HrTuDienThoaiLichSu
     [Column("id_tu")]
     public int IdTu { get; set; }
 
-    // Them | Sua | Xoa | KhoiPhuc
+    // Them | Sua | Xoa | KhoiPhuc | In (in tem; nguon = Agent | TrinhDuyet)
     [Column("hanh_dong")]
     [StringLength(20)]
     public string HanhDong { get; set; } = null!;

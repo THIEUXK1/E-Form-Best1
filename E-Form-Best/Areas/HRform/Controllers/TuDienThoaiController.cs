@@ -487,6 +487,61 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
         }
 
+        // Ghi lịch sử in tem: mỗi tủ 1 dòng hành động "In" trong HR_TuDienThoaiLichSu (dùng chung bảng, khỏi DDL).
+        // Ảnh chụp tủ lấy từ DB tại thời điểm in (không tin dữ liệu trình duyệt gửi) + mẫu/máy in/số bản để tra lại.
+        // In qua hộp thoại trình duyệt thì chỉ biết đã mở hộp thoại, không biết người dùng có bấm Huỷ hay không.
+        [HttpPost("/FormHR/QuanLyTuDienThoai/GhiLichSuIn")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GhiLichSuIn([FromForm] string? dsIdTu, [FromForm] string? tenMau, [FromForm] string? trangNhan,
+            [FromForm] string? mayIn, [FromForm] int soBan, [FromForm] string? noiIn)
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+
+            var ids = (dsIdTu ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => int.TryParse(s, out var v) ? v : 0).Where(v => v > 0).Distinct().ToList();
+            if (ids.Count == 0) return Json(new { thanhCong = true, thongBao = "Không có tủ nào để ghi." });
+            if (ids.Count > 5000) return Json(new { thanhCong = false, thongBao = "Quá nhiều tủ trong một lần in." });
+
+            static string? Cat(string? s, int max) { s = Gon(s); return s != null && s.Length > max ? s[..max] : s; }
+            var mau = Cat(tenMau, 100);
+            var trang = Cat(trangNhan, 100);
+            var may = Cat(mayIn, 200);
+            var soBanIn = Math.Clamp(soBan, 1, 50);
+            // nguon (20 ký tự): "Agent" = in thẳng qua driver, "TrinhDuyet" = hộp thoại in của trình duyệt
+            var nguon = noiIn == "Agent" ? "Agent" : "TrinhDuyet";
+
+            try
+            {
+                var dsTu = await _context.HrTuDienThoais
+                    .Where(t => ids.Contains(t.IdTu) && t.NgayXoa == null)
+                    .ToListAsync();
+                var bayGio = DateTime.Now;
+                var nguoi = User.Identity?.Name;
+                foreach (var t in dsTu)
+                {
+                    var anh = JsonSerializer.Serialize(new
+                    {
+                        idBoPhan = t.IdBoPhan,
+                        tenTu = t.TenTu,
+                        viTri = t.ViTri,
+                        maNhanVien = t.MaNhanVien,
+                        nguoiSuDung = t.NguoiSuDung,
+                        tenMau = mau,
+                        trangNhan = trang,
+                        mayIn = may,
+                        soBan = soBanIn
+                    }, JsonLichSu);
+                    _context.HrTuDienThoaiLichSus.Add(TaoLichSu(t.IdTu, "In", null, anh, bayGio, nguoi, nguon));
+                }
+                await _context.SaveChangesAsync();
+                return Json(new { thanhCong = true, duLieu = new { soTu = dsTu.Count } });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi ghi lịch sử in: " + ex.Message });
+            }
+        }
+
         // Khôi phục tủ đã xoá mềm (xoá nhầm). Bấm 2 lần: lần sau thấy tủ đã hoạt động thì coi như xong.
         [HttpPost("/FormHR/QuanLyTuDienThoai/KhoiPhuc")]
         [ValidateAntiForgeryToken]

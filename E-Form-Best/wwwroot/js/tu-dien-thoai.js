@@ -606,6 +606,12 @@
         try {
             var trang = await layMau(idMau);
             var dsDong = tuDaChon().map(window.TemNhan.taoDong);
+            var opMau = document.getElementById('tdtInMau').selectedOptions[0];
+            var lichSuIn = {
+                dsIdTu: tuDaChon().map(function (t) { return t.idTu; }).join(','),
+                tenMau: opMau ? opMau.textContent : '', trangNhan: trang.Name || '',
+                mayIn: c.mayIn || '', soBan: c.soBan, noiIn: c.mayIn ? 'Agent' : 'TrinhDuyet'
+            };
             if (c.mayIn) {
                 // In thẳng qua driver bằng agent (không hiện hộp thoại)
                 var kq = await window.TemNhan.agent.inNhan(c.mayIn, trang, dsDong, c);
@@ -615,10 +621,24 @@
             } else {
                 await window.TemNhan.inNhan(trang, dsDong, c);
             }
+            ghiLichSuIn(lichSuIn);
         } catch (ex) {
             loi.textContent = ex.message;
         } finally {
             nut.disabled = false;
+        }
+    }
+
+    // Tem đã gửi đi rồi → ghi lịch sử không được chỉ cảnh báo, không báo lỗi in
+    async function ghiLichSuIn(d) {
+        if (!d.dsIdTu) return;
+        try {
+            var fd = new FormData();
+            Object.keys(d).forEach(function (k) { fd.append(k, d[k]); });
+            var kq = await goiPost('/FormHR/QuanLyTuDienThoai/GhiLichSuIn', fd);
+            if (!kq.thanhCong) throw new Error(kq.thongBao);
+        } catch (ex) {
+            thongBao('warning', 'Đã in nhưng chưa ghi được lịch sử in: ' + ex.message);
         }
     }
 
@@ -1017,10 +1037,14 @@
     var modalLs = null;
     var lsIdTu = null;           // đang xem lịch sử 1 tủ (nút trên dòng) hay tất cả
     var henGioLs = null;
-    var TEN_HD = { Them: ['Thêm', 'tdt-kq-them'], Sua: ['Sửa', 'tdt-kq-sua'], Xoa: ['Xoá', 'tdt-kq-loi'], KhoiPhuc: ['Khôi phục', 'tdt-kq-khoi-phuc'] };
-    var TEN_NGUON = { Excel: 'nhập Excel', XoaNhieu: 'xoá nhiều', DuLieuCu: 'trước khi có lịch sử', GanNguoi: 'gán người', TraTu: 'trả tủ' };
-    // Khoá trùng AnhChupTu trong TuDienThoaiController
-    var TRUONG_LS = [['idBoPhan', 'Bộ phận'], ['tenTu', 'Tên tủ'], ['viTri', 'Vị trí'], ['maNhanVien', 'Mã NV'], ['nguoiSuDung', 'Người sử dụng']];
+    var TEN_HD = { Them: ['Thêm', 'tdt-kq-them'], Sua: ['Sửa', 'tdt-kq-sua'], Xoa: ['Xoá', 'tdt-kq-loi'], KhoiPhuc: ['Khôi phục', 'tdt-kq-khoi-phuc'], In: ['In tem', 'tdt-kq-in'] };
+    var TEN_NGUON = {
+        Excel: 'nhập Excel', XoaNhieu: 'xoá nhiều', DuLieuCu: 'trước khi có lịch sử', GanNguoi: 'gán người', TraTu: 'trả tủ',
+        Agent: 'in thẳng qua máy in', TrinhDuyet: 'hộp thoại in trình duyệt'
+    };
+    // Khoá trùng AnhChupTu + GhiLichSuIn trong TuDienThoaiController (4 khoá cuối chỉ có ở dòng "In")
+    var TRUONG_LS = [['idBoPhan', 'Bộ phận'], ['tenTu', 'Tên tủ'], ['viTri', 'Vị trí'], ['maNhanVien', 'Mã NV'], ['nguoiSuDung', 'Người sử dụng'],
+        ['tenMau', 'Mẫu tem'], ['trangNhan', 'Trang nhãn'], ['mayIn', 'Máy in'], ['soBan', 'Số bản']];
 
     function docJson(s) { try { return s ? JSON.parse(s) : null; } catch (ex) { return null; } }
 

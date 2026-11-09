@@ -38,6 +38,7 @@
                 </div>
                 <hr />
                 <button type="button" data-lenh="in" role="menuitem"><span>In…</span><kbd>Ctrl+P</kbd></button>
+                <button type="button" data-lenh="lichSuIn" role="menuitem"><span>Lịch sử in…</span></button>
                 <hr />
                 <a href="/FormHR/QuanLyTuDienThoai" role="menuitem"><span>Thoát (về danh sách tủ)</span></a>
             </div>
@@ -158,6 +159,7 @@
             <button type="button" class="tk-nut-lon" data-lenh="mo" title="Mở mẫu đã lưu (Ctrl+O)"><i class="fa fa-folder-open-o"></i><span>Mở</span></button>
             <button type="button" class="tk-nut-lon" data-lenh="luu" title="Lưu (Ctrl+S)"><i class="fa fa-floppy-o"></i><span>Lưu</span></button>
             <button type="button" class="tk-nut-lon" data-lenh="in" title="In (Ctrl+P)"><i class="fa fa-print"></i><span>In</span></button>
+            <button type="button" class="tk-nut-lon" data-lenh="lichSuIn" title="Lịch sử in tem tủ"><i class="fa fa-history"></i><span>Lịch sử in</span></button>
             <button type="button" class="tk-nut-lon" data-lenh="hoanTac" title="Hoàn tác (Ctrl+Z)"><i class="fa fa-undo"></i><span>Hoàn tác</span></button>
             <button type="button" class="tk-nut-lon" data-lenh="lamLai" title="Làm lại (Ctrl+Y)"><i class="fa fa-repeat"></i><span>Làm lại</span></button>
             @* Chỉ hiện ở màn hẹp, nơi hai bảng là ngăn kéo *@
@@ -360,6 +362,31 @@
     </div>
 </div>
 
+@* Lịch sử in tem: dòng "In" trong HR_TuDienThoaiLichSu, mỗi tủ 1 dòng; tem in từ file Excel không ghi (không phải tủ) *@
+<div class="modal fade" id="tkModalLichSuIn" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa fa-history"></i> Lịch sử in tem tủ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="search" id="tkLsInTuKhoa" class="form-control mb-2" placeholder="Tìm tên tủ, người sử dụng, mẫu tem, máy in, người in…" aria-label="Tìm trong lịch sử in" />
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Thời gian</th><th>Người in</th><th>Tủ</th><th>Người sử dụng</th><th>Mẫu tem</th><th>In bằng</th><th class="text-end">Bản</th></tr></thead>
+                        <tbody id="tkLsInBody"></tbody>
+                    </table>
+                </div>
+                <div class="form-text mt-2" id="tkLsInChan"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* Hộp thoại In nhãn (giống PrintWindow của app) *@
 <div class="modal fade" id="tkModalIn" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -416,6 +443,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
     <script src="~/js/tem-nhan.js?v=12"></script>
-    <script src="~/js/tem-thiet-ke.js?v=23"></script>
+    <script src="~/js/tem-thiet-ke.js?v=24"></script>
     <script src="~/js/fixed-page-layout.js?v=6" defer></script>
 }
