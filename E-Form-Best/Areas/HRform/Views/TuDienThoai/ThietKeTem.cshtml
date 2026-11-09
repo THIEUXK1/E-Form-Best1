@@ -362,19 +362,23 @@
     </div>
 </div>
 
-@* Lịch sử in tem: dòng "In" trong HR_TuDienThoaiLichSu, mỗi tủ 1 dòng; tem in từ file Excel không ghi (không phải tủ) *@
+@* Lịch sử in tem (HR_TemInLichSu): mỗi lần bấm In 1 dòng; bấm dòng để xem chữ/mã vạch từng tem đã in *@
 <div class="modal fade" id="tkModalLichSuIn" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fa fa-history"></i> Lịch sử in tem tủ</h5>
+                <h5 class="modal-title"><i class="fa fa-history"></i> Lịch sử in tem</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
-                <input type="search" id="tkLsInTuKhoa" class="form-control mb-2" placeholder="Tìm tên tủ, người sử dụng, mẫu tem, máy in, người in…" aria-label="Tìm trong lịch sử in" />
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <input type="search" id="tkLsInTuKhoa" class="form-control flex-grow-1" style="min-width:220px;width:auto" placeholder="Tìm chữ trên tem (tên tủ, mã NV, họ tên…), mẫu, máy in, người in…" aria-label="Tìm trong lịch sử in" />
+                    <input type="date" id="tkLsInTuNgay" class="form-control" style="width:auto" aria-label="Từ ngày" title="Từ ngày" />
+                    <input type="date" id="tkLsInDenNgay" class="form-control" style="width:auto" aria-label="Đến ngày" title="Đến ngày" />
+                </div>
                 <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
-                        <thead><tr><th>Thời gian</th><th>Người in</th><th>Tủ</th><th>Người sử dụng</th><th>Mẫu tem</th><th>In bằng</th><th class="text-end">Bản</th></tr></thead>
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead><tr><th>Thời gian</th><th>Người in</th><th>Mẫu tem</th><th>Dữ liệu</th><th>In bằng</th><th class="text-end">Số tem</th><th></th></tr></thead>
                         <tbody id="tkLsInBody"></tbody>
                     </table>
                 </div>
@@ -442,7 +446,7 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-    <script src="~/js/tem-nhan.js?v=12"></script>
-    <script src="~/js/tem-thiet-ke.js?v=24"></script>
+    <script src="~/js/tem-nhan.js?v=13"></script>
+    <script src="~/js/tem-thiet-ke.js?v=25"></script>
     <script src="~/js/fixed-page-layout.js?v=6" defer></script>
 }

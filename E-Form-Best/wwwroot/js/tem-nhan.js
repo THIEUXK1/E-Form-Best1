@@ -700,7 +700,23 @@
         });
     }
 
+    // Nội dung thực tế của từng nhãn (chữ + mã vạch đã trộn dữ liệu, chỉ đối tượng được in) để ghi lịch sử in.
+    // stt lấy theo bản đầu của mỗi nhãn, giống inNhan; {{SO}} của các bản sau tăng tiếp nên không liệt kê từng bản.
+    function noiDungNhan(trang, dsDong, soBan) {
+        var now = new Date(), nb = Math.max(1, Math.round(soBan || 1));
+        return (dsDong.length ? dsDong : [null]).map(function (dong, i) {
+            var ds = [];
+            trang.Elements.forEach(function (e) {
+                if (!e.Printable || (e.type !== 'text' && e.type !== 'barcode')) return;
+                var v = tron(e.type === 'text' ? e.Text : e.Data, dong, i * nb, now).trim();
+                if (v) ds.push(v);
+            });
+            return ds;
+        });
+    }
+
     w.TemNhan = {
+        noiDungNhan: noiDungNhan,
         PX_MM: PX_MM,
         TRUONG_TU: TRUONG_TU,
         KHO_CO_SAN: KHO_CO_SAN,

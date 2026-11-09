@@ -610,7 +610,9 @@
             var lichSuIn = {
                 dsIdTu: tuDaChon().map(function (t) { return t.idTu; }).join(','),
                 tenMau: opMau ? opMau.textContent : '', trangNhan: trang.Name || '',
-                mayIn: c.mayIn || '', soBan: c.soBan, noiIn: c.mayIn ? 'Agent' : 'TrinhDuyet'
+                mayIn: c.mayIn || '', soBan: c.soBan, noiIn: c.mayIn ? 'Agent' : 'TrinhDuyet',
+                nguonDuLieu: dsDong.length ? 'Tu' : 'KhongDuLieu',
+                noiDung: JSON.stringify(window.TemNhan.noiDungNhan(trang, dsDong, c.soBan))
             };
             if (c.mayIn) {
                 // In thẳng qua driver bằng agent (không hiện hộp thoại)
@@ -631,7 +633,6 @@
 
     // Tem đã gửi đi rồi → ghi lịch sử không được chỉ cảnh báo, không báo lỗi in
     async function ghiLichSuIn(d) {
-        if (!d.dsIdTu) return;
         try {
             var fd = new FormData();
             Object.keys(d).forEach(function (k) { fd.append(k, d[k]); });

@@ -1942,7 +1942,6 @@
 
     // Tem đã gửi đi rồi → ghi lịch sử lỗi thì chỉ báo ở thanh trạng thái, không coi là in lỗi
     async function ghiLichSuIn(d) {
-        if (!d.dsIdTu) return;
         try {
             var kq = await goiPost(URL_GOC + '/GhiLichSuIn', d);
             if (!kq.thanhCong) throw new Error(kq.thongBao);
@@ -1956,6 +1955,7 @@
 
     function moLichSuIn() {
         $('tkLsInTuKhoa').value = '';
+        $('tkLsInTuNgay').value = $('tkLsInDenNgay').value = '';
         bootstrap.Modal.getOrCreateInstance($('tkModalLichSuIn')).show();
         taiLichSuIn();
     }
@@ -1975,35 +1975,75 @@
         return h(d.getDate()) + '/' + h(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + h(d.getHours()) + ':' + h(d.getMinutes());
     }
 
+    var TEN_NGUON_DL = { Tu: 'Dữ liệu tủ', Excel: 'File Excel', KhongDuLieu: 'Tem tĩnh' };
+
     async function taiLichSuIn() {
         var body = $('tkLsInBody'), chan = $('tkLsInChan');
-        var p = new URLSearchParams({ hanhDong: 'In' });
+        var p = new URLSearchParams();
         var tk = $('tkLsInTuKhoa').value.trim();
         if (tk) p.set('tuKhoa', tk);
+        if ($('tkLsInTuNgay').value) p.set('tuNgay', $('tkLsInTuNgay').value);
+        if ($('tkLsInDenNgay').value) p.set('denNgay', $('tkLsInDenNgay').value);
         chan.textContent = 'Đang tải…';
         try {
-            var d = await layJson(URL_GOC + '/LichSu?' + p.toString());
+            var d = await layJson(URL_GOC + '/LichSuIn?' + p.toString());
             body.replaceChildren();
-            if (!d.dong.length) { chan.textContent = tk ? 'Không có lần in nào khớp từ khoá.' : 'Chưa có lần in tem tủ nào.'; return; }
+            if (!d.dong.length) { chan.textContent = tk || p.has('tuNgay') || p.has('denNgay') ? 'Không có lần in nào khớp bộ lọc.' : 'Chưa có lần in tem nào.'; return; }
             d.dong.forEach(function (r) {
-                var m = {};
-                try { m = JSON.parse(r.duLieuMoi || '{}') || {}; } catch (ex) { m = {}; }
-                var bp = d.boPhan[m.idBoPhan] || d.boPhan[r.idBoPhanHienTai];
                 var tr = document.createElement('tr');
+                tr.className = 'tk-ls-in-dong';
+                tr.dataset.id = r.idLanIn;
+                tr.style.cursor = 'pointer';
+                tr.title = 'Bấm để xem nội dung từng tem';
                 oLsIn(tr, ngayGioLs(r.ngay), 'text-nowrap');
                 oLsIn(tr, r.nguoi);
-                var tdTu = oLsIn(tr, m.tenTu || r.tenTuHienTai, 'fw-semibold');
-                if (bp) { var s = document.createElement('div'); s.className = 'small text-muted fw-normal'; s.textContent = (bp.ma ? bp.ma + ' · ' : '') + (bp.ten || ''); tdTu.appendChild(s); }
-                oLsIn(tr, [m.maNhanVien, m.nguoiSuDung].filter(Boolean).join(' · ') || '(tủ trống)');
-                oLsIn(tr, [m.tenMau, m.trangNhan].filter(Boolean).join(' · '));
-                oLsIn(tr, r.nguon === 'Agent' ? (m.mayIn || 'Máy in') : 'Hộp thoại trình duyệt');
-                oLsIn(tr, m.soBan || 1, 'text-end');
+                oLsIn(tr, [r.tenMau || '(chưa lưu)', r.trangNhan].filter(Boolean).join(' · '));
+                oLsIn(tr, (TEN_NGUON_DL[r.nguonDuLieu] || r.nguonDuLieu) + (r.tenFile ? ': ' + r.tenFile : ''));
+                oLsIn(tr, r.mayIn || 'Hộp thoại trình duyệt');
+                oLsIn(tr, r.soNhan + ' nhãn × ' + r.soBan + ' bản', 'text-end text-nowrap');
+                var tdMo = oLsIn(tr, '', 'text-end');
+                var i = document.createElement('i'); i.className = 'fa fa-chevron-down text-muted'; tdMo.appendChild(i);
                 body.appendChild(tr);
             });
-            chan.textContent = d.conNua ? 'Hiển thị ' + d.dong.length + ' dòng gần nhất — tìm để xem cũ hơn.' : d.dong.length + ' tem đã in';
+            chan.textContent = d.conNua ? 'Hiển thị ' + d.dong.length + ' lần in gần nhất — tìm hoặc lọc ngày để xem cũ hơn.' : d.dong.length + ' lần in';
         } catch (ex) {
             body.replaceChildren();
             chan.textContent = ex.message;
+        }
+    }
+
+    // Mở/đóng chi tiết 1 lần in: bảng nhãn, mỗi ô 1 chữ/mã vạch đúng thứ tự đối tượng trên mẫu
+    async function moChiTietLanIn(tr) {
+        var ke = tr.nextElementSibling;
+        if (ke && ke.classList.contains('tk-ls-in-ct')) { ke.remove(); tr.querySelector('.fa').className = 'fa fa-chevron-down text-muted'; return; }
+        var ct = document.createElement('tr');
+        ct.className = 'tk-ls-in-ct';
+        var td = document.createElement('td');
+        td.colSpan = 7;
+        td.textContent = 'Đang tải…';
+        ct.appendChild(td);
+        tr.after(ct);
+        tr.querySelector('.fa').className = 'fa fa-chevron-up text-muted';
+        try {
+            var d = await layJson(URL_GOC + '/LichSuIn/' + tr.dataset.id);
+            var ds = [];
+            try { ds = JSON.parse(d.noiDung) || []; } catch (ex) { ds = []; }
+            var tk = $('tkLsInTuKhoa').value.trim().toLowerCase();
+            var bang = document.createElement('table');
+            bang.className = 'table table-sm table-bordered mb-0 small bg-white';
+            var tb = document.createElement('tbody');
+            ds.forEach(function (nhan, k) {
+                var dong = document.createElement('tr');
+                oLsIn(dong, k + 1, 'text-muted text-end').style.width = '3em';
+                var o = oLsIn(dong, nhan.join('  |  ') || '(trống)');
+                if (tk && nhan.join(' ').toLowerCase().indexOf(tk) >= 0) o.classList.add('table-warning');
+                tb.appendChild(dong);
+            });
+            bang.appendChild(tb);
+            td.replaceChildren(bang);
+            if (!ds.length) td.textContent = '(không có nội dung)';
+        } catch (ex) {
+            td.textContent = ex.message;
         }
     }
 
@@ -2156,9 +2196,13 @@
         T.luuCaiDatIn(c);
         if (c.mayIn !== $('tkMayIn').value && dsMayIn.some(function (m) { return m.name === c.mayIn; })) { $('tkMayIn').value = c.mayIn; napKhoMay(); }
         var dsDong = dsDongIn();
+        var coDl = phamViIn() !== 'dangXem' || !!dongDangXem();
         var lichSuIn = {
             dsIdTu: idTuIn().join(','), tenMau: $('tkTenMau').value || '', trangNhan: trang.Name || '',
-            mayIn: c.mayIn || '', soBan: c.soBan, noiIn: c.mayIn ? 'Agent' : 'TrinhDuyet'
+            mayIn: c.mayIn || '', soBan: c.soBan, noiIn: c.mayIn ? 'Agent' : 'TrinhDuyet',
+            nguonDuLieu: !coDl || !dsLoc.length ? 'KhongDuLieu' : nguonDl === 'tu' ? 'Tu' : 'Excel',
+            tenFile: nguonDl === 'tu' ? '' : (tenFileDl || ''),
+            noiDung: JSON.stringify(T.noiDungNhan(trang, dsDong.filter(Boolean), c.soBan))
         };
         nut.disabled = true;
         $('tkInLoi').textContent = '';
@@ -2634,7 +2678,13 @@
     });
 
     document.addEventListener('click', function (ev) {
-        if (ev.target.id === 'tkBtnInNgay' || ev.target.closest('#tkBtnInNgay')) inNgay();
+        if (ev.target.id === 'tkBtnInNgay' || ev.target.closest('#tkBtnInNgay')) { inNgay(); return; }
+        var dongLs = ev.target.closest('.tk-ls-in-dong');
+        if (dongLs) moChiTietLanIn(dongLs);
+    });
+
+    document.addEventListener('change', function (ev) {
+        if (ev.target.id === 'tkLsInTuNgay' || ev.target.id === 'tkLsInDenNgay') taiLichSuIn();
     });
 
     document.addEventListener('keydown', function (ev) {

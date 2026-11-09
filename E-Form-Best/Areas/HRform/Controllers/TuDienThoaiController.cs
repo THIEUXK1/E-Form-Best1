@@ -487,20 +487,43 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
         }
 
-        // Ghi lịch sử in tem: mỗi tủ 1 dòng hành động "In" trong HR_TuDienThoaiLichSu (dùng chung bảng, khỏi DDL).
-        // Ảnh chụp tủ lấy từ DB tại thời điểm in (không tin dữ liệu trình duyệt gửi) + mẫu/máy in/số bản để tra lại.
+        // Nội dung tem tối đa ~3 triệu ký tự (dưới FormOptions.ValueLengthLimit 4 MB)
+        private const int DoDaiNoiDungInToiDa = 3_000_000;
+
+        // Ghi lịch sử 1 lần in tem:
+        //  - HR_TemInLichSu: 1 dòng/lần in, kèm chữ + mã vạch thực tế từng tem (trình duyệt trộn dữ liệu giống lúc in) → biết đã in gì,
+        //    kể cả tem từ file Excel.
+        //  - HR_TuDienThoaiLichSu: mỗi tủ 1 dòng "In" (ảnh chụp tủ lấy từ DB) → lịch sử từng tủ thấy được lần in.
         // In qua hộp thoại trình duyệt thì chỉ biết đã mở hộp thoại, không biết người dùng có bấm Huỷ hay không.
         [HttpPost("/FormHR/QuanLyTuDienThoai/GhiLichSuIn")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GhiLichSuIn([FromForm] string? dsIdTu, [FromForm] string? tenMau, [FromForm] string? trangNhan,
-            [FromForm] string? mayIn, [FromForm] int soBan, [FromForm] string? noiIn)
+            [FromForm] string? mayIn, [FromForm] int soBan, [FromForm] string? noiIn,
+            [FromForm] string? nguonDuLieu, [FromForm] string? tenFile, [FromForm] string? noiDung)
         {
             if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
 
             var ids = (dsIdTu ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(s => int.TryParse(s, out var v) ? v : 0).Where(v => v > 0).Distinct().ToList();
-            if (ids.Count == 0) return Json(new { thanhCong = true, thongBao = "Không có tủ nào để ghi." });
             if (ids.Count > 5000) return Json(new { thanhCong = false, thongBao = "Quá nhiều tủ trong một lần in." });
+
+            // Chỉ nhận mảng các mảng chuỗi — tránh lưu rác làm hỏng trang xem lịch sử
+            int soNhan;
+            if (string.IsNullOrWhiteSpace(noiDung) || noiDung.Length > DoDaiNoiDungInToiDa)
+                return Json(new { thanhCong = false, thongBao = "Nội dung tem trống hoặc quá lớn." });
+            try
+            {
+                using var json = JsonDocument.Parse(noiDung);
+                var goc = json.RootElement;
+                if (goc.ValueKind != JsonValueKind.Array
+                    || !goc.EnumerateArray().All(n => n.ValueKind == JsonValueKind.Array && n.EnumerateArray().All(x => x.ValueKind == JsonValueKind.String)))
+                    return Json(new { thanhCong = false, thongBao = "Nội dung tem không đúng định dạng." });
+                soNhan = goc.GetArrayLength();
+            }
+            catch (JsonException)
+            {
+                return Json(new { thanhCong = false, thongBao = "Nội dung tem không đúng định dạng." });
+            }
 
             static string? Cat(string? s, int max) { s = Gon(s); return s != null && s.Length > max ? s[..max] : s; }
             var mau = Cat(tenMau, 100);
@@ -509,14 +532,30 @@ namespace E_Form_Best.Areas.HRform.Controllers
             var soBanIn = Math.Clamp(soBan, 1, 50);
             // nguon (20 ký tự): "Agent" = in thẳng qua driver, "TrinhDuyet" = hộp thoại in của trình duyệt
             var nguon = noiIn == "Agent" ? "Agent" : "TrinhDuyet";
+            var nguonDl = nguonDuLieu is "Tu" or "Excel" ? nguonDuLieu : "KhongDuLieu";
 
             try
             {
-                var dsTu = await _context.HrTuDienThoais
-                    .Where(t => ids.Contains(t.IdTu) && t.NgayXoa == null)
-                    .ToListAsync();
                 var bayGio = DateTime.Now;
                 var nguoi = User.Identity?.Name;
+                _context.HrTemInLichSus.Add(new HrTemInLichSu
+                {
+                    Ngay = bayGio,
+                    Nguoi = nguoi,
+                    TenMau = mau,
+                    TrangNhan = trang,
+                    MayIn = nguon == "Agent" ? may : null,
+                    SoBan = soBanIn,
+                    SoNhan = soNhan,
+                    NguonDuLieu = nguonDl,
+                    TenFile = nguonDl == "Excel" ? Cat(tenFile, 260) : null,
+                    DsIdTu = ids.Count > 0 ? string.Join(",", ids) : null,
+                    NoiDung = noiDung
+                });
+
+                var dsTu = ids.Count == 0 ? new List<HrTuDienThoai>() : await _context.HrTuDienThoais
+                    .Where(t => ids.Contains(t.IdTu) && t.NgayXoa == null)
+                    .ToListAsync();
                 foreach (var t in dsTu)
                 {
                     var anh = JsonSerializer.Serialize(new
@@ -534,11 +573,64 @@ namespace E_Form_Best.Areas.HRform.Controllers
                     _context.HrTuDienThoaiLichSus.Add(TaoLichSu(t.IdTu, "In", null, anh, bayGio, nguoi, nguon));
                 }
                 await _context.SaveChangesAsync();
-                return Json(new { thanhCong = true, duLieu = new { soTu = dsTu.Count } });
+                return Json(new { thanhCong = true, duLieu = new { soNhan, soTu = dsTu.Count } });
             }
             catch (Exception ex)
             {
                 return Json(new { thanhCong = false, thongBao = "Lỗi ghi lịch sử in: " + ex.Message });
+            }
+        }
+
+        // Danh sách lần in (mới nhất trước), tìm trong nội dung tem / mẫu / máy in / file / người in; lọc theo khoảng ngày.
+        // Không trả noi_dung ở danh sách (có thể rất dài) — bấm xem 1 lần in mới tải.
+        [HttpGet("/FormHR/QuanLyTuDienThoai/LichSuIn")]
+        public async Task<IActionResult> LichSuIn(string? tuKhoa, DateTime? tuNgay, DateTime? denNgay)
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem lịch sử in." });
+
+            try
+            {
+                var q = _context.HrTemInLichSus.AsQueryable();
+                if (tuNgay.HasValue) q = q.Where(l => l.Ngay >= tuNgay.Value.Date);
+                if (denNgay.HasValue) q = q.Where(l => l.Ngay < denNgay.Value.Date.AddDays(1));
+                var tk = Gon(tuKhoa);
+                if (tk != null)
+                    q = q.Where(l => l.NoiDung.Contains(tk)
+                        || (l.TenMau != null && l.TenMau.Contains(tk))
+                        || (l.MayIn != null && l.MayIn.Contains(tk))
+                        || (l.TenFile != null && l.TenFile.Contains(tk))
+                        || (l.Nguoi != null && l.Nguoi.Contains(tk)));
+
+                const int toiDa = 200;
+                var dong = await q.OrderByDescending(l => l.Ngay).ThenByDescending(l => l.IdLanIn)
+                    .Take(toiDa + 1)
+                    .Select(l => new { l.IdLanIn, l.Ngay, l.Nguoi, l.TenMau, l.TrangNhan, l.MayIn, l.SoBan, l.SoNhan, l.NguonDuLieu, l.TenFile })
+                    .ToListAsync();
+                return Json(new { thanhCong = true, duLieu = new { dong = dong.Take(toiDa), conNua = dong.Count > toiDa } });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi tải lịch sử in: " + ex.Message });
+            }
+        }
+
+        [HttpGet("/FormHR/QuanLyTuDienThoai/LichSuIn/{idLanIn:int}")]
+        public async Task<IActionResult> ChiTietLichSuIn(int idLanIn)
+        {
+            if (!CoQuyenQuanLy()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem lịch sử in." });
+
+            try
+            {
+                var l = await _context.HrTemInLichSus
+                    .Where(x => x.IdLanIn == idLanIn)
+                    .Select(x => new { x.IdLanIn, x.NoiDung })
+                    .FirstOrDefaultAsync();
+                if (l == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy lần in." });
+                return Json(new { thanhCong = true, duLieu = l });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Lỗi tải chi tiết lần in: " + ex.Message });
             }
         }
 
