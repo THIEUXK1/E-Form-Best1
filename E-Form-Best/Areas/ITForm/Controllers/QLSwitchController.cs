@@ -544,6 +544,167 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #endregion
 
+        #region Thông tin thiết bị — sức khoẻ phần cứng (KK_SwitchSucKhoe)
+
+        /// <summary>
+        /// Switch đang theo dõi sức khoẻ của công ty + ảnh chụp SNMP gần nhất (SwitchSucKhoeWorker ghi).
+        /// duLieu là JSON nguyên bản worker lưu (CPU, RAM, nhiệt độ, quạt, nguồn, stack, cổng) — trình duyệt tự parse.
+        /// </summary>
+        [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/SucKhoe")]
+        public async Task<IActionResult> SucKhoe(string congTy)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            try
+            {
+                var idCongTy = await IdCongTyAsync(cty);
+                var duLieu = await _context.KkSwitchSucKhoes
+                    .Where(x => x.IdSwitchNavigation!.IdcongTy == idCongTy && x.IdSwitchNavigation.NgayXoa == null)
+                    .OrderBy(x => x.ThuTu).ThenBy(x => x.IdSwitch)
+                    .Select(x => new
+                    {
+                        x.IdSwitch, x.TenHienThi, x.IdSwitchNavigation!.TenSwitch, x.IdSwitchNavigation.DiaChiIp,
+                        x.IdSwitchNavigation.HangSanXuat, x.IdSwitchNavigation.Model, x.IdSwitchNavigation.Serial,
+                        x.IdSwitchNavigation.PhienBan, x.IdSwitchNavigation.ViTri, KetNoi = x.IdSwitchNavigation.TrangThaiKetNoi,
+                        x.TrangThai, x.KiemTraLuc, x.DocDuocLuc, x.IpSnmp, x.TenHeThong, x.TomTat, x.Loi, x.DuLieu
+                    })
+                    .ToListAsync();
+
+                // Switch còn lại của công ty để chọn thêm vào theo dõi (chỉ người có quyền sửa mới cần)
+                var dsChon = CoQuyenSua()
+                    ? await _context.KkSwitches
+                        .Where(x => x.IdcongTy == idCongTy && x.NgayXoa == null && x.DiaChiIp != null
+                                    && !_context.KkSwitchSucKhoes.Any(k => k.IdSwitch == x.IdSwitch))
+                        .OrderBy(x => x.VaiTro == "Core" ? 0 : x.VaiTro == "Phân phối" ? 1 : 2).ThenBy(x => x.TenSwitch)
+                        .Select(x => new { x.IdSwitch, x.TenSwitch, x.DiaChiIp, x.Model })
+                        .ToListAsync()
+                    : null;
+
+                return Json(new
+                {
+                    thanhCong = true, duLieu, dsChon,
+                    chuKyGiay = SwitchSucKhoeWorker.ChuKyGiay(_configuration),
+                    // Máy chủ này có đọc công ty này không — không thì số liệu do máy chủ kia ghi
+                    mayNayDoc = SwitchSucKhoeWorker.DsCongTyTheoDoi(_configuration).Contains(cty)
+                                && (_configuration.GetValue<bool?>("SwitchSucKhoe:Bat") ?? _configuration.GetValue<bool?>("Switch:GhiLichSu") ?? true)
+                });
+            }
+            catch (SqlException ex) when (ex.Number == 208)
+            {
+                return Json(new { thanhCong = false, thongBao = "Chưa tạo bảng KK_SwitchSucKhoe — cần chạy script kk-switch-suc-khoe-20261110.sql." });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        /// <summary>Nhật ký đổi trạng thái sức khoẻ (mới nhất trước), lọc 1 switch nếu có idSwitch.</summary>
+        [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/SucKhoe/LichSu")]
+        public async Task<IActionResult> SucKhoeLichSu(string congTy, int? idSwitch)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền xem dữ liệu này." });
+
+            try
+            {
+                var idCongTy = await IdCongTyAsync(cty);
+                var query = _context.KkSwitchSucKhoeLichSus.Where(x => x.IdcongTy == idCongTy);
+                if (idSwitch > 0) query = query.Where(x => x.IdSwitch == idSwitch);
+                var duLieu = await query
+                    .OrderByDescending(x => x.ThoiGian).ThenByDescending(x => x.IdLichSu)
+                    .Take(300)
+                    .Select(x => new { x.ThoiGian, x.IdSwitch, x.TenSwitch, x.TuTrangThai, x.SangTrangThai, x.TomTat })
+                    .ToListAsync();
+                return Json(new { thanhCong = true, duLieu });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        /// <summary>
+        /// Nút "Đọc ngay": đọc SNMP 1 switch trên máy chủ web đang phục vụ rồi lưu ảnh chụp.
+        /// Đọc lỗi thì không lưu (máy chủ này có thể không thông mạng tới switch — tránh ghi trạng thái giả).
+        /// </summary>
+        [HttpPost("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/SucKhoe/DocNgay")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SucKhoeDocNgay(string congTy, int idSwitch)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenXem(cty)) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+
+            // Chống IDOR: id phải là switch của đúng công ty trên URL và đang được theo dõi
+            var idCongTy = await IdCongTyAsync(cty);
+            if (!await _context.KkSwitchSucKhoes.AnyAsync(x => x.IdSwitch == idSwitch && x.IdSwitchNavigation!.IdcongTy == idCongTy))
+                return Json(new { thanhCong = false, thongBao = "Switch không có trong danh sách theo dõi của công ty này." });
+
+            using var het = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted);
+            het.CancelAfter(TimeSpan.FromSeconds(60));
+            try
+            {
+                var kq = await SwitchSucKhoeWorker.DocVaLuuAsync(_context, _configuration, idSwitch, true, het.Token);
+                if (!kq.DaLuu)
+                    return Json(new { thanhCong = false, thongBao = (kq.Loi ?? "Chưa lưu được, thử lại sau.") + $" Máy chủ web: {Environment.MachineName}." });
+                return Json(new { thanhCong = true, thongBao = "Đã đọc lại thông số." });
+            }
+            catch (OperationCanceledException) { return Json(new { thanhCong = false, thongBao = "Đọc SNMP quá lâu, chưa lưu gì. Thử lại sau." }); }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        /// <summary>Thêm 1 switch vào danh sách theo dõi sức khoẻ (idempotent: đã có thì chỉ đổi tên hiển thị).</summary>
+        [HttpPost("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/SucKhoe/Them")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SucKhoeThem(string congTy, int idSwitch, string? tenHienThi)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+
+            var idCongTy = await IdCongTyAsync(cty);
+            if (!await _context.KkSwitches.AnyAsync(x => x.IdSwitch == idSwitch && x.IdcongTy == idCongTy && x.NgayXoa == null))
+                return Json(new { thanhCong = false, thongBao = "Không tìm thấy switch này trong công ty." });
+
+            var ten = string.IsNullOrWhiteSpace(tenHienThi) ? null : tenHienThi.Trim();
+            if (ten?.Length > 100) ten = ten[..100];
+            try
+            {
+                var soDong = await _context.KkSwitchSucKhoes.Where(x => x.IdSwitch == idSwitch)
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.TenHienThi, ten));
+                if (soDong == 0)
+                {
+                    var thuTu = (await _context.KkSwitchSucKhoes.MaxAsync(x => (int?)x.ThuTu) ?? 0) + 1;
+                    _context.KkSwitchSucKhoes.Add(new KkSwitchSucKhoe
+                    {
+                        IdSwitch = idSwitch, TenHienThi = ten, ThuTu = thuTu, TrangThai = SwitchSucKhoeService.ChuaDoc
+                    });
+                    try { await _context.SaveChangesAsync(); }
+                    catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+                    {
+                        // Bấm 2 lần / 2 tab cùng thêm: dòng đã có là đúng ý
+                    }
+                }
+                return Json(new { thanhCong = true, thongBao = "Đã thêm vào theo dõi — số liệu có sau lượt đọc kế tiếp hoặc bấm \"Đọc ngay\"." });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        /// <summary>Bỏ theo dõi: xoá ảnh chụp (không phải dữ liệu truy vết); nhật ký KK_SwitchSucKhoeLichSu giữ nguyên.</summary>
+        [HttpPost("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/SucKhoe/BoTheoDoi")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SucKhoeBoTheoDoi(string congTy, int idSwitch)
+        {
+            var cty = CongTyHopLe(congTy)!;
+            if (!CoQuyenSua()) return Json(new { thanhCong = false, thongBao = "Bạn không có quyền thao tác." });
+
+            try
+            {
+                var idCongTy = await IdCongTyAsync(cty);
+                await _context.KkSwitchSucKhoes
+                    .Where(x => x.IdSwitch == idSwitch && x.IdSwitchNavigation!.IdcongTy == idCongTy)
+                    .ExecuteDeleteAsync();
+                return Json(new { thanhCong = true, thongBao = "Đã bỏ theo dõi." });
+            }
+            catch (Exception ex) { return Json(new { thanhCong = false, thongBao = ex.Message }); }
+        }
+
+        #endregion
+
         #region Lịch sử online/offline
 
         [HttpGet("/QLSwitch/{congTy:regex(^(BPVN|PFVN|MEGA)$)}/LichSu")]

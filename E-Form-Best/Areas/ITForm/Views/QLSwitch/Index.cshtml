@@ -20,6 +20,8 @@
 <link rel="stylesheet" href="/css/ccdc-quanly.css?v=20260825e">
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=202610270831">
 <link rel="stylesheet" href="/css/camera-quanly.css?v=20261016a">
+<link rel="stylesheet" href="/css/server-quanly.css?v=20261024a">
+<link rel="stylesheet" href="/css/switch-suc-khoe.css?v=20261110a">
 
 <div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
@@ -36,6 +38,13 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="tabLichSuBtn" data-bs-toggle="pill" data-bs-target="#paneLichSu" type="button" role="tab">
                         <i class="fas fa-clock-rotate-left me-1"></i> Lịch sử
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tabSucKhoeBtn" data-bs-toggle="pill" data-bs-target="#paneSucKhoe" type="button" role="tab"
+                            title="Sức khoẻ phần cứng switch lõi / WLC đọc qua SNMP">
+                        <i class="fas fa-heart-pulse me-1"></i> Thông tin thiết bị
+                        <span class="badge rounded-pill bg-danger ms-1 d-none" id="badgeSkLoi">0</span>
                     </button>
                 </li>
                 @if (daiQuet != null)
@@ -262,6 +271,45 @@
                                 </thead>
                                 <tbody id="lsBody">
                                     <tr><td colspan="6" class="ccdc-trangthai text-muted py-4">Đang tải dữ liệu...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @* ================= TAB THÔNG TIN THIẾT BỊ — SỨC KHOẺ SNMP (KK_SwitchSucKhoe), JS: switch-suc-khoe.js ================= *@
+                    <div class="tab-pane fade" id="paneSucKhoe" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <span class="small fw-bold text-muted" id="skTongHop"></span>
+                            <span class="small text-muted" id="skGhiChu"></span>
+                            @if (coQuyenSua)
+                            {
+                                <div class="input-group input-group-sm ms-auto" style="max-width:520px;">
+                                    <select id="skChonSwitch" class="form-select form-select-sm" title="Switch thêm vào theo dõi"></select>
+                                    <input type="text" id="skTenHienThi" class="form-control form-control-sm" maxlength="100" placeholder="Tên hiển thị (tuỳ chọn)">
+                                    <button type="button" class="btn btn-outline-primary" id="skBtnThem"><i class="fas fa-plus me-1"></i>Theo dõi</button>
+                                </div>
+                            }
+                            <button type="button" class="btn btn-sm btn-light border @(coQuyenSua ? "" : "ms-auto")" id="skBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
+                        </div>
+                        <div class="alert alert-danger py-2 small d-none" id="skLoi"></div>
+                        <div class="row g-3" id="skDanhSach">
+                            <div class="col-12 text-center text-muted py-4">Đang tải dữ liệu...</div>
+                        </div>
+
+                        <h6 class="fw-bold mt-4 mb-2"><i class="fas fa-clock-rotate-left me-1"></i> Nhật ký đổi trạng thái sức khoẻ</h6>
+                        <div class="ccdc-table-wrap" style="max-height:340px;">
+                            <table class="table table-sm table-hover align-middle mb-0 ccdc-table">
+                                <colgroup>
+                                    <col style="width:150px;">
+                                    <col style="width:220px;">
+                                    <col style="width:220px;">
+                                    <col>
+                                </colgroup>
+                                <thead>
+                                    <tr><th>Thời gian</th><th>Thiết bị</th><th>Đổi trạng thái</th><th>Chi tiết</th></tr>
+                                </thead>
+                                <tbody id="skLsBody">
+                                    <tr><td colspan="4" class="ccdc-trangthai text-muted py-3">Đang tải dữ liệu...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -645,4 +693,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=202610270831" defer></script>
     <script src="/js/switch-quanly.js?v=20261026a"></script>
+    <script src="/js/switch-suc-khoe.js?v=20261110a"></script>
 }

@@ -170,6 +170,9 @@ builder.Services.AddHostedService<QuetIpWorker>();
 builder.Services.AddHostedService<ServerPingWorker>();
 // Sức khoẻ phần cứng server / lưu trữ qua SNMP (ổ cứng, RAM, quạt, nguồn, dung lượng). Tắt bằng ServerSnmp__Bat=false
 builder.Services.AddHostedService<ServerSnmpWorker>();
+// Sức khoẻ switch lõi / WLC qua SNMP (tab "Thông tin thiết bị" /QLSwitch), danh sách theo dõi = KK_SwitchSucKhoe.
+// Tắt bằng SwitchSucKhoe__Bat=false (mặc định theo Switch__GhiLichSu)
+builder.Services.AddHostedService<SwitchSucKhoeWorker>();
 
 // Báo cáo định kì (/BaoCaoDinhKy): số liệu đơn IT / công việc / thiết bị cho file Excel tổng hợp
 builder.Services.AddScoped<BaoCaoDinhKyService>();

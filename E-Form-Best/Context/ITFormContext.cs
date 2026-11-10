@@ -183,6 +183,10 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkSwitchLichSu> KkSwitchLichSus { get; set; }
 
+    public virtual DbSet<KkSwitchSucKhoe> KkSwitchSucKhoes { get; set; }
+
+    public virtual DbSet<KkSwitchSucKhoeLichSu> KkSwitchSucKhoeLichSus { get; set; }
+
     public virtual DbSet<KkServer> KkServers { get; set; }
 
     public virtual DbSet<KkServerLichSu> KkServerLichSus { get; set; }

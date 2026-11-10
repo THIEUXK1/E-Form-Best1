@@ -163,7 +163,8 @@ namespace E_Form_Best.Areas.ITForm.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[MayIn] Lỗi kéo lịch sử in máy {idMayIn}: {ex.Message}");
+                // Lỗi EF chỉ nói "see the inner exception" — phải in lỗi gốc mới biết vì sao
+                Console.WriteLine($"[MayIn] Lỗi kéo lịch sử in máy {idMayIn}: {ex.GetBaseException().Message}");
                 return new MayInLichSuInService.KetQuaDongBo();
             }
         }

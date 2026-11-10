@@ -1,0 +1,23 @@
+/* Tab "Thông tin thiết bị" /QLSwitch/{công ty} — dùng thêm lớp sv-sk-* / sv-thanh-* của server-quanly.css */
+
+.sk-the {
+    border: 1px solid #e2e8f0; border-left: 4px solid #94a3b8; border-radius: 12px;
+    padding: 12px 14px; background: #fff;
+}
+.sk-the-sv-sk-ok { border-left-color: #22c55e; }
+.sk-the-sv-sk-canh-bao { border-left-color: #f59e0b; }
+.sk-the-sv-sk-loi { border-left-color: #ef4444; }
+.sk-ten { font-size: 1.05rem; font-weight: 700; color: #1e293b; }
+
+/* Hàng ô số liệu tóm tắt: CPU, RAM, nhiệt độ, cổng, AP */
+.sk-o-hang { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.sk-o { border-radius: 10px; background: #f8fafc; padding: 8px 10px; min-width: 0; }
+.sk-o-nhan { font-size: .72rem; color: #64748b; text-transform: uppercase; letter-spacing: .02em; }
+.sk-o-so { font-size: 1.35rem; font-weight: 700; color: #1e293b; line-height: 1.25; }
+.sk-o-so.sk-so-sv-sk-canh-bao { color: #b45309; }
+.sk-o-so.sk-so-sv-sk-loi { color: #b91c1c; }
+.sk-o-tong { font-size: .85rem; font-weight: 600; color: #64748b; }
+.sk-o-phu { font-size: .72rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sk-cong-loi summary { cursor: pointer; color: #334155; }
+.sk-cong-loi table td, .sk-cong-loi table th { white-space: nowrap; }
