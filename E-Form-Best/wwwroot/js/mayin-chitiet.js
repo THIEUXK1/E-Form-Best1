@@ -406,7 +406,9 @@
             + dongThongTin('Kết quả lần đọc', trong(m.ketQuaDocCuoi));
 
         var vatTu = dongThongTin('Mực (toner)', veNhomVatTu(tk.vatTu, 'TONER', tk.toner))
-            + dongThongTin('Trống (drum)', veNhomVatTu(tk.vatTu, 'DRUM', tk.drum))
+            + dongThongTin('Trống (drum)', (tk.drum === null || tk.drum === undefined) && coLienTrong(tk.vatTu)
+                ? thanhMuc(tk.toner) + ' <span class="text-muted small">liền trong hộp mực</span>'
+                : veNhomVatTu(tk.vatTu, 'DRUM', tk.drum))
             + dongThongTin('Chỉ số in', dinhDangSo(tk.counterIn))
             + dongThongTin('Chỉ số copy', dinhDangSo(tk.counterCopy))
             + dongThongTin('Chỉ số scan', dinhDangSo(tk.counterScan))
@@ -542,7 +544,14 @@
     }
 
     /// Ô mực/trống trong bảng lịch sử: hiện số thấp nhất, máy màu thì rê chuột ra đủ từng màu.
+    // Hộp mực liền trống (DocuPrint 3105/3205): server gắn dòng LIENTRONG_x, trống thay cùng hộp mực
+    function coLienTrong(dsVatTu) {
+        return (dsVatTu || []).some(function (v) { return (v.ten || '').toUpperCase().indexOf('LIENTRONG') === 0; });
+    }
+
     function oNhomVatTu(phanTram, dsVatTu, tienTo) {
+        if ((phanTram === null || phanTram === undefined) && tienTo === 'DRUM' && coLienTrong(dsVatTu))
+            return '<td class="mayin-cot-so small text-muted" title="Trống liền trong hộp mực, thay cùng hộp mực">liền mực</td>';
         if (phanTram === null || phanTram === undefined) return '<td class="mayin-cot-so small">—</td>';
 
         var nhom = (dsVatTu || []).filter(function (v) {

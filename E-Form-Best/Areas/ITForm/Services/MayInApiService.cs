@@ -566,6 +566,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                 if (ketQua.VatTu.Any(v => v.Ten == ten)) continue;
                 ketQua.VatTu.Add(new VatTuDoc(ten, phanTram));
 
+                // Đánh dấu hộp liền trống để giao diện gộp ô Trống vào Mực thay vì báo "máy không báo".
+                // Tiền tố không phải TONER/DRUM nên các chỗ lọc theo nhóm tự bỏ qua dòng này.
+                if (loai == 21) ketQua.VatTu.Add(new VatTuDoc("LIENTRONG_" + ten[(tienTo.Length + 1)..], phanTram));
+
                 if (tienTo == "TONER")
                     ketQua.TonerPhanTram = Math.Min(ketQua.TonerPhanTram ?? int.MaxValue, phanTram);
                 else

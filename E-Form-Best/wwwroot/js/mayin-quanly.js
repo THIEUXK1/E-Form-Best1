@@ -73,6 +73,11 @@
     var MAU_VAT_TU = { C: '#0891b2', M: '#db2777', Y: '#ca8a04', K: '#334155' };
     var TEN_VAT_TU = { C: 'Xanh (C)', M: 'Hồng (M)', Y: 'Vàng (Y)', K: 'Đen (K)' };
 
+    // Hộp mực liền trống (DocuPrint 3105/3205): server gắn dòng LIENTRONG_x, trống thay cùng hộp mực
+    function coLienTrong(dsVatTu) {
+        return (dsVatTu || []).some(function (v) { return (v.ten || '').toUpperCase().indexOf('LIENTRONG') === 0; });
+    }
+
     function oNhomVatTu(phanTram, dsVatTu, tienTo) {
         var nhom = (dsVatTu || []).filter(function (v) {
             return (v.ten || '').toUpperCase().indexOf(tienTo) === 0;
@@ -226,7 +231,11 @@
                 + '<td class="mayin-cot-so small">' + dinhDangSo(x.trangIn30Ngay) + oTach(x.tach30Ngay) + '</td>'
                 + '<td>'
                 + '<div class="mayin-vt"><span class="mayin-vt-nhan">Mực</span><div class="mayin-vt-o">' + oNhomVatTu(x.toner, x.vatTu, 'TONER') + '</div></div>'
-                + '<div class="mayin-vt"><span class="mayin-vt-nhan">Trống</span><div class="mayin-vt-o">' + oNhomVatTu(x.drum, x.vatTu, 'DRUM') + '</div></div>'
+                + '<div class="mayin-vt"><span class="mayin-vt-nhan">Trống</span><div class="mayin-vt-o">'
+                    + ((x.drum === null || x.drum === undefined) && coLienTrong(x.vatTu)
+                        ? '<span class="small text-muted" title="Trống liền trong hộp mực, thay cùng hộp mực">liền mực</span>'
+                        : oNhomVatTu(x.drum, x.vatTu, 'DRUM'))
+                    + '</div></div>'
                 + '</td>'
                 + '<td class="mayin-trangthai">' + nhanTrangThai(x.trangThai)
                 + dong(escapeHtml(x.lanDocCuoi || '—'), escapeHtml(x.ketQuaDocCuoi), 'small text-muted js-doc-luc') + '</td>'
