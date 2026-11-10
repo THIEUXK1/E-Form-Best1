@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=202610270831">
 <link rel="stylesheet" href="/css/camera-quanly.css?v=20261016a">
 <link rel="stylesheet" href="/css/server-quanly.css?v=20261024a">
-<link rel="stylesheet" href="/css/switch-suc-khoe.css?v=20261110a">
+<link rel="stylesheet" href="/css/switch-suc-khoe.css?v=20261110b">
 
 <div class="content-header pt-0 pb-0" style="margin-top: -25px;">
     <div class="container-fluid">
@@ -283,7 +283,7 @@
                             <span class="small text-muted" id="skGhiChu"></span>
                             @if (coQuyenSua)
                             {
-                                <div class="input-group input-group-sm ms-auto" style="max-width:520px;">
+                                <div class="input-group input-group-sm ms-auto sk-them">
                                     <select id="skChonSwitch" class="form-select form-select-sm" title="Switch thêm vào theo dõi"></select>
                                     <input type="text" id="skTenHienThi" class="form-control form-control-sm" maxlength="100" placeholder="Tên hiển thị (tuỳ chọn)">
                                     <button type="button" class="btn btn-outline-primary" id="skBtnThem"><i class="fas fa-plus me-1"></i>Theo dõi</button>
@@ -292,19 +292,15 @@
                             <button type="button" class="btn btn-sm btn-light border @(coQuyenSua ? "" : "ms-auto")" id="skBtnTaiLai" title="Tải lại"><i class="fas fa-rotate"></i></button>
                         </div>
                         <div class="alert alert-danger py-2 small d-none" id="skLoi"></div>
+                        @* Trang khoá cuộn toàn trang (fixed-page-layout): thẻ thiết bị + nhật ký nằm chung 1 vùng cuộn *@
+                        <div class="sk-cuon" data-fp-scroll>
                         <div class="row g-3" id="skDanhSach">
                             <div class="col-12 text-center text-muted py-4">Đang tải dữ liệu...</div>
                         </div>
 
                         <h6 class="fw-bold mt-4 mb-2"><i class="fas fa-clock-rotate-left me-1"></i> Nhật ký đổi trạng thái sức khoẻ</h6>
-                        <div class="ccdc-table-wrap" style="max-height:340px;">
-                            <table class="table table-sm table-hover align-middle mb-0 ccdc-table">
-                                <colgroup>
-                                    <col style="width:150px;">
-                                    <col style="width:220px;">
-                                    <col style="width:220px;">
-                                    <col>
-                                </colgroup>
+                        <div class="table-responsive sk-nhat-ky">
+                            <table class="table table-sm table-hover align-middle mb-0 sk-bang-nhat-ky">
                                 <thead>
                                     <tr><th>Thời gian</th><th>Thiết bị</th><th>Đổi trạng thái</th><th>Chi tiết</th></tr>
                                 </thead>
@@ -313,6 +309,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        </div>@* /sk-cuon *@
                     </div>
 
                     @if (daiQuet != null)
@@ -693,5 +690,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=202610270831" defer></script>
     <script src="/js/switch-quanly.js?v=20261026a"></script>
-    <script src="/js/switch-suc-khoe.js?v=20261110a"></script>
+    <script src="/js/switch-suc-khoe.js?v=20261110b"></script>
 }

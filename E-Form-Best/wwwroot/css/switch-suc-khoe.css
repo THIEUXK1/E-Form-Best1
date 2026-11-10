@@ -21,3 +21,41 @@
 
 .sk-cong-loi summary { cursor: pointer; color: #334155; }
 .sk-cong-loi table td, .sk-cong-loi table th { white-space: nowrap; }
+
+/* ---------- Thích nghi màn hình ---------- */
+/* Vùng cuộn duy nhất của tab (fixed-page-layout khoá cuộn toàn trang); chừa chỗ cho thanh cuộn */
+.sk-cuon { overflow-x: hidden; padding-right: 4px; }
+
+/* Ô chọn switch để theo dõi: giãn theo chỗ trống, xuống dòng khi hẹp */
+.sk-them { flex: 1 1 360px; max-width: 560px; }
+.sk-them .form-select { flex: 2 1 180px; min-width: 0; }
+.sk-them .form-control { flex: 1 1 120px; min-width: 0; }
+
+/* Dòng mục: giá trị dài (CPU 5 phút · 1 phút · 5 giây) xuống dòng thay vì bóp mất tên */
+.sk-the .sv-sk-dong { align-items: flex-start; }
+.sk-the .sv-sk-cham { margin-top: 6px; }
+.sk-the .sv-sk-ten { flex: 1 1 40%; min-width: 90px; }
+.sk-the .sv-sk-gt { flex: 1 1 auto; white-space: normal; font-size: .8rem; }
+
+.sk-bang-nhat-ky { font-size: .84rem; }
+.sk-bang-nhat-ky td:nth-child(-n+3), .sk-bang-nhat-ky th { white-space: nowrap; }
+.sk-bang-nhat-ky td:nth-child(4) { min-width: 260px; white-space: normal; }
+
+@media (max-width: 991.98px) {
+    .sk-them { max-width: none; margin-left: 0 !important; order: 3; flex-basis: 100%; }
+}
+
+@media (max-width: 575.98px) {
+    .sk-the { padding: 10px; }
+    .sk-ten { font-size: .95rem; }
+    .sk-o-hang { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .sk-o-so { font-size: 1.1rem; }
+    .sk-the .sv-sk-dong { flex-wrap: wrap; }
+    .sk-the .sv-sk-gt { flex-basis: 100%; text-align: left; padding-left: 17px; }
+    /* Nút trên thẻ xuống dòng dưới tên, dàn hết ngang */
+    .sk-the .sk-nut { width: 100%; }
+    .sk-the .sk-nut .sk-doc-ngay { flex: 1 1 auto; }
+}
+
+/* Đầu thẻ: phần tên chiếm chỗ còn lại, nút "Đọc ngay" tự xuống dòng khi không đủ ngang */
+.sk-dau-trai { flex: 1 1 260px; min-width: 0; }

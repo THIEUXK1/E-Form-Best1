@@ -143,7 +143,7 @@
             .filter(Boolean).map(esc).join(' · ');
 
         var trenCung = '<div class="d-flex flex-wrap align-items-start gap-2 mb-2">' +
-            '<div class="me-auto" style="min-width:0;"><div class="sk-ten">' + tieuDe +
+            '<div class="me-auto sk-dau-trai"><div class="sk-ten">' + tieuDe +
             ' <span class="sv-sk sv-sk-lon ' + lop(tt) + ' ms-1">' + esc(NHAN[tt] || tt) + '</span>' +
             (x.ketNoi === 'DOWN' ? ' <span class="sv-sk sv-sk-loi ms-1" title="Theo job ping">Mất ping</span>' : '') + '</div>' +
             '<div class="small text-muted text-truncate" title="' + phu + '">' + phu + '</div>' +
@@ -152,7 +152,7 @@
             (x.docDuocLuc ? 'Đọc lúc ' + gio(x.docDuocLuc) : 'Chưa đọc được lần nào') +
             (x.kiemTraLuc && x.kiemTraLuc !== x.docDuocLuc && x.docDuocLuc ? ' · <span class="text-danger">lần thử ' + gio(x.kiemTraLuc) + ' lỗi</span>' : '') +
             '</div></div>' +
-            '<div class="d-flex gap-1">' +
+            '<div class="d-flex gap-1 sk-nut">' +
             '<button type="button" class="btn btn-sm btn-outline-primary sk-doc-ngay" data-id="' + x.idSwitch + '" title="Đọc SNMP lại ngay trên máy chủ web này">' +
             '<i class="fas fa-rotate me-1"></i>Đọc ngay</button>' +
             (chiXem ? '' : '<button type="button" class="btn btn-sm btn-light border sk-bo" data-id="' + x.idSwitch + '" data-ten="' + tieuDe + '" title="Bỏ theo dõi"><i class="fas fa-xmark"></i></button>') +
