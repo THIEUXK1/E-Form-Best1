@@ -521,7 +521,7 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// <summary>
         /// Bổ sung % mực / trống qua SNMP Printer MIB cho máy không có /home/api/supplies-info.
         /// Máy C3370 trả về dạng: loại 3 "Black Toner [K];SN..." max 36000 level 6480 → TONER_K 18%,
-        /// loại 9 "Cyan Drum Cartridge" → DRUM_C. Tên đổi về TONER_x/DRUM_x cho giao diện dùng chung
+        /// loại 9 "Cyan Drum Cartridge" → DRUM_C; loại 21 "Print Cartridge" (DocuPrint 3105) → TONER_K. Tên đổi về TONER_x/DRUM_x cho giao diện dùng chung
         /// với nhóm máy API. Máy tắt SNMP hoặc sai community thì bỏ qua, giữ kết quả đồng hồ đếm.
         /// </summary>
         private async Task DocVatTuQuaSnmpAsync(string diaChiIp, KetQuaDoc ketQua, CancellationToken ct)
@@ -551,7 +551,9 @@ namespace E_Form_Best.Areas.ITForm.Services
             foreach (var dong in theoCot.Values)
             {
                 var loai = SnmpClient.So(dong.GetValueOrDefault(5));
-                var tienTo = loai switch { 3 => "TONER", 9 => "DRUM", _ => null };
+                // 21 = tonerCartridge: hộp mực liền trống (DocuPrint 3105/3205 báo "Print Cartridge")
+                // — không có dòng loại 3 riêng nên phải coi là mực, không thì máy này trống phần vật tư.
+                var tienTo = loai switch { 3 or 21 => "TONER", 9 => "DRUM", _ => null };
                 if (tienTo is null) continue;
 
                 var toiDa = SnmpClient.So(dong.GetValueOrDefault(8));
