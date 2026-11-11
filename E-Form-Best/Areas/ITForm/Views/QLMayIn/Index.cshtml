@@ -83,6 +83,17 @@
             </select>
         </div>
 
+        @* Máy cất vào Lưu trữ (máy cũ đã thay, không còn trên mạng) ẩn khỏi bảng chính — bấm để xem / đưa về *@
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btnLuuTru"
+                title="Xem các máy đã cất vào Lưu trữ">
+            <i class="fa fa-box-archive me-1"></i> <span class="js-chu-luu-tru">Lưu trữ</span> (<span id="soLuuTru">0</span>)
+        </button>
+
+        @* Làm hàng loạt cho các máy đã tích ở cột đầu bảng; ẩn khi chưa tích máy nào *@
+        <button type="button" class="btn btn-sm btn-warning rounded-pill px-3 d-none" id="btnLuuTruDaChon">
+            <i class="fa fa-box-archive me-1"></i> <span class="js-chu-da-chon">Cất vào Lưu trữ</span> (<span id="soDaChon">0</span>)
+        </button>
+
         <span class="small" id="kqDongBo"></span>
 
         <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" id="btnThemMay">
@@ -104,6 +115,7 @@
         <table class="table table-hover align-middle mb-0 mayin-bang">
             <thead>
                 <tr>
+                    <th style="width:28px;"><input type="checkbox" class="form-check-input" id="chonTatCa" title="Chọn tất cả máy đang hiện"></th>
                     <th>#</th>
                     <th>Bộ phận<br><span class="mayin-th-phu">Vị trí</span></th>
                     <th>Model<br><span class="mayin-th-phu">Serial</span></th>
@@ -118,7 +130,7 @@
                 </tr>
             </thead>
             <tbody id="mayinTableBody">
-                <tr><td colspan="11" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
+                <tr><td colspan="12" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
             </tbody>
         </table>
     </div>
@@ -241,6 +253,6 @@
 
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=202610270831" defer></script>
-    <script src="/js/mayin-quanly.js?v=202611101030"></script>
+    <script src="/js/mayin-quanly.js?v=202611101630"></script>
 }
 

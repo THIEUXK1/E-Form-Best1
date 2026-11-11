@@ -180,6 +180,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                     }
                 }
 
+                // Có máy mở billing-counter nhưng supplies-info trả 404 (Apeos C3570 ở 10.0.59.128)
+                // → lấy % mực/trống qua SNMP như nhóm máy đời cũ, không thì khối vật tư trống mãi.
+                if (ketQua.VatTu.Count == 0) await DocVatTuQuaSnmpAsync(diaChiIp, ketQua, ct);
+
                 var about = await LayJsonAsync(client, $"{goc}/home/api/about", ct);
                 if (about is not null)
                 {
@@ -242,9 +246,14 @@ namespace E_Form_Best.Areas.ITForm.Services
                 // dữ liệu đã chốt được trong ngày bởi một lần đọc trước đó
                 if (ketQua.CounterInMau.HasValue) chiSo.CounterInMau = ketQua.CounterInMau;
                 if (ketQua.CounterInDenTrang.HasValue) chiSo.CounterInDenTrang = ketQua.CounterInDenTrang;
-                chiSo.TonerPhanTram = ketQua.TonerPhanTram;
-                chiSo.DrumPhanTram = ketQua.DrumPhanTram;
-                chiSo.VatTuJson = GoiVatTuJson(ketQua.VatTu);
+                // Vật tư của máy đời cũ đi qua SNMP (UDP) nên thỉnh thoảng hết giờ chờ khi đọc
+                // song song — lần đọc không lấy được vật tư thì giữ số đã chốt trước đó trong ngày.
+                if (ketQua.VatTu.Count > 0 || ketQua.TonerPhanTram.HasValue || ketQua.DrumPhanTram.HasValue)
+                {
+                    chiSo.TonerPhanTram = ketQua.TonerPhanTram;
+                    chiSo.DrumPhanTram = ketQua.DrumPhanTram;
+                    chiSo.VatTuJson = GoiVatTuJson(ketQua.VatTu);
+                }
                 chiSo.TrangThaiThietBi = ketQua.TrangThaiThietBi;
                 chiSo.Nguon = ketQua.NguonDoc;
             }
@@ -529,7 +538,8 @@ namespace E_Form_Best.Areas.ITForm.Services
             List<SnmpClient.Bien> ds;
             try
             {
-                ds = await SnmpClient.WalkAsync(diaChiIp, _snmpCommunity, PrtVatTu, 2000, 1, 300, ct);
+                // Thử lại 2 lần: 8 máy đọc song song thỉnh thoảng làm rơi gói UDP (#75 ngày 10/11)
+                ds = await SnmpClient.WalkAsync(diaChiIp, _snmpCommunity, PrtVatTu, 2000, 2, 300, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

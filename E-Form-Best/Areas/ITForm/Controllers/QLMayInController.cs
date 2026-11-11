@@ -209,12 +209,15 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region API danh sách
 
         [HttpGet("/QLMayIn/GetDanhSach")]
-        public async Task<IActionResult> GetDanhSach(string? tuKhoa, string? boPhan, string? model, string? trangThai)
+        public async Task<IActionResult> GetDanhSach(string? tuKhoa, string? boPhan, string? model, string? trangThai, bool luuTru = false)
         {
             var chan = KiemQuyen();
             if (chan != null) return chan;
 
-            var truyVan = _context.MayIns.AsNoTracking().AsQueryable();
+            // Bảng chính chỉ hiện máy chưa cất; luuTru=true là xem riêng mục Lưu trữ
+            var soLuuTru = await _context.MayIns.CountAsync(m => m.NgayLuuTru != null);
+            var truyVan = _context.MayIns.AsNoTracking()
+                .Where(m => luuTru ? m.NgayLuuTru != null : m.NgayLuuTru == null);
 
             if (!string.IsNullOrWhiteSpace(tuKhoa))
             {
@@ -247,7 +250,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     m.TheoDoiTuDong,
                     m.LanDocCuoi,
                     m.KetQuaDocCuoi,
-                    m.GhiChu
+                    m.GhiChu,
+                    m.NgayLuuTru,
+                    m.NguoiLuuTru
                 })
                 .ToListAsync();
 
@@ -347,7 +352,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     TachHomNay = TachKy(lay => TrangInHomNay(lay)),
                     Tach7Ngay = TachKy(lay => TrangIn(7, lay)),
                     Tach30Ngay = TachKy(lay => TrangIn(30, lay)),
-                    Online = m.DiaChiIp != null && trangThaiPing.TryGetValue(m.DiaChiIp, out var song) && song
+                    Online = m.DiaChiIp != null && trangThaiPing.TryGetValue(m.DiaChiIp, out var song) && song,
+                    NgayLuuTru = m.NgayLuuTru?.ToString("dd/MM/yyyy HH:mm"),
+                    m.NguoiLuuTru
                 };
             })
             // Thứ tự cuối cùng: máy đọc được mực/trống → máy đang bật → máy có IP nhưng không
@@ -372,7 +379,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     dangBat = duLieu.Count(x => x.Online),
                     tonerThap = duLieu.Count(x => x.Toner != null && x.Toner <= 20),
                     trangIn30Ngay = duLieu.Sum(x => x.TrangIn30Ngay ?? 0),
-                    trangInHomNay = duLieu.Sum(x => x.TrangInHomNay ?? 0)
+                    trangInHomNay = duLieu.Sum(x => x.TrangInHomNay ?? 0),
+                    soLuuTru
                 }
             });
         }
@@ -399,7 +407,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var chan = KiemQuyen();
             if (chan != null) return chan;
 
-            var truyVan = _context.MayIns.AsNoTracking().AsQueryable();
+            // Máy đã cất vào Lưu trữ không đưa vào báo cáo, khớp với bảng chính
+            var truyVan = _context.MayIns.AsNoTracking().Where(m => m.NgayLuuTru == null);
 
             if (!string.IsNullOrWhiteSpace(tuKhoa))
             {
@@ -910,7 +919,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var namXuat = nam ?? DateTime.Now.Year;
             if (namXuat < 2000 || namXuat > DateTime.Now.Year + 1) namXuat = DateTime.Now.Year;
 
-            var truyVan = _context.MayIns.AsNoTracking().AsQueryable();
+            // Máy đã cất vào Lưu trữ không đưa vào báo cáo, khớp với bảng chính
+            var truyVan = _context.MayIns.AsNoTracking().Where(m => m.NgayLuuTru == null);
 
             if (!string.IsNullOrWhiteSpace(tuKhoa))
             {
@@ -1491,6 +1501,68 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     ketQua.DrumPhanTram,
                     ketQua.TrangThaiThietBi
                 }
+            });
+        }
+
+        /// <summary>
+        /// Cất máy vào "Lưu trữ" (ẩn khỏi bảng chính) hoặc đưa về bảng chính. Không đổi trạng thái,
+        /// không xoá chỉ số; máy cất cũng thôi được job nền đọc để khỏi đọc nhầm IP đã cấp cho máy khác.
+        /// Bấm lặp vô hại: máy đã ở đúng nơi thì trả về thành công luôn, không ghi lại mốc thời gian.
+        /// </summary>
+        [HttpPost("/QLMayIn/LuuTru/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> LuuTru(int id, bool cat) => DoiLuuTruAsync(new[] { id }, cat);
+
+        /// <summary>Cất / đưa về nhiều máy một lượt (các máy đã tích ở bảng danh sách).</summary>
+        [HttpPost("/QLMayIn/LuuTruNhieu")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> LuuTruNhieu([FromForm] int[] ids, [FromForm] bool cat) => DoiLuuTruAsync(ids, cat);
+
+        private async Task<IActionResult> DoiLuuTruAsync(int[] ids, bool cat)
+        {
+            var chan = KiemQuyen();
+            if (chan != null) return chan;
+
+            var dsId = (ids ?? Array.Empty<int>()).Distinct().ToList();
+            if (dsId.Count == 0) return Json(new { thanhCong = false, thongBao = "Chưa chọn máy nào" });
+            if (dsId.Count > 500) return Json(new { thanhCong = false, thongBao = "Chọn quá nhiều máy một lượt" });
+
+            var dsMay = await _context.MayIns.Where(m => dsId.Contains(m.IdMayIn)).ToListAsync();
+            if (dsMay.Count == 0) return Json(new { thanhCong = false, thongBao = "Không tìm thấy máy in" });
+
+            // Máy đã ở đúng nơi thì bỏ qua (bấm lặp vô hại, không ghi đè mốc cất cũ)
+            var canDoi = dsMay.Where(m => cat != (m.NgayLuuTru != null)).ToList();
+            var bayGio = DateTime.Now;
+            foreach (var may in canDoi)
+            {
+                if (cat)
+                {
+                    may.NgayLuuTru = bayGio;
+                    may.NguoiLuuTru = User.Identity?.Name;
+                    may.TheoDoiTuDong = false;
+                }
+                else
+                {
+                    may.NgayLuuTru = null;
+                    may.NguoiLuuTru = null;
+                }
+                may.NgayCapNhat = bayGio;
+            }
+
+            try
+            {
+                if (canDoi.Count > 0) await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                return Json(new { thanhCong = false, thongBao = "Không lưu được: " + (ex.InnerException?.Message ?? ex.Message) });
+            }
+
+            return Json(new
+            {
+                thanhCong = true,
+                thongBao = (cat ? "Đã cất " : "Đã đưa về ") + dsMay.Count + " máy" + (cat ? " vào Lưu trữ" : " bảng chính"),
+                duLieu = new { ids = dsMay.Select(m => m.IdMayIn).ToList() }
             });
         }
 

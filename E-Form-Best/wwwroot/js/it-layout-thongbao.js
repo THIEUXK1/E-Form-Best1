@@ -285,7 +285,7 @@ async function loadNotifications(loai, isOpen = false) {
 
         listItems.forEach(item => { if (!k.allFetchedIds.includes(item.id.toString())) k.allFetchedIds.push(item.id.toString()); });
         const html = hoiThoai
-            ? hoiThoai.map(n => dongHoiThoai(n, `/FormIT/ChiTiet/${n.idDon}`, `onclick="moHoiThoai('${n.idDon}', '${n.items.map(i => i.id).join(',')}')"`)).join('')
+            ? hoiThoai.map(n => dongHoiThoai(n, `/FormIT/ChiTiet/${n.idDon}#binh-luan`, `onclick="moHoiThoai('${n.idDon}', '${n.items.map(i => i.id).join(',')}')"`)).join('')
             : listItems.map(item => {
             const isRead = readIdsFromCookie.includes(item.id.toString());
             return `<a href="/FormIT/ChiTiet/${item.idFormIt}" onclick="markAsRead('${item.id}')" style="text-decoration:none; display:flex; gap:15px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition: 0.2s; color: inherit; background: ${isRead ? '#ffffff' : 'rgba(59, 130, 246, 0.05)'};">

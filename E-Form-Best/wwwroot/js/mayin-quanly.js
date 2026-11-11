@@ -10,6 +10,7 @@
     // Dữ liệu vừa tải về, giữ lại để lọc nhanh bằng thẻ số mà không phải gọi lại máy chủ
     var duLieuGoc = [];
     var locNhanh = '';
+    var dangXemLuuTru = false; // true = bảng đang hiện các máy đã cất vào Lưu trữ
 
     function escapeHtml(v) {
         if (v === null || v === undefined) return '';
@@ -127,20 +128,32 @@
             });
     }
 
+    // Hiện nút làm hàng loạt kèm số máy đã tích; ở mục Lưu trữ nút đổi thành "Đưa về bảng chính"
+    function capNhatDaChon() {
+        var soChon = $('.js-chon-may:checked').length;
+        var tong = $('.js-chon-may').length;
+        $('#soDaChon').text(soChon);
+        $('.js-chu-da-chon').text(dangXemLuuTru ? 'Đưa về bảng chính' : 'Cất vào Lưu trữ');
+        $('#btnLuuTruDaChon').toggleClass('d-none', soChon === 0)
+            .toggleClass('btn-warning', !dangXemLuuTru).toggleClass('btn-success', dangXemLuuTru);
+        $('#chonTatCa').prop('checked', tong > 0 && soChon === tong).prop('indeterminate', soChon > 0 && soChon < tong);
+    }
+
     function taiDanhSach() {
         var thamSo = {
             tuKhoa: $('#filterTuKhoa').val(),
             boPhan: $('#filterBoPhan').val(),
             model: $('#filterModel').val(),
-            trangThai: $('#filterTrangThai').val()
+            trangThai: $('#filterTrangThai').val(),
+            luuTru: dangXemLuuTru
         };
 
-        $('#mayinTableBody').html('<tr><td colspan="11" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
+        $('#mayinTableBody').html('<tr><td colspan="12" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
 
         $.getJSON('/QLMayIn/GetDanhSach', thamSo)
             .done(function (res) {
                 if (!res.thanhCong) {
-                    $('#mayinTableBody').html('<tr><td colspan="11" class="text-center text-danger py-4">'
+                    $('#mayinTableBody').html('<tr><td colspan="12" class="text-center text-danger py-4">'
                         + escapeHtml(res.thongBao || 'Không tải được dữ liệu') + '</td></tr>');
                     return;
                 }
@@ -153,9 +166,10 @@
                 $('#soTonerThap').text(dinhDangSo(res.tomTat.tonerThap));
                 $('#soTrangInHomNay').text(dinhDangSo(res.tomTat.trangInHomNay));
                 $('#soTrangIn30').text(dinhDangSo(res.tomTat.trangIn30Ngay));
+                $('#soLuuTru').text(dinhDangSo(res.tomTat.soLuuTru));
             })
             .fail(function () {
-                $('#mayinTableBody').html('<tr><td colspan="11" class="text-center text-danger py-4">Lỗi kết nối máy chủ.</td></tr>');
+                $('#mayinTableBody').html('<tr><td colspan="12" class="text-center text-danger py-4">Lỗi kết nối máy chủ.</td></tr>');
             });
     }
 
@@ -200,7 +214,7 @@
     function veBang(duLieu) {
 
         if (!duLieu || duLieu.length === 0) {
-            $('#mayinTableBody').html('<tr><td colspan="11" class="text-center text-muted py-4">Không có máy in nào khớp bộ lọc.</td></tr>');
+            $('#mayinTableBody').html('<tr><td colspan="12" class="text-center text-muted py-4">Không có máy in nào khớp bộ lọc.</td></tr>');
             return;
         }
 
@@ -221,8 +235,11 @@
                 : '<button class="btn btn-sm btn-outline-warning rounded-pill px-2 js-tay" data-id="' + x.idMayIn + '" title="Nhập chỉ số tay"><i class="fa fa-keyboard"></i></button>';
 
             return '<tr class="js-dong-may" data-id="' + x.idMayIn + '" tabindex="0">'
+                + '<td class="js-o-chon" style="cursor:pointer;"><input type="checkbox" class="form-check-input js-chon-may" value="' + x.idMayIn + '" title="Chọn máy #' + x.idMayIn + '"></td>'
                 + '<td class="text-muted small">' + (i + 1) + '</td>'
-                + '<td class="small">' + dongChu(x.boPhan, 'fw-bold') + dongChu(x.viTri, 'text-muted') + '</td>'
+                // Mã #id trong DB để đối chiếu nhanh với bảng MayIn khi tra lỗi / soạn script
+                + '<td class="small">' + dongChu(x.boPhan, 'fw-bold') + dongChu(x.viTri, 'text-muted')
+                    + '<div class="text-muted" style="font-size:.7rem;">#' + x.idMayIn + '</div></td>'
                 + '<td class="small">' + dongChu(x.model, 'js-model') + dongChu(x.serial, 'text-muted js-serial') + '</td>'
                 + '<td class="small">' + dongChu(x.tenHangDoi) + dong(ip) + '</td>'
                 + '<td class="mayin-cot-so small">' + chiSo + '</td>'
@@ -243,11 +260,18 @@
                 + nutDoc
                 + ' <a href="/QLMayIn/May/' + x.idMayIn + '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="Mở trang chi tiết ở tab mới"><i class="fa fa-chart-line"></i></a>'
                 + ' <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 js-sua" data-id="' + x.idMayIn + '" title="Sửa thông tin"><i class="fa fa-pen"></i></button>'
+                + (dangXemLuuTru
+                    ? ' <button class="btn btn-sm btn-outline-success rounded-pill px-2 js-luu-tru" data-id="' + x.idMayIn + '" data-cat="false" title="Đưa về bảng chính'
+                        + (x.ngayLuuTru ? ' (cất lúc ' + escapeHtml(x.ngayLuuTru) + (x.nguoiLuuTru ? ' bởi ' + escapeHtml(x.nguoiLuuTru) : '') + ')' : '')
+                        + '"><i class="fa fa-rotate-left"></i></button>'
+                    : ' <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 js-luu-tru" data-id="' + x.idMayIn + '" data-cat="true" title="Cất vào Lưu trữ (ẩn khỏi bảng chính)"><i class="fa fa-box-archive"></i></button>')
+                + '<div class="small js-kq-luu-tru"></div>'
                 + '</td>'
                 + '</tr>';
         }).join('');
 
         $('#mayinTableBody').html(html);
+        capNhatDaChon();
     }
 
     // ---------- Đọc chỉ số ----------
@@ -407,6 +431,100 @@
 
         $(document).on('click', '.js-sua', function () {
             layMayTheoId($(this).data('id'), moFormMay);
+        });
+
+        // Cất máy vào Lưu trữ / đưa về bảng chính: thành công thì gỡ đúng dòng đó khỏi bảng
+        // và chỉnh số đếm tại chỗ, không tải lại cả danh sách (tải lại phải ping lại cả trăm máy).
+        $(document).on('click', '.js-luu-tru', function () {
+            var $nut = $(this);
+            var id = $nut.data('id');
+            var cat = String($nut.data('cat')) === 'true';
+            var htmlCu = $nut.html();
+            var $kq = $nut.closest('td').find('.js-kq-luu-tru');
+
+            $nut.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+            $kq.empty();
+
+            $.post('/QLMayIn/LuuTru/' + id + '?cat=' + cat)
+                .done(function (res) {
+                    if (!res.thanhCong) {
+                        $kq.addClass('text-danger').text(res.thongBao || 'Không lưu được');
+                        $nut.prop('disabled', false).html(htmlCu);
+                        return;
+                    }
+                    duLieuGoc = duLieuGoc.filter(function (x) { return x.idMayIn !== id; });
+                    $nut.closest('tr').fadeOut(200, function () {
+                        $(this).remove();
+                        if (!$('#mayinTableBody tr.js-dong-may').length) veBang([]);
+                    });
+                    var soLuuTru = parseInt($('#soLuuTru').text().replace(/\D/g, ''), 10) || 0;
+                    $('#soLuuTru').text(dinhDangSo(Math.max(0, soLuuTru + (cat ? 1 : -1))));
+                })
+                .fail(function () {
+                    $kq.addClass('text-danger').text('Lỗi kết nối máy chủ');
+                    $nut.prop('disabled', false).html(htmlCu);
+                });
+        });
+
+        // ---------- Tích chọn nhiều máy → cất / đưa về một lượt ----------
+        $(document).on('change', '.js-chon-may', capNhatDaChon);
+
+        $('#chonTatCa').on('change', function () {
+            $('.js-chon-may').prop('checked', this.checked);
+            capNhatDaChon();
+        });
+
+        // Ô tích nằm trong dòng có click mở trang chi tiết: bấm trúng ô (kể cả lề quanh ô tích)
+        // chỉ tích/bỏ tích, không mở trang
+        $(document).on('click', '.js-o-chon', function (e) {
+            e.stopPropagation();
+            if (e.target.type !== 'checkbox') {
+                var $o = $(this).find('.js-chon-may');
+                $o.prop('checked', !$o.prop('checked'));
+                capNhatDaChon();
+            }
+        });
+
+        $('#btnLuuTruDaChon').on('click', function () {
+            var $nut = $(this);
+            var ids = $('.js-chon-may:checked').map(function () { return parseInt(this.value, 10); }).get();
+            if (!ids.length) return;
+
+            var cat = !dangXemLuuTru;
+            var htmlCu = $nut.html();
+            $nut.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Đang lưu...');
+            $('#kqDongBo').removeClass('text-danger text-success').empty();
+
+            // traditional: gửi ids=1&ids=2 (ASP.NET không đọc kiểu ids[]=1 mặc định của jQuery)
+            $.ajax({ url: '/QLMayIn/LuuTruNhieu', type: 'POST', traditional: true, data: { ids: ids, cat: cat } })
+                .done(function (res) {
+                    $nut.prop('disabled', false).html(htmlCu);
+                    if (!res.thanhCong) {
+                        $('#kqDongBo').addClass('text-danger').text(res.thongBao || 'Không lưu được');
+                        return;
+                    }
+                    var daDoi = (res.duLieu && res.duLieu.ids) || ids;
+                    duLieuGoc = duLieuGoc.filter(function (x) { return daDoi.indexOf(x.idMayIn) < 0; });
+                    $('.js-chon-may:checked').closest('tr').remove();
+                    if (!$('#mayinTableBody tr.js-dong-may').length) veBang([]);
+
+                    var soLuuTru = parseInt($('#soLuuTru').text().replace(/\D/g, ''), 10) || 0;
+                    $('#soLuuTru').text(dinhDangSo(Math.max(0, soLuuTru + (cat ? daDoi.length : -daDoi.length))));
+                    $('#kqDongBo').addClass('text-success').text(res.thongBao);
+                    capNhatDaChon();
+                })
+                .fail(function () {
+                    $nut.prop('disabled', false).html(htmlCu);
+                    $('#kqDongBo').addClass('text-danger').text('Lỗi kết nối máy chủ');
+                });
+        });
+
+        $('#btnLuuTru').on('click', function () {
+            dangXemLuuTru = !dangXemLuuTru;
+            $(this).toggleClass('btn-secondary text-white', dangXemLuuTru).toggleClass('btn-outline-secondary', !dangXemLuuTru)
+                .attr('title', dangXemLuuTru ? 'Quay lại bảng chính' : 'Xem các máy đã cất vào Lưu trữ');
+            $(this).find('.js-chu-luu-tru').text(dangXemLuuTru ? 'Đang xem Lưu trữ' : 'Lưu trữ');
+            taiDanhSach();
         });
 
         $(document).on('click', '.js-tay', function () {

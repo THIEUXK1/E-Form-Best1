@@ -257,7 +257,7 @@
             if (moDanhSach) {
                 list.innerHTML = hoiThoai.length === 0
                     ? '<div style="padding: 30px 20px; text-align: center; color: #94a3b8; font-size: 0.85rem;">Chưa có bình luận nào</div>'
-                    : hoiThoai.map(n => dongHoiThoai(n, `${chiTiet}${encodeURIComponent(n.idDon)}`, '')).join('');
+                    : hoiThoai.map(n => dongHoiThoai(n, `${chiTiet}${encodeURIComponent(n.idDon)}#binh-luan`, '')).join('');
             }
         } catch (err) { } finally { dangTai = false; }
     }

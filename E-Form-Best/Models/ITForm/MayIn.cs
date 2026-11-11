@@ -67,6 +67,17 @@ public partial class MayIn
     [Column("ngay_cap_nhat", TypeName = "datetime")]
     public DateTime? NgayCapNhat { get; set; }
 
+    /// <summary>
+    /// Khác NULL = máy đã cất vào "Lưu trữ" (máy cũ đã thay / không còn trên mạng): ẩn khỏi bảng chính
+    /// /QLMayIn, chỉ hiện khi xem mục Lưu trữ. Không đổi trạng thái, không xoá dữ liệu chỉ số.
+    /// </summary>
+    [Column("ngay_luu_tru", TypeName = "datetime")]
+    public DateTime? NgayLuuTru { get; set; }
+
+    [Column("nguoi_luu_tru")]
+    [StringLength(50)]
+    public string? NguoiLuuTru { get; set; }
+
     [InverseProperty("MayInNavigation")]
     public virtual ICollection<MayInChiSo> MayInChiSos { get; set; } = new List<MayInChiSo>();
 }
