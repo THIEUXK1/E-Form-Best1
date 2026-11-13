@@ -217,6 +217,9 @@ body { top: 0 !important; }
 /* Trang danh sách thùng */
 .qa-thung-loc { display: flex; gap: 8px; align-items: center; }
 .qa-thung-loc .form-select { width: auto; }
+.qa-thung-tim { width: 240px; }
+/* Dòng phụ dưới mã thùng khi tìm: hàng nào trong thùng khớp từ khoá */
+.qa-thung-khop { font-size: .78em; font-weight: 400; opacity: .8; white-space: normal; }
 .qa-thung-ds-wrap { max-height: 45vh; }
 .qa-thung-nut { white-space: nowrap; }
 .qa-thung-nut .btn { margin-right: 4px; }

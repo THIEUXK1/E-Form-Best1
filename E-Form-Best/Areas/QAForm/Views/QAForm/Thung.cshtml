@@ -9,6 +9,8 @@
     <div class="qa-mes-tom">
         <span id="qa-thung-tom">Đang tải...</span>
         <div class="qa-thung-loc">
+            <input type="search" id="qa-thung-tim" class="form-control form-control-sm qa-thung-tim" maxlength="100" autocomplete="off"
+                   placeholder="Tìm mã thùng, mã phối màu..." title="Tìm theo mã thùng hoặc hàng trong thùng: mã phối màu, mã hàng, mã màu, số phiếu đóng gói / nhuộm">
             <select id="qa-thung-loc" class="form-select form-select-sm">
                 <option value="">Tất cả</option>
                 <option value="Mo">Đang mở</option>
@@ -141,7 +143,7 @@
                     <th>SL đóng gói (m)</th>
                     <th class="qa-cot-phu">KL đóng gói (kg)</th>
                     <th>Số hộp</th>
-                    <th title="Nhập tay; Enter để lưu và xuống dòng dưới">Số bản</th>
+                    <th title="Nhập tay; Enter để lưu và xuống dòng dưới">Số paiban</th>
                     <th>Loại</th>
                     <th class="qa-cot-phu">Mô tả bất thường</th>
                     <th class="qa-cot-phu">Số phiếu nhuộm</th>
@@ -264,5 +266,5 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
     <script src="~/js/qa-thung-tem.js?v=2"></script>
     <script src="~/js/qa-ke.js?v=2"></script>
-    <script src="~/js/qa-thung.js?v=10"></script>
+    <script src="~/js/qa-thung.js?v=11"></script>
 }

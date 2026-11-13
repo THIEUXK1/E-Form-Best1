@@ -19,7 +19,8 @@ namespace E_Form_Best.Areas.QAForm.Services
         public record KetQua(bool ThanhCong, string ThongBao, int? IdThung = null, string? MaThung = null);
 
         public record ThungTomTat(int IdThung, string MaThung, string TrangThai, string? GhiChu, DateTime NgayTao,
-            string? NguoiTao, int SoDong, decimal TongMet, decimal TongKg, decimal TongHop, int? IdKe, string? ViTri);
+            string? NguoiTao, int SoDong, decimal TongMet, decimal TongKg, decimal TongHop, int? IdKe, string? ViTri,
+            string? Khop, int SoDongKhop);
 
         // Trần số dòng mỗi lần bỏ vào thùng, tránh request quá lớn
         private const int TranDongMoiLan = 2000;
@@ -57,19 +58,54 @@ namespace E_Form_Best.Areas.QAForm.Services
                 }
         }
 
-        public Task<List<ThungTomTat>> DsThungAsync(bool chiThungMo, CancellationToken ct)
+        /// <summary>
+        /// Danh sách thùng (mới nhất trước, tối đa 500). tuKhoa: khớp mã thùng HOẶC hàng đang nằm trong thùng
+        /// (mã phối màu, mã hàng, mã màu, số phiếu đóng gói, số phiếu nhuộm) — để tìm "mã phối màu X đang ở thùng nào".
+        /// Dòng đã bỏ ra (NgayBo) không tính: hàng đã chuyển đi thì thùng cũ không còn chứa nó.
+        /// </summary>
+        public async Task<List<ThungTomTat>> DsThungAsync(bool chiThungMo, string? tuKhoa, CancellationToken ct)
         {
             var q = _db.QaThungs.Where(t => t.NgayXoa == null);
             if (chiThungMo) q = q.Where(t => t.TrangThai == QaThung.TrangThaiMo);
-            return q.OrderByDescending(t => t.NgayTao)
+
+            var k = tuKhoa?.Trim();
+            if (k?.Length > 100) k = k[..100];
+            var coTim = !string.IsNullOrEmpty(k);
+            if (coTim)
+                q = q.Where(t => t.MaThung.Contains(k!) || t.Dongs.Any(d => d.NgayBo == null &&
+                    (d.MaPhoiMau!.Contains(k!) || d.MaHang!.Contains(k!) || d.MaMau!.Contains(k!)
+                     || d.SoPhieuDongGoi!.Contains(k!) || d.SoPhieuNhuom!.Contains(k!))));
+
+            var ds = await q.OrderByDescending(t => t.NgayTao)
                 .Take(500)
                 .Select(t => new ThungTomTat(t.IdThung, t.MaThung, t.TrangThai, t.GhiChu, t.NgayTao, t.NguoiTao,
                     t.Dongs.Count(d => d.NgayBo == null),
                     t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.SlDongGoi) ?? 0,
                     t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.KlDongGoi) ?? 0,
                     t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.SoHop) ?? 0,
-                    t.IdKe, QaKeService.MaViTri(t.Ke != null ? t.Ke.MaKe : null, t.Tang, t.O)))
+                    t.IdKe, QaKeService.MaViTri(t.Ke != null ? t.Ke.MaKe : null, t.Tang, t.O),
+                    null, 0))
                 .ToListAsync(ct);
+            if (!coTim || ds.Count == 0) return ds;
+
+            // Ghi rõ thùng khớp vì hàng nào (vd mã phối màu đầy đủ khi chỉ gõ một phần) + số dòng khớp
+            var dsId = ds.Select(t => t.IdThung).ToList();
+            var dongKhop = await _db.QaThungDongs
+                .Where(d => dsId.Contains(d.IdThung) && d.NgayBo == null &&
+                    (d.MaPhoiMau!.Contains(k!) || d.MaHang!.Contains(k!) || d.MaMau!.Contains(k!)
+                     || d.SoPhieuDongGoi!.Contains(k!) || d.SoPhieuNhuom!.Contains(k!)))
+                .Select(d => new { d.IdThung, d.MaPhoiMau, d.MaHang, d.MaMau, d.SoPhieuDongGoi, d.SoPhieuNhuom })
+                .ToListAsync(ct);
+            var theoThung = dongKhop.GroupBy(d => d.IdThung).ToDictionary(g => g.Key, g =>
+            {
+                // Lấy đúng giá trị chứa từ khoá, ưu tiên mã phối màu
+                var giaTri = g.Select(d => new[] { d.MaPhoiMau, d.MaHang, d.MaMau, d.SoPhieuDongGoi, d.SoPhieuNhuom }
+                        .FirstOrDefault(v => v != null && v.Contains(k!, StringComparison.OrdinalIgnoreCase)))
+                    .Where(v => v != null).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                var chu = string.Join(", ", giaTri.Take(3)) + (giaTri.Count > 3 ? $" +{giaTri.Count - 3}" : "");
+                return (chu, g.Count());
+            });
+            return ds.Select(t => theoThung.TryGetValue(t.IdThung, out var x) ? t with { Khop = x.chu, SoDongKhop = x.Item2 } : t).ToList();
         }
 
         public async Task<(QaThung? thung, List<QaThungDong> dong, List<QaThungLichSu> lichSu)> ChiTietAsync(int idThung, CancellationToken ct)
@@ -286,7 +322,7 @@ namespace E_Form_Best.Areas.QAForm.Services
         /// </summary>
         public async Task<KetQua> SuaSoBanAsync(int idDong, int? soBan, string? nguoi, CancellationToken ct)
         {
-            if (soBan < 0 || soBan > TranSoBan) return new(false, $"Số bản phải từ 0 đến {TranSoBan:N0}.");
+            if (soBan < 0 || soBan > TranSoBan) return new(false, $"Số paiban phải từ 0 đến {TranSoBan:N0}.");
             var dong = await _db.QaThungDongs.Include(x => x.Thung)
                 .FirstOrDefaultAsync(x => x.IdDong == idDong && x.NgayBo == null && x.Thung.NgayXoa == null, ct);
             if (dong == null) return new(false, "Dòng không còn ở thùng (có thể vừa bị bỏ ra/chuyển đi) — mở lại chi tiết thùng.");
@@ -295,10 +331,10 @@ namespace E_Form_Best.Areas.QAForm.Services
             var cu = dong.SoBan?.ToString() ?? "trống";
             dong.SoBan = soBan;
             GhiLichSu(dong.IdThung, nguoi, "SuaSoBan",
-                $"Dòng {dong.MaPhoiMau} · phiếu đóng gói {dong.SoPhieuDongGoi} · {dong.SlDongGoi:0.###} m: số bản {cu} → {soBan?.ToString() ?? "trống"}",
+                $"Dòng {dong.MaPhoiMau} · phiếu đóng gói {dong.SoPhieuDongGoi} · {dong.SlDongGoi:0.###} m: số paiban {cu} → {soBan?.ToString() ?? "trống"}",
                 DateTime.Now);
             await _db.SaveChangesAsync(ct);
-            return new(true, "Đã lưu số bản.", dong.IdThung, dong.Thung.MaThung);
+            return new(true, "Đã lưu số paiban.", dong.IdThung, dong.Thung.MaThung);
         }
 
         public async Task<KetQua> DoiTrangThaiAsync(int idThung, bool dong, string? nguoi, CancellationToken ct)

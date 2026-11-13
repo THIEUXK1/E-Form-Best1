@@ -6,8 +6,11 @@
     var idDangXem = null;
     var thungDangXem = null;
     var daChon = new Set();   // id thùng đang tích ở danh sách (giữ qua lọc / nạp lại)
+    // Từ khoá tìm (mã thùng / mã phối màu...): lọc ở server vì phải dò hàng bên trong thùng; ?tim= trên URL để gửi link
+    var tuKhoa = (new URLSearchParams(location.search).get('tim') || '').trim();
+    var lanNap = 0, henTim = null;
     var TEN_TRANG_THAI = { Mo: 'Đang mở', DaDong: 'Đã đóng' };
-    var TEN_HANH_DONG = { TaoThung: 'Tạo thùng', ThemDong: 'Thêm dòng', DongThung: 'Đóng thùng', MoLai: 'Mở lại', XoaThung: 'Xoá thùng', ChuyenDi: 'Chuyển dòng đi', ChuyenDen: 'Nhận dòng chuyển đến', BoDong: 'Bỏ dòng ra', SuaSoBan: 'Sửa số bản', XepKe: 'Xếp kệ', GoKe: 'Gỡ khỏi kệ' };
+    var TEN_HANH_DONG = { TaoThung: 'Tạo thùng', ThemDong: 'Thêm dòng', DongThung: 'Đóng thùng', MoLai: 'Mở lại', XoaThung: 'Xoá thùng', ChuyenDi: 'Chuyển dòng đi', ChuyenDen: 'Nhận dòng chuyển đến', BoDong: 'Bỏ dòng ra', SuaSoBan: 'Sửa số paiban', XepKe: 'Xếp kệ', GoKe: 'Gỡ khỏi kệ' };
 
     function token() {
         var o = document.querySelector('input[name="__RequestVerificationToken"]');
@@ -66,7 +69,8 @@
         var tbody = $('qa-thung-tbody');
         if (ds.length === 0) {
             var tr = document.createElement('tr');
-            var td = o(tr, dsThung.length === 0 ? 'Chưa có thùng nào. Vào Tra cứu mã phối màu, tích dòng rồi bấm Tạo thùng mới.' : 'Không có thùng khớp bộ lọc.', 'qa-mes-trong');
+            var td = o(tr, tuKhoa && dsThung.length === 0 ? 'Không có thùng nào chứa "' + tuKhoa + '".'
+                : dsThung.length === 0 ? 'Chưa có thùng nào. Vào Tra cứu mã phối màu, tích dòng rồi bấm Tạo thùng mới.' : 'Không có thùng khớp bộ lọc.', 'qa-mes-trong');
             td.colSpan = 12;
             tbody.replaceChildren(tr);
         } else {
@@ -86,6 +90,12 @@
                 tr.appendChild(tdChon);
                 var tdMa = o(tr, t.maThung, 'qa-mes-o-thung');
                 tdMa.title = 'Bấm để xem chi tiết';
+                if (t.khop) {
+                    var khop = document.createElement('div');
+                    khop.className = 'qa-thung-khop';
+                    khop.textContent = 'Có: ' + t.khop + ' (' + t.soDongKhop + ' dòng)';
+                    tdMa.appendChild(khop);
+                }
                 var tdTt = o(tr, TEN_TRANG_THAI[t.trangThai] || t.trangThai);
                 tdTt.className = t.trangThai === 'Mo' ? 'qa-tt-mo' : 'qa-tt-dong';
                 o(tr, t.viTri || '—', t.viTri ? 'qa-thung-vitri' : 'qa-thung-vitri trong');
@@ -109,13 +119,17 @@
             tbody.replaceChildren(frag);
         }
         var mo = dsThung.filter(function (t) { return t.trangThai === 'Mo'; }).length;
-        $('qa-thung-tom').textContent = dsThung.length + ' thùng (' + mo + ' đang mở)';
+        $('qa-thung-tom').textContent = (tuKhoa ? dsThung.length + ' thùng chứa "' + tuKhoa + '"' : dsThung.length + ' thùng') + ' (' + mo + ' đang mở)';
         veThanhXep(ds);
     }
 
     async function napDanhSach() {
+        // Gõ nhanh nhiều lần: chỉ nhận kết quả của lần gọi cuối, lần cũ về sau thì bỏ
+        var lan = ++lanNap;
+        var k = tuKhoa;
         try {
-            var kq = await layJson('/QAForm/Thung/DanhSach');
+            var kq = await layJson('/QAForm/Thung/DanhSach' + (k ? '?tuKhoa=' + encodeURIComponent(k) : ''));
+            if (lan !== lanNap) return;
             if (!kq.thanhCong) { thongBao(kq.thongBao, 'loi'); return; }
             dsThung = kq.duLieu || [];
             // Thùng đã bị xoá thì bỏ khỏi danh sách đang tích
@@ -273,7 +287,7 @@
         document.querySelectorAll('#qa-ct-tbody .qa-ct-soban-o').forEach(function (x) {
             if (x.dataset.cu !== '') { tong += parseInt(x.dataset.cu, 10) || 0; coNhap++; }
         });
-        $('qa-ct-tongban').textContent = coNhap ? 'Tổng số bản: ' + so(tong, 0) + ' (' + coNhap + ' dòng đã nhập)' : '';
+        $('qa-ct-tongban').textContent = coNhap ? 'Tổng số paiban: ' + so(tong, 0) + ' (' + coNhap + ' dòng đã nhập)' : '';
     }
 
     async function luuSoBan(oBan) {
@@ -282,8 +296,8 @@
         var soBan = giaTri === '' ? null : Number(giaTri);
         if (soBan !== null && (!Number.isInteger(soBan) || soBan < 0 || soBan > 1000000)) {
             oBan.classList.add('loi');
-            oBan.title = 'Số bản là số nguyên từ 0 đến 1.000.000';
-            thongBao('Số bản là số nguyên từ 0 đến 1.000.000.', 'loi');
+            oBan.title = 'Số paiban là số nguyên từ 0 đến 1.000.000';
+            thongBao('Số paiban là số nguyên từ 0 đến 1.000.000.', 'loi');
             return;
         }
         oBan.classList.remove('loi', 'ok');
@@ -390,6 +404,18 @@
         if (nutGo) { xepKe(nutGo, true); return; }
         var tr = e.target.closest('#qa-thung-tbody tr[data-id]');
         if (tr) xemChiTiet(parseInt(tr.dataset.id, 10));
+    });
+
+    // Ô tìm: chờ ngừng gõ 350 ms mới gọi server
+    document.addEventListener('input', function (e) {
+        if (e.target.id !== 'qa-thung-tim') return;
+        clearTimeout(henTim);
+        henTim = setTimeout(function () {
+            var moi = e.target.value.trim();
+            if (moi === tuKhoa) return;
+            tuKhoa = moi;
+            napDanhSach();
+        }, 350);
     });
 
     document.addEventListener('change', function (e) {
@@ -589,5 +615,6 @@
             return kq.thanhCong ? { thung: kq.duLieu.thung, dong: kq.duLieu.dong } : null;
         });
     }
+    if (tuKhoa) $('qa-thung-tim').value = tuKhoa;
     napDanhSach();
 })();

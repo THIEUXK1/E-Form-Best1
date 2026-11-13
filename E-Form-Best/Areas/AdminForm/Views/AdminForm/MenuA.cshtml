@@ -341,8 +341,8 @@
                 </a>
             }
 
-            @* Khối QA: đang dựng, chỉ quyền All thấy (controller cũng chặn Roles = "All") *@
-            @if (User.IsInRole("All"))
+            @* Khối QA: quyền All hoặc QA_VIEW (bộ phận QA 品控部 BPVN); cùng điều kiện với policy của QAFormController *@
+            @if (E_Form_Best.Areas.QAForm.Services.QaQuyen.CoQuyenQa(User))
             {
                 <a href="/QAForm/Logo" class="menu-card"
                    style="width: 220px; height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border-radius: 30px; border: 1px solid rgba(0, 212, 255, 0.2); color: white; text-decoration: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;">

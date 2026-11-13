@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Form_Best.Areas.QAForm.Controllers
 {
-    // Phân hệ QA đang dựng: tạm thời chỉ tài khoản có vai trò "All" được vào.
+    // Phân hệ QA: quyền All hoặc quyền bộ phận QA_VIEW (bộ phận QA 品控部 BPVN) — xem QaQuyen.
     // Chặn ở cấp controller để mọi action thêm sau này (kể cả API JSON) đều được bảo vệ,
     // không phụ thuộc việc ẩn thẻ ở trang menu.
     [Area("QAForm")]
-    [Authorize(Roles = "All")]
+    [Authorize(Policy = QaQuyen.Policy)]
     public class QAFormController : Controller
     {
         private readonly MesApiService _mes;
@@ -85,12 +85,13 @@ namespace E_Form_Best.Areas.QAForm.Controllers
         }
 
         // chiThungMo=true: danh sách cho hộp chọn "Thêm vào thùng"
+        // tuKhoa: tìm theo mã thùng hoặc hàng trong thùng (mã phối màu, mã hàng, mã màu, số phiếu)
         [HttpGet("/QAForm/Thung/DanhSach")]
-        public async Task<IActionResult> ThungDanhSach(bool chiThungMo = false, CancellationToken ct = default)
+        public async Task<IActionResult> ThungDanhSach(bool chiThungMo = false, string? tuKhoa = null, CancellationToken ct = default)
         {
             try
             {
-                var ds = await _thung.DsThungAsync(chiThungMo, ct);
+                var ds = await _thung.DsThungAsync(chiThungMo, tuKhoa, ct);
                 return Json(new { thanhCong = true, thongBao = "", duLieu = ds });
             }
             catch (Exception ex)
@@ -171,7 +172,7 @@ namespace E_Form_Best.Areas.QAForm.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi lưu số bản dòng thùng QA");
-                return Json(new { thanhCong = false, thongBao = "Lỗi lưu số bản: " + ex.Message });
+                return Json(new { thanhCong = false, thongBao = "Lỗi lưu số paiban: " + ex.Message });
             }
         }
 

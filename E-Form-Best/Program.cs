@@ -148,6 +148,9 @@ builder.Services.AddScoped<RadiusMacService>();
 builder.Services.AddSingleton<E_Form_Best.Areas.QAForm.Services.MesApiService>();
 builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.QaThungService>();
 builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.QaKeService>();
+// Ai vào được /QAForm: quyền All hoặc quyền bộ phận QA_VIEW (trừ MEGA) — logic ở QaQuyen.CoQuyenQa
+builder.Services.AddAuthorization(o => o.AddPolicy(E_Form_Best.Areas.QAForm.Services.QaQuyen.Policy,
+    p => p.RequireAssertion(ctx => E_Form_Best.Areas.QAForm.Services.QaQuyen.CoQuyenQa(ctx.User))));
 // Bản chụp MAC trên WLC (KK_WlcMac) cho bảng MAC ở đơn Wi-Fi; chỉ quét khi IT bấm "Kiểm tra trên WLC" (bằng tài khoản domain IT nhập)
 builder.Services.AddScoped<WlcMacQuetService>();
 builder.Services.AddHostedService<AccessPointPingWorker>();
