@@ -62,6 +62,73 @@ namespace E_Form_Best.Areas.QAForm.Services
                     d.IdDongThung = id;
                     d.ThungDaDong = tt != QaThung.TrangThaiMo;
                 }
+
+            // Dòng chưa vào thùng: đánh thứ tự trong nhóm giống hệt nhau + lấy số paiban đang chờ (QA_MesSoBan)
+            var demChuaVao = new Dictionary<string, int>();
+            foreach (var d in dong.Where(x => x.IdDongThung == null))
+            {
+                d.ThuTu = demChuaVao.GetValueOrDefault(d.DauVanTay);
+                demChuaVao[d.DauVanTay] = d.ThuTu.Value + 1;
+            }
+            if (demChuaVao.Count == 0 || !await CoBangSoBanAsync(ct)) return;
+            var cho = new List<(string VanTay, int? SoBan)>();
+            // Chia lô vì IN (...) quá dài khi xem toàn bộ dữ liệu (hàng nghìn vân tay)
+            foreach (var lo in demChuaVao.Keys.Chunk(2000))
+                cho.AddRange((await _db.QaMesSoBans
+                    .Where(x => lo.Contains(x.DauVanTay) && x.IdDongThung == null)
+                    .OrderBy(x => x.ThuTu).ThenBy(x => x.IdSoBan)
+                    .Select(x => new { x.DauVanTay, x.SoBan })
+                    .ToListAsync(ct)).Select(x => (x.DauVanTay, x.SoBan)));
+            var theoVanTay = cho.GroupBy(x => x.VanTay).ToDictionary(g => g.Key, g => g.Select(x => x.SoBan).ToList());
+            foreach (var d in dong.Where(x => x.IdDongThung == null))
+                if (theoVanTay.TryGetValue(d.DauVanTay, out var ds) && d.ThuTu < ds.Count)
+                    d.SoBan = ds[d.ThuTu!.Value];
+        }
+
+        // Bảng QA_MesSoBan có thể chưa tạo trên DB (script chạy tay) -> kiểm 1 lần, chưa có thì 5 phút kiểm lại
+        private static bool? _coBangSoBan;
+        private static DateTime _lucKiemBangSoBan;
+        private async Task<bool> CoBangSoBanAsync(CancellationToken ct)
+        {
+            if (_coBangSoBan == true) return true;
+            if (_coBangSoBan == false && DateTime.Now - _lucKiemBangSoBan < TimeSpan.FromMinutes(5)) return false;
+            var id = await _db.Database.SqlQueryRaw<int?>("SELECT OBJECT_ID('dbo.QA_MesSoBan', 'U') AS Value").FirstOrDefaultAsync(ct);
+            _coBangSoBan = id != null;
+            _lucKiemBangSoBan = DateTime.Now;
+            return _coBangSoBan.Value;
+        }
+
+        /// <summary>
+        /// Lưu số paiban cho dòng MES CHƯA vào thùng: dòng thứ thuTu (trong các dòng giống hệt nhau chưa vào thùng)
+        /// của vân tay đó. Bản ghi chờ thiếu thì thêm bản ghi trống cho đủ để giữ đúng vị trí.
+        /// </summary>
+        public async Task<KetQua> LuuSoBanMesAsync(string? dauVanTay, int thuTu, int? soBan, string? nguoi, CancellationToken ct)
+        {
+            dauVanTay = (dauVanTay ?? "").Trim();
+            if (dauVanTay.Length == 0 || dauVanTay.Length > 64 || thuTu < 0 || thuTu > 100) return new(false, "Dòng không hợp lệ, bấm Tra cứu lại.");
+            if (soBan < 0 || soBan > TranSoBan) return new(false, $"Số paiban phải từ 0 đến {TranSoBan:N0}.");
+            if (!await CoBangSoBanAsync(ct)) return new(false, "Chưa tạo bảng QA_MesSoBan trên DB — báo IT chạy script qa-mes-so-ban-20261113.sql.");
+            if (!await _db.QaMesDongGois.AnyAsync(x => x.DauVanTay == dauVanTay && x.NgayMat == null, ct))
+                return new(false, "Dòng không còn trong dữ liệu MES, bấm Tra cứu lại.");
+
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var cho = await _db.QaMesSoBans.Where(x => x.DauVanTay == dauVanTay && x.IdDongThung == null)
+                .OrderBy(x => x.ThuTu).ThenBy(x => x.IdSoBan).ToListAsync(ct);
+            var bayGio = DateTime.Now;
+            int thuTuMoi = cho.Count == 0 ? 0 : cho.Max(x => x.ThuTu) + 1;
+            while (cho.Count <= thuTu)
+            {
+                var them = new QaMesSoBan { DauVanTay = dauVanTay, ThuTu = thuTuMoi++, NgaySua = bayGio, NguoiSua = nguoi };
+                _db.QaMesSoBans.Add(them);
+                cho.Add(them);
+            }
+            var dongCho = cho[thuTu];
+            dongCho.SoBan = soBan;
+            dongCho.NgaySua = bayGio;
+            dongCho.NguoiSua = nguoi;
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return new(true, "Đã lưu số paiban.");
         }
 
         /// <summary>
@@ -128,9 +195,18 @@ namespace E_Form_Best.Areas.QAForm.Services
         /// idThung null = tạo thùng mới mã QA-yyMMdd-NNN.
         /// dsIdDongChuyen: các dòng ĐANG ở thùng khác (id QA_ThungDong) cần chuyển sang thùng đích — làm cùng transaction.
         /// </summary>
-        public async Task<KetQua> BoVaoThungAsync(string maPhoiMau, List<string> dsVanTay, List<int>? dsIdDongChuyen, int? idThung, string? ghiChu, string? nguoi, CancellationToken ct)
+        public async Task<KetQua> BoVaoThungAsync(string maPhoiMau, List<string> dsVanTay, List<int>? dsIdDongChuyen, int? idThung, string? ghiChu, string? nguoi, CancellationToken ct, List<int>? dsThuTu = null)
         {
             maPhoiMau = (maPhoiMau ?? "").Trim();
+            // dsThuTu song song dsVanTay: thứ tự dòng chưa vào thùng đã tích -> mang số paiban đang chờ của đúng dòng đó sang thùng
+            var thuTuTheoVanTay = new Dictionary<string, List<int>>();
+            if (dsThuTu != null && dsVanTay != null && dsThuTu.Count == dsVanTay.Count)
+                for (int i = 0; i < dsVanTay.Count; i++)
+                {
+                    if (string.IsNullOrWhiteSpace(dsVanTay[i])) continue;
+                    if (!thuTuTheoVanTay.TryGetValue(dsVanTay[i], out var l)) thuTuTheoVanTay[dsVanTay[i]] = l = new();
+                    l.Add(dsThuTu[i]);
+                }
             dsVanTay = (dsVanTay ?? new()).Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
             var dsChuyen = (dsIdDongChuyen ?? new()).Where(i => i > 0).Distinct().ToList();
             if (dsVanTay.Count == 0 && dsChuyen.Count == 0) return new(false, "Chưa chọn dòng nào.");
@@ -229,9 +305,10 @@ namespace E_Form_Best.Areas.QAForm.Services
                     thung = tim;
                 }
 
+                var dongMoi = new List<QaThungDong>();
                 foreach (var d in dongBoVao)
                 {
-                    _db.QaThungDongs.Add(new QaThungDong
+                    var moi = new QaThungDong
                     {
                         IdThung = thung.IdThung,
                         DauVanTay = d.DauVanTay,
@@ -257,7 +334,29 @@ namespace E_Form_Best.Areas.QAForm.Services
                         MaNvDongGoi = Cat(d.PbGh, 50),
                         GhiChuMes = Cat(d.Remark, 500),
                         DuLieuMes = d.Raw
-                    });
+                    };
+                    _db.QaThungDongs.Add(moi);
+                    dongMoi.Add(moi);
+                }
+                // Mang số paiban đang chờ (nhập lúc dòng chưa vào thùng) sang dòng thùng mới
+                var daMang = new List<(QaMesSoBan Cho, QaThungDong Dong)>();
+                if (dongMoi.Count > 0 && await CoBangSoBanAsync(ct))
+                {
+                    var vt = dongMoi.Select(x => x.DauVanTay).Distinct().ToList();
+                    var choTatCa = await _db.QaMesSoBans.Where(x => vt.Contains(x.DauVanTay) && x.IdDongThung == null)
+                        .OrderBy(x => x.ThuTu).ThenBy(x => x.IdSoBan).ToListAsync(ct);
+                    foreach (var g in dongMoi.GroupBy(x => x.DauVanTay))
+                    {
+                        var cho = choTatCa.Where(x => x.DauVanTay == g.Key).ToList();
+                        // Không có thứ tự từ trình duyệt thì lấy theo thứ tự đầu tiên
+                        var thuTu = thuTuTheoVanTay.TryGetValue(g.Key, out var l) ? l.Distinct().OrderBy(x => x).ToList() : Enumerable.Range(0, g.Count()).ToList();
+                        foreach (var (dongThung, t) in g.Zip(thuTu))
+                            if (t >= 0 && t < cho.Count)
+                            {
+                                dongThung.SoBan = cho[t].SoBan;
+                                daMang.Add((cho[t], dongThung));
+                            }
+                    }
                 }
                 if (dongBoVao.Count > 0)
                     GhiLichSu(thung.IdThung, nguoi, "ThemDong",
@@ -281,6 +380,11 @@ namespace E_Form_Best.Areas.QAForm.Services
                         bayGio);
                 }
                 await _db.SaveChangesAsync(ct);
+                if (daMang.Count > 0)
+                {
+                    foreach (var (cho, dongThung) in daMang) { cho.IdDongThung = dongThung.IdDong; cho.NgaySua = bayGio; cho.NguoiSua = nguoi; }
+                    await _db.SaveChangesAsync(ct);
+                }
                 await tx.CommitAsync(ct);
 
                 var phan = new List<string>();
@@ -319,6 +423,21 @@ namespace E_Form_Best.Areas.QAForm.Services
 
             var bayGio = DateTime.Now;
             foreach (var d in dong) { d.NgayBo = bayGio; d.NguoiBo = nguoi; }
+            // Số paiban đã nhập đi theo dòng: trả về bản ghi chờ để dòng chưa vào thùng vẫn thấy số
+            var coSo = dong.Where(x => x.SoBan != null).ToList();
+            if (coSo.Count > 0 && await CoBangSoBanAsync(ct))
+            {
+                var vt = coSo.Select(x => x.DauVanTay).Distinct().ToList();
+                var maxThuTu = await _db.QaMesSoBans.Where(x => vt.Contains(x.DauVanTay) && x.IdDongThung == null)
+                    .GroupBy(x => x.DauVanTay).Select(g => new { g.Key, Max = g.Max(x => x.ThuTu) })
+                    .ToDictionaryAsync(x => x.Key, x => x.Max, ct);
+                foreach (var d in coSo)
+                {
+                    int t = maxThuTu.TryGetValue(d.DauVanTay, out var m) ? m + 1 : 0;
+                    maxThuTu[d.DauVanTay] = t;
+                    _db.QaMesSoBans.Add(new QaMesSoBan { DauVanTay = d.DauVanTay, ThuTu = t, SoBan = d.SoBan, NgaySua = bayGio, NguoiSua = nguoi });
+                }
+            }
             foreach (var g in dong.GroupBy(x => x.Thung))
                 GhiLichSu(g.Key.IdThung, nguoi, "BoDong",
                     $"Bỏ {g.Count()} dòng ra khỏi thùng; tổng {g.Sum(d => d.SlDongGoi ?? 0):0.###} m, {g.Sum(d => d.KlDongGoi ?? 0):0.###} kg",

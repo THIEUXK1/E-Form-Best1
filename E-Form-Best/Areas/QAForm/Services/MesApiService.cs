@@ -41,6 +41,9 @@ namespace E_Form_Best.Areas.QAForm.Services
             // Số paiban nhập tay ở dòng thùng (QA_ThungDong.so_ban), null = chưa nhập / chưa vào thùng
             public int? SoBan { get; set; }
 
+            // Dòng chưa vào thùng: thứ tự trong các dòng giống hệt nhau chưa vào thùng (khoá lưu số paiban QA_MesSoBan)
+            public int? ThuTu { get; set; }
+
             // id dòng QA_ThungDong tương ứng (để chuyển thùng / bỏ ra), và thùng đó đã đóng chưa
             public int? IdDongThung { get; set; }
             public bool ThungDaDong { get; set; }

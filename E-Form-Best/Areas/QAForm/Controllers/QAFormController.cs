@@ -26,7 +26,9 @@ namespace E_Form_Best.Areas.QAForm.Controllers
         }
 
         // DsIdDongChuyen: dòng đang ở thùng khác (id QA_ThungDong) cần chuyển sang thùng đích
-        public record BoVaoThungVao(string? MaPhoiMau, List<string>? DsDauVanTay, List<int>? DsIdDongChuyen, int? IdThung, string? GhiChu);
+        public record BoVaoThungVao(string? MaPhoiMau, List<string>? DsDauVanTay, List<int>? DsIdDongChuyen, int? IdThung, string? GhiChu, List<int>? DsThuTu = null);
+        // Số paiban cho dòng MES chưa vào thùng; SoBan null = xoá số
+        public record MesSoBanVao(string? DauVanTay, int? ThuTu, int? SoBan);
         public record BoRaThungVao(List<int>? DsIdDong);
         // IdKe null = gỡ thùng khỏi kệ
         public record XepThungVao(int? IdKe, int? Tang, int? O);
@@ -192,7 +194,7 @@ namespace E_Form_Best.Areas.QAForm.Controllers
         {
             try
             {
-                var kq = await _thung.BoVaoThungAsync(vao.MaPhoiMau ?? "", vao.DsDauVanTay ?? new(), vao.DsIdDongChuyen, vao.IdThung, vao.GhiChu, NguoiDung, ct);
+                var kq = await _thung.BoVaoThungAsync(vao.MaPhoiMau ?? "", vao.DsDauVanTay ?? new(), vao.DsIdDongChuyen, vao.IdThung, vao.GhiChu, NguoiDung, ct, vao.DsThuTu);
                 return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao, duLieu = new { kq.IdThung, kq.MaThung } });
             }
             catch (Exception ex)
@@ -216,6 +218,23 @@ namespace E_Form_Best.Areas.QAForm.Controllers
             {
                 _logger.LogError(ex, "Lỗi bỏ dòng ra khỏi thùng QA");
                 return Json(new { thanhCong = false, thongBao = "Lỗi bỏ dòng ra khỏi thùng: " + ex.Message });
+            }
+        }
+
+        // Nhập số paiban cho dòng MES chưa vào thùng (trang tra cứu); vào thùng thì số được mang sang QA_ThungDong
+        [HttpPost("/QAForm/MesSoBan")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MesSoBan([FromBody] MesSoBanVao vao, CancellationToken ct = default)
+        {
+            try
+            {
+                var kq = await _thung.LuuSoBanMesAsync(vao.DauVanTay, vao.ThuTu ?? -1, vao.SoBan, NguoiDung, ct);
+                return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi lưu số paiban dòng MES");
+                return Json(new { thanhCong = false, thongBao = "Lỗi lưu số paiban: " + ex.Message });
             }
         }
 

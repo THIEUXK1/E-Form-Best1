@@ -190,8 +190,8 @@
             o(tr, i + 1, 'so');
             o(tr, d.maThung || '', d.maThung ? 'qa-mes-o-thung' : '');
             o(tr, d.viTri || '');
-            // Số paiban lưu ở dòng thùng (QA_ThungDong) nên chỉ nhập được khi dòng đã vào thùng
-            if (d.idDongThung) {
+            // Dòng đã vào thùng lưu ở QA_ThungDong; dòng chưa vào thùng lưu chờ theo vân tay + thứ tự (QA_MesSoBan)
+            if (d.idDongThung || d.thuTu !== null && d.thuTu !== undefined) {
                 var tdBan = document.createElement('td');
                 tdBan.className = 'qa-ct-soban';
                 var oBan = document.createElement('input');
@@ -201,7 +201,7 @@
                 oBan.step = 1;
                 oBan.inputMode = 'numeric';
                 oBan.className = 'form-control form-control-sm qa-ct-soban-o';
-                oBan.dataset.idDong = d.idDongThung;
+                if (d.idDongThung) oBan.dataset.idDong = d.idDongThung;
                 oBan.dataset.chiSo = i;
                 oBan.value = d.soBan === null || d.soBan === undefined ? '' : d.soBan;
                 oBan.dataset.cu = oBan.value;
@@ -209,7 +209,7 @@
                 tdBan.appendChild(oBan);
                 tr.appendChild(tdBan);
             } else {
-                o(tr, '', 'so').title = 'Bỏ dòng vào thùng trước rồi mới nhập số paiban';
+                o(tr, '', 'so');
             }
             o(tr, d.endCustCode, 'qa-cot-phu');
             o(tr, d.orderUcode);
@@ -315,17 +315,18 @@
         oBan.classList.remove('loi', 'ok');
         oBan.classList.add('dang-luu');
         try {
-            var kq = await layJson('/QAForm/Thung/Dong/' + oBan.dataset.idDong + '/SoBan', {
+            var d = dongHienTai[oBan.dataset.chiSo];
+            var trongThung = !!oBan.dataset.idDong;
+            var kq = await layJson(trongThung ? '/QAForm/Thung/Dong/' + oBan.dataset.idDong + '/SoBan' : '/QAForm/MesSoBan', {
                 method: 'POST',
                 headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'RequestVerificationToken': token() },
-                body: JSON.stringify({ soBan: soBan })
+                body: JSON.stringify(trongThung ? { soBan: soBan } : { dauVanTay: d.dauVanTay, thuTu: d.thuTu, soBan: soBan })
             });
             oBan.classList.remove('dang-luu');
             if (kq.thanhCong) {
                 oBan.dataset.cu = giaTri;
                 oBan.classList.add('ok');
                 oBan.title = 'Đã lưu';
-                var d = dongHienTai[oBan.dataset.chiSo];
                 if (d) d.soBan = soBan;
             } else {
                 oBan.classList.add('loi');
@@ -491,6 +492,8 @@
             var kq = await guiPost('/QAForm/Thung/BoVao', {
                 maPhoiMau: maDangXem,
                 dsDauVanTay: tuDo.map(function (cb) { return dongHienTai[cb.dataset.chiSo].dauVanTay; }),
+                // Thứ tự dòng chưa vào thùng: server mang đúng số paiban đã nhập của dòng đó sang thùng
+                dsThuTu: tuDo.map(function (cb) { var t = dongHienTai[cb.dataset.chiSo].thuTu; return t === null || t === undefined ? 0 : t; }),
                 dsIdDongChuyen: trongThung.map(function (cb) { return dongHienTai[cb.dataset.chiSo].idDongThung; }),
                 idThung: idThung,
                 ghiChu: idThung ? null : $('qa-thung-ghichu').value
