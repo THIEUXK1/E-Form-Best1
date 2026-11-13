@@ -49,6 +49,7 @@
         <button type="button" class="btn btn-sm btn-outline-success" id="qa-thung-them" disabled><i class="fa fa-plus"></i> Thêm vào thùng</button>
         <button type="button" class="btn btn-sm btn-outline-danger" id="qa-thung-bora" disabled title="Bỏ các dòng đang ở thùng (đã tích) ra khỏi thùng"><i class="fa fa-sign-out"></i> Bỏ ra khỏi thùng</button>
         <button type="button" class="btn btn-sm btn-outline-secondary" data-hien-cot="qa-mes-bang" title="Chỉ cột quan trọng (tô vàng trong file đóng gói) hiện mặc định"><i class="fa fa-columns"></i> <span>Hiện tất cả cột</span></button>
+        <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-mes-bang" data-ten-file="tra-cuu-mes" title="Xuất các dòng đang hiển thị (đã qua bộ lọc, mọi trang) với các cột đang hiện"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
         <a href="/QAForm/Thung" class="qa-thung-link"><i class="fa fa-cubes"></i> Danh sách thùng</a>
     </div>
 
@@ -59,6 +60,8 @@
                     <th class="qa-mes-chon"><input type="checkbox" id="qa-mes-chon-het" class="form-check-input" title="Chọn tất cả dòng chưa vào thùng (trang đang xem)" disabled /></th>
                     <th>#</th>
                     <th data-loc>Thùng</th>
+                    <th data-loc>Vị trí</th>
+                    <th data-loc>Số paiban</th>
                     <th class="qa-cot-phu" data-loc>Mã khách cuối</th>
                     <th data-loc>Mã phối màu</th>
                     <th data-loc>Mã khách hàng</th>
@@ -81,7 +84,7 @@
                 </tr>
             </thead>
             <tbody id="qa-mes-tbody">
-                <tr><td colspan="22" class="qa-mes-trong">Chưa có dữ liệu.</td></tr>
+                <tr><td colspan="24" class="qa-mes-trong">Chưa có dữ liệu.</td></tr>
             </tbody>
         </table>
     </div>
@@ -103,5 +106,6 @@
 
 @section Scripts {
     <script src="~/js/qa-loc-cot.js?v=1"></script>
-    <script src="~/js/qa-tra-cuu-mes.js?v=16"></script>
+    <script src="~/js/qa-tra-cuu-mes.js?v=19"></script>
+    <script src="~/js/qa-xuat-excel.js?v=3"></script>
 }

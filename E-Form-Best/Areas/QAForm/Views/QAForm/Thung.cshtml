@@ -25,6 +25,7 @@
             <button type="button" class="btn btn-sm btn-outline-primary" id="qa-ke-mo" title="Thêm, sửa kệ và xem sơ đồ ô"><i class="fa fa-th"></i> Kệ</button>
             <select id="qa-thung-tem-mau" class="form-select form-select-sm" title="Mẫu tem dùng khi bấm In tem"></select>
             <button type="button" class="btn btn-sm btn-outline-primary" id="qa-thung-tem-tuychinh" title="Chọn khổ, nội dung, cỡ chữ của tem"><i class="fa fa-sliders"></i> Tùy chỉnh tem</button>
+            <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-thung-ds-bang" data-ten-file="danh-sach-thung" title="Xuất danh sách thùng đang hiển thị"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
             <a href="/QAForm/TraCuuMes" class="btn btn-sm qa-btn"><i class="fa fa-plus"></i> Tạo thùng từ tra cứu</a>
         </div>
     </div>
@@ -39,7 +40,7 @@
         <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-xep-bo">Bỏ chọn</button>
     </div>
     <div class="qa-mes-bang-wrap qa-thung-ds-wrap">
-        <table class="qa-mes-bang">
+        <table class="qa-mes-bang" id="qa-thung-ds-bang">
             <thead>
                 <tr>
                     <th class="qa-mes-chon"><input type="checkbox" class="form-check-input" id="qa-thung-chon-het" title="Chọn tất cả thùng đang hiện"></th>
@@ -70,6 +71,7 @@
         <span id="qa-ct-tieude"></span>
         <span class="qa-thung-nut">
             <button type="button" class="btn btn-sm btn-outline-secondary" data-hien-cot="qa-ct-bang" title="Chỉ cột quan trọng (tô vàng trong file đóng gói) hiện mặc định"><i class="fa fa-columns"></i> <span>Hiện tất cả cột</span></button>
+            <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-ct-bang" data-ten-file="thung" data-ten-file-tu="qa-ct-tieude" title="Xuất các dòng trong thùng (cột đang hiện)"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
             <button type="button" class="btn btn-sm btn-outline-primary" id="qa-ct-in"><i class="fa fa-print"></i> In tem</button>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ct-dong"><i class="fa fa-times"></i> Đóng chi tiết</button>
         </span>
@@ -227,4 +229,5 @@
     <script src="~/js/qa-thung-tem.js?v=2"></script>
     <script src="~/js/qa-ke.js?v=5"></script>
     <script src="~/js/qa-thung.js?v=15"></script>
+    <script src="~/js/qa-xuat-excel.js?v=3"></script>
 }

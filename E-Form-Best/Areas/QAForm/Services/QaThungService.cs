@@ -44,15 +44,21 @@ namespace E_Form_Best.Areas.QAForm.Services
             var daCo = await _db.QaThungDongs
                 .Where(x => dsVanTay.Contains(x.DauVanTay) && x.NgayBo == null && x.Thung.NgayXoa == null)
                 .OrderBy(x => x.IdDong)
-                .Select(x => new { x.IdDong, x.DauVanTay, x.Thung.MaThung, x.Thung.TrangThai })
+                .Select(x => new { x.IdDong, x.DauVanTay, x.SoBan, x.Thung.MaThung, x.Thung.TrangThai,
+                    // Kệ đã xoá mềm thì coi như chưa xếp kệ
+                    MaKe = x.Thung.Ke != null && x.Thung.Ke.NgayXoa == null ? x.Thung.Ke.MaKe : null,
+                    SoTang = x.Thung.Ke != null ? x.Thung.Ke.SoTang : 0, x.Thung.Tang, x.Thung.O })
                 .ToListAsync(ct);
             var hang = daCo.GroupBy(x => x.DauVanTay)
-                .ToDictionary(g => g.Key, g => new Queue<(int id, string ma, string tt)>(g.Select(x => (x.IdDong, x.MaThung, x.TrangThai))));
+                .ToDictionary(g => g.Key, g => new Queue<(int id, string ma, string tt, string? viTri, int? soBan)>(g.Select(x =>
+                    (x.IdDong, x.MaThung, x.TrangThai, QaKeService.MaViTri(x.MaKe, x.Tang, x.O, x.SoTang), x.SoBan))));
             foreach (var d in dong)
                 if (hang.TryGetValue(d.DauVanTay, out var q) && q.Count > 0)
                 {
-                    var (id, ma, tt) = q.Dequeue();
+                    var (id, ma, tt, viTri, soBan) = q.Dequeue();
                     d.MaThung = ma;
+                    d.ViTri = viTri;
+                    d.SoBan = soBan;
                     d.IdDongThung = id;
                     d.ThungDaDong = tt != QaThung.TrangThaiMo;
                 }

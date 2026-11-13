@@ -35,6 +35,12 @@ namespace E_Form_Best.Areas.QAForm.Services
             // Mã thùng đã chứa dòng này (điền ở controller), null = chưa vào thùng
             public string? MaThung { get; set; }
 
+            // Vị trí kệ của thùng đó (MaKe-tầng-ô), null = thùng chưa xếp kệ
+            public string? ViTri { get; set; }
+
+            // Số paiban nhập tay ở dòng thùng (QA_ThungDong.so_ban), null = chưa nhập / chưa vào thùng
+            public int? SoBan { get; set; }
+
             // id dòng QA_ThungDong tương ứng (để chuyển thùng / bỏ ra), và thùng đó đã đóng chưa
             public int? IdDongThung { get; set; }
             public bool ThungDaDong { get; set; }

@@ -2,7 +2,7 @@
 // vẽ toàn bộ bảng 1 lần rồi phân trang phía trình duyệt (ẩn dòng ngoài trang bằng class); tích dòng -> Tạo thùng mới / Thêm vào thùng đang mở (POST /QAForm/Thung/BoVao). Không reload.
 (function () {
     var $ = function (id) { return document.getElementById(id); };
-    var SO_COT = 22;
+    var SO_COT = 24;
     var maDangXem = '';   // mã phối màu (orderUcode) của kết quả đang hiện (dùng khi bỏ vào thùng)
     var locDangXem = null; // bộ lọc của kết quả đang hiện { ma, kh, hang }, null = chưa tra
     var dongHienTai = []; // dữ liệu dòng đang hiện, chỉ số = data-chi-so
@@ -187,6 +187,8 @@
 
             o(tr, i + 1, 'so');
             o(tr, d.maThung || '', d.maThung ? 'qa-mes-o-thung' : '');
+            o(tr, d.viTri || '');
+            o(tr, d.soBan, 'so');
             o(tr, d.endCustCode, 'qa-cot-phu');
             o(tr, d.orderUcode);
             o(tr, d.custCode);
@@ -225,6 +227,17 @@
     // ===== Giữ kết quả khi F5 =====
     // Mã đang tra nằm trên địa chỉ (?ma=...) -> F5 / gửi link đều tự tra lại; dòng đã tích lưu ở sessionStorage.
     // Chỉ xoá khi tra mã khác hoặc bấm "Làm mới".
+    // Để trống cả 3 ô = đang xem toàn bộ dữ liệu: nút Xuất Excel hỏi lại trước khi xuất (qa-xuat-excel.js đọc data-canh-bao)
+    function datCanhBaoXuat(l) {
+        var nut = document.querySelector('[data-xuat-excel="qa-mes-bang"]');
+        if (!nut) return;
+        if (l && !l.ma && !l.kh && !l.hang)
+            nut.dataset.canhBao = 'Bạn đang xem TOÀN BỘ dữ liệu (không lọc mã phối màu / khách hàng / mã hàng).\n'
+                + 'File Excel sẽ có {n} dòng, rất nhiều, có thể mất vài chục giây và máy chạy chậm.\n\n'
+                + 'Vẫn xuất? (Muốn ít hơn: nhập điều kiện tra cứu hoặc lọc theo cột trước.)';
+        else delete nut.dataset.canhBao;
+    }
+
     var KHOA_TICH = 'qa-mes-tich';
 
     function khoaLoc(l) { return l ? [l.ma, l.kh, l.hang].join('|') : ''; }
@@ -330,6 +343,7 @@
             }
             maDangXem = loc.ma;
             locDangXem = loc;
+            datCanhBaoXuat(loc);
             datMaLenDiaChi(loc);
             veBang(dl.dong, tichLai);
             var soVaoThung = dl.dong.filter(function (d) { return d.maThung; }).length;
@@ -470,6 +484,7 @@
         if (!e.target.closest('#qa-mes-lammoi')) return;
         maDangXem = '';
         locDangXem = null;
+        datCanhBaoXuat(null);
         textTong = '';
         if (window.qaLocCot) window.qaLocCot.xoa($('qa-mes-bang'));
         dongHienTai = [];

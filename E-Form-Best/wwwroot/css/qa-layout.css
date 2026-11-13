@@ -77,6 +77,11 @@ body {
 }
 
 .qa-nav-item i { width: 20px; font-size: 1.05rem; color: var(--qa-accent); }
+/* Mỗi mục menu một màu icon để dễ nhận ra khi lướt nhanh */
+.qa-nav-item i.qa-ic-home { color: #34d399; }
+.qa-nav-item i.qa-ic-tim { color: #60a5fa; }
+.qa-nav-item i.qa-ic-thung { color: #fbbf24; }
+.qa-nav-item i.qa-ic-ke { color: #f472b6; }
 .qa-nav-item:hover { background: rgba(255, 255, 255, .08); color: #fff; }
 .qa-nav-item.active { background: rgba(52, 211, 153, .18); color: #fff; box-shadow: inset 3px 0 0 var(--qa-accent); }
 
