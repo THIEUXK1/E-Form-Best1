@@ -22,6 +22,8 @@
         el.textContent = text || '';
         el.classList.toggle('loi', loai === 'loi');
         el.classList.toggle('ok', loai === 'ok');
+        // Kết quả (thành công / lỗi) hiện thêm giữa màn hình cho dễ thấy; dòng chữ tại chỗ vẫn giữ
+        if (loai && window.qaThongBao) window.qaThongBao(text, loai);
     }
 
     function so(n, le) { return (Number(n) || 0).toLocaleString('vi-VN', { maximumFractionDigits: le === undefined ? 3 : le }); }
@@ -260,7 +262,7 @@
         var ds = dsDongTich().map(function (c) { return parseInt(c.dataset.idDong, 10); });
         if (ds.length === 0 || !idDangXem) return;
         var ma = thungDangXem ? thungDangXem.maThung : '';
-        if (!confirm('Bỏ ' + ds.length + ' dòng ra khỏi thùng ' + ma + '? Các dòng này sẽ được trả lại để bỏ vào thùng khác.')) return;
+        if (!(await qaXacNhan('Bỏ ' + ds.length + ' dòng ra khỏi thùng ' + ma + '? Các dòng này sẽ được trả lại để bỏ vào thùng khác.'))) return;
         var id = idDangXem;
         nutBam.disabled = true;
         try {
@@ -348,7 +350,7 @@
         var hd = nutBam.dataset.hanhDong;
         if (hd === 'in') { inTem(id, nutBam); return; }
         var t = dsThung.find(function (x) { return x.idThung === id; });
-        if (hd === 'xoa' && !confirm('Xoá thùng ' + (t ? t.maThung : '') + '? Các dòng trong thùng sẽ được trả lại để bỏ vào thùng khác.')) return;
+        if (hd === 'xoa' && !(await qaXacNhan('Xoá thùng ' + (t ? t.maThung : '') + '? Các dòng trong thùng sẽ được trả lại để bỏ vào thùng khác.'))) return;
         var url = hd === 'xoa' ? '/QAForm/Thung/' + id + '/Xoa' : '/QAForm/Thung/' + id + '/TrangThai?dong=' + (hd === 'dong');
         nutBam.disabled = true;
         try {
@@ -514,7 +516,7 @@
         var keChon = timKe(parseInt($('qa-xep-ke').value, 10));
         if (!go && !keChon) { thongBao('Chọn kệ và ô rồi bấm Gán.', 'loi'); $('qa-xep-ke').focus(); return; }
         var viTri = go ? '' : window.qaKe.maViTri(keChon, parseInt($('qa-xep-tang').value, 10) || 1, parseInt($('qa-xep-o').value, 10) || 1);
-        if (go && !confirm('Gỡ ' + ds.length + ' thùng đã chọn khỏi kệ?')) return;
+        if (go && !(await qaXacNhan('Gỡ ' + ds.length + ' thùng đã chọn khỏi kệ?'))) return;
         nutBam.disabled = true;
         try {
             var kq = await layJson('/QAForm/Thung/XepKe', {
@@ -549,7 +551,7 @@
         if (!idDangXem) return;
         var idKe = parseInt($('qa-ct-ke').value, 10);
         if (!go && isNaN(idKe)) { thongBao('Chọn kệ, tầng, ô rồi bấm Xếp vào kệ.', 'loi'); return; }
-        if (go && !confirm('Gỡ thùng ' + (thungDangXem ? thungDangXem.maThung : '') + ' khỏi kệ?')) return;
+        if (go && !(await qaXacNhan('Gỡ thùng ' + (thungDangXem ? thungDangXem.maThung : '') + ' khỏi kệ?'))) return;
         var id = idDangXem;
         nutBam.disabled = true;
         try {

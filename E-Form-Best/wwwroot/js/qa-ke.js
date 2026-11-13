@@ -18,6 +18,8 @@
         el.textContent = text || '';
         el.classList.toggle('loi', loai === 'loi');
         el.classList.toggle('ok', loai === 'ok');
+        // Kết quả (thành công / lỗi) hiện thêm giữa màn hình cho dễ thấy; dòng chữ tại chỗ vẫn giữ
+        if (loai && window.qaThongBao) window.qaThongBao(text, loai);
     }
 
     // Mã vị trí giống QaKeService.MaViTri: kệ 1 tầng "A-A3" (kệ cha A, ô con A3), nhiều tầng "A-2-3"
@@ -181,7 +183,7 @@
         if (!/^[A-Z]$/.test(tu) || !/^[A-Z]$/.test(den) || tu > den) { thongBao('Từ kệ / đến kệ là 1 chữ cái A–Z, từ ≤ đến.', 'loi'); return; }
         var soO = parseInt($('qa-ke-day-o').value, 10) || 0, soTang = parseInt($('qa-ke-day-tang').value, 10) || 0;
         var soKe = den.charCodeAt(0) - tu.charCodeAt(0) + 1;
-        if (!confirm('Tạo ' + soKe + ' kệ ' + tu + '–' + den + ', mỗi kệ ' + (soTang === 1 ? soO + ' ô' : soTang + ' tầng × ' + soO + ' ô') + '? (kệ đã có sẽ bỏ qua)')) return;
+        if (!(await qaXacNhan('Tạo ' + soKe + ' kệ ' + tu + '–' + den + ', mỗi kệ ' + (soTang === 1 ? soO + ' ô' : soTang + ' tầng × ' + soO + ' ô') + '? (kệ đã có sẽ bỏ qua)'))) return;
         nutTao.disabled = true;
         thongBao('Đang tạo...');
         try {
@@ -229,7 +231,7 @@
 
     async function xoaKe(id, nutBam) {
         var k = dsKe.find(function (x) { return x.idKe === id; });
-        if (!confirm('Xoá kệ ' + (k ? k.maKe : '') + '?')) return;
+        if (!(await qaXacNhan('Xoá kệ ' + (k ? k.maKe : '') + '?'))) return;
         nutBam.disabled = true;
         try {
             var kq = await guiJson('/QAForm/Ke/' + id + '/Xoa');

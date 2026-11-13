@@ -80,6 +80,8 @@
         el.textContent = text || '';
         el.classList.toggle('loi', loai === 'loi');
         el.classList.toggle('ok', loai === 'ok');
+        // Kết quả (thành công / lỗi) hiện thêm giữa màn hình cho dễ thấy; dòng chữ tại chỗ vẫn giữ
+        if (loai && window.qaThongBao) window.qaThongBao(text, loai);
     }
 
     function o(tr, giaTri, lop) {
@@ -188,7 +190,27 @@
             o(tr, i + 1, 'so');
             o(tr, d.maThung || '', d.maThung ? 'qa-mes-o-thung' : '');
             o(tr, d.viTri || '');
-            o(tr, d.soBan, 'so');
+            // Số paiban lưu ở dòng thùng (QA_ThungDong) nên chỉ nhập được khi dòng đã vào thùng
+            if (d.idDongThung) {
+                var tdBan = document.createElement('td');
+                tdBan.className = 'qa-ct-soban';
+                var oBan = document.createElement('input');
+                oBan.type = 'number';
+                oBan.min = 0;
+                oBan.max = 1000000;
+                oBan.step = 1;
+                oBan.inputMode = 'numeric';
+                oBan.className = 'form-control form-control-sm qa-ct-soban-o';
+                oBan.dataset.idDong = d.idDongThung;
+                oBan.dataset.chiSo = i;
+                oBan.value = d.soBan === null || d.soBan === undefined ? '' : d.soBan;
+                oBan.dataset.cu = oBan.value;
+                oBan.title = 'Nhập số paiban; Enter để lưu và xuống dòng dưới';
+                tdBan.appendChild(oBan);
+                tr.appendChild(tdBan);
+            } else {
+                o(tr, '', 'so').title = 'Bỏ dòng vào thùng trước rồi mới nhập số paiban';
+            }
             o(tr, d.endCustCode, 'qa-cot-phu');
             o(tr, d.orderUcode);
             o(tr, d.custCode);
@@ -278,6 +300,56 @@
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
     }
+
+    // Lưu số paiban 1 dòng (dùng chung endpoint với chi tiết thùng); lỗi thì giữ số vừa gõ để sửa lại
+    async function luuSoBan(oBan) {
+        var giaTri = oBan.value.trim();
+        if (giaTri === oBan.dataset.cu) return;
+        var soBan = giaTri === '' ? null : Number(giaTri);
+        if (soBan !== null && (!Number.isInteger(soBan) || soBan < 0 || soBan > 1000000)) {
+            oBan.classList.add('loi');
+            oBan.title = 'Số paiban là số nguyên từ 0 đến 1.000.000';
+            thongBao('Số paiban là số nguyên từ 0 đến 1.000.000.', 'loi');
+            return;
+        }
+        oBan.classList.remove('loi', 'ok');
+        oBan.classList.add('dang-luu');
+        try {
+            var kq = await layJson('/QAForm/Thung/Dong/' + oBan.dataset.idDong + '/SoBan', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'RequestVerificationToken': token() },
+                body: JSON.stringify({ soBan: soBan })
+            });
+            oBan.classList.remove('dang-luu');
+            if (kq.thanhCong) {
+                oBan.dataset.cu = giaTri;
+                oBan.classList.add('ok');
+                oBan.title = 'Đã lưu';
+                var d = dongHienTai[oBan.dataset.chiSo];
+                if (d) d.soBan = soBan;
+            } else {
+                oBan.classList.add('loi');
+                oBan.title = kq.thongBao;
+                thongBao(kq.thongBao, 'loi');
+            }
+        } catch (e) {
+            oBan.classList.remove('dang-luu');
+            oBan.classList.add('loi');
+            thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
+        }
+    }
+
+    document.addEventListener('change', function (e) {
+        if (e.target.classList && e.target.classList.contains('qa-ct-soban-o')) luuSoBan(e.target);
+    });
+    document.addEventListener('keydown', function (e) {
+        // Enter: lưu (qua change) rồi nhảy xuống ô số paiban của dòng đang hiện kế tiếp để nhập liên tục
+        if (e.key !== 'Enter' || !e.target.classList || !e.target.classList.contains('qa-ct-soban-o')) return;
+        e.preventDefault();
+        var tat = Array.from(document.querySelectorAll(DONG_DANG_HIEN + ' .qa-ct-soban-o'));
+        var sau = tat[tat.indexOf(e.target) + 1];
+        if (sau) { sau.focus(); sau.select(); } else e.target.blur();
+    });
 
     // Nạp danh sách thùng đang mở cho hộp chọn "Thêm vào thùng"
     async function napThungMo(chonId) {
@@ -408,7 +480,7 @@
                 + demTheoThung(trongThung) + '\n'
                 + (tuDo.length > 0 ? '\nCùng ' + tuDo.length + ' dòng chưa vào thùng sẽ được thêm vào ' + dich + '.\n' : '')
                 + '\nTiếp tục chuyển?';
-            if (!confirm(tb)) return;
+            if (!(await qaXacNhan(tb))) return;
         }
 
         var nutKhac = [$('qa-thung-tao'), $('qa-thung-them'), $('qa-thung-bora')];
@@ -448,7 +520,7 @@
             + 'Các dòng này sẽ trở lại trạng thái chưa vào thùng (lịch sử thùng vẫn ghi lại).'
             + (boQua > 0 ? '\n(' + boQua + ' dòng chưa vào thùng đang tích sẽ được bỏ qua.)' : '')
             + '\n\nXác nhận bỏ ra?';
-        if (!confirm(tb)) return;
+        if (!(await qaXacNhan(tb))) return;
 
         khoaNutThung(true);
         var nhanCu = nut.innerHTML;
@@ -548,6 +620,7 @@
 
     document.addEventListener('mousedown', function (e) {
         if (e.button !== 0) return;
+        if (e.target.closest('.qa-ct-soban-o')) return; // bấm vào ô số paiban để gõ, không tích dòng
         var tr = e.target.closest('#qa-mes-tbody tr');
         var cb = oTich(tr);
         if (!cb || cb.disabled) return;

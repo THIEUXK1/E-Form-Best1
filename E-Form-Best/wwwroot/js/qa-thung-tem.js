@@ -292,6 +292,7 @@
         var el = $('qa-tem-thongbao');
         el.textContent = text || '';
         el.className = 'qa-tem-thongbao' + (loai ? ' ' + loai : '');
+        if (loai && window.qaThongBao) window.qaThongBao(text, loai);
     }
 
     function chonMauSua(id) {
@@ -317,7 +318,7 @@
     function ganSuKien() {
         var modalEl = $('qa-tem-modal');
         if (modalEl) modalEl.addEventListener('shown.bs.modal', function () { if (nhap) veXemTruoc(); });
-        document.addEventListener('click', function (e) {
+        document.addEventListener('click', async function (e) {
             if (e.target.closest('#qa-thung-tem-tuychinh')) { moHop(); return; }
             var nut = e.target.closest('#qa-tem-modal [data-lenh]');
             if (!nut) return;
@@ -338,13 +339,13 @@
                 bao('Đã lưu mẫu "' + nhap.ten + '" trên máy này.', 'ok');
             } else if (lenh === 'xoa') {
                 if (kho.ds.length <= 1) { bao('Phải còn ít nhất 1 mẫu.', 'loi'); return; }
-                if (!confirm('Xoá mẫu tem "' + nhap.ten + '"?')) return;
+                if (!(await qaXacNhan('Xoá mẫu tem "' + nhap.ten + '"?'))) return;
                 kho.ds = kho.ds.filter(function (m) { return m.id !== nhap.id; });
                 kho.chon = kho.ds[0].id;
                 luuKho(); veDsMau(); chonMauSua(kho.chon);
                 bao('Đã xoá mẫu.', 'ok');
             } else if (lenh === 'macdinh') {
-                if (!confirm('Khôi phục 4 mẫu mặc định? Các mẫu tự tạo trên máy này sẽ mất.')) return;
+                if (!(await qaXacNhan('Khôi phục 4 mẫu mặc định? Các mẫu tự tạo trên máy này sẽ mất.'))) return;
                 kho = { chon: 'm1', ds: mauMacDinh() };
                 luuKho(); veDsMau(); chonMauSua(kho.chon);
                 bao('Đã khôi phục mẫu mặc định.', 'ok');

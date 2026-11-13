@@ -12,7 +12,9 @@
 
     function giaTriO(tr, cot) {
         var td = tr.cells[cot];
-        var v = td ? td.textContent.trim() : '';
+        // Ô nhập tay (số paiban) lọc theo giá trị đang nhập
+        var inp = td && td.querySelector('input:not([type="checkbox"])');
+        var v = inp ? inp.value.trim() : td ? td.textContent.trim() : '';
         return v === '' ? TRONG : v;
     }
     function laDongDuLieu(tr) { return tr.cells.length > 1; } // bỏ dòng "Chưa có dữ liệu" (1 ô colspan)

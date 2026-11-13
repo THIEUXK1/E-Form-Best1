@@ -54,15 +54,18 @@
             + '-' + p(d.getHours()) + p(d.getMinutes()) + '.xlsx';
     }
 
-    function xuat(nut) {
+    function baoLoi(text) { if (window.qaThongBao) window.qaThongBao(text, 'loi'); else alert(text); }
+    function hoi(text) { return window.qaXacNhan ? window.qaXacNhan(text) : Promise.resolve(confirm(text)); }
+
+    async function xuat(nut) {
         var bang = document.getElementById(nut.dataset.xuatExcel);
         if (!bang) return;
         // Dòng dữ liệu thật (dòng "Chưa có dữ liệu" chỉ 1 ô) và không bị bộ lọc ẩn; dòng ngoài trang vẫn xuất
         var dong = Array.prototype.filter.call(bang.tBodies[0].rows, function (tr) { return tr.cells.length > 1 && !tr.hidden; });
-        if (dong.length === 0) { alert('Không có dòng nào để xuất.'); return; }
+        if (dong.length === 0) { baoLoi('Không có dòng nào để xuất.'); return; }
         var cot = cotXuat(bang);
         // data-canh-bao: trang gắn khi đang xem toàn bộ dữ liệu -> hỏi trước vì file rất lớn; {n} = số dòng sẽ xuất
-        if (nut.dataset.canhBao && !confirm(nut.dataset.canhBao.replace('{n}', dong.length.toLocaleString('vi-VN')))) return;
+        if (nut.dataset.canhBao && !(await hoi(nut.dataset.canhBao.replace('{n}', dong.length.toLocaleString('vi-VN'))))) return;
 
         var nhanCu = nut.innerHTML;
         nut.disabled = true;
@@ -96,7 +99,7 @@
             a.remove();
             setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
         }).catch(function (e) {
-            alert(e && e.message ? e.message : 'Xuất Excel lỗi.');
+            baoLoi(e && e.message ? e.message : 'Xuất Excel lỗi.');
         }).finally(function () {
             nut.disabled = false;
             nut.innerHTML = nhanCu;
