@@ -1,10 +1,74 @@
 // Trang QA tra cứu mã phối màu: gọi /QAForm/TraCuuMes/DuLieu (server tự gọi API NH-MES, gộp hết các trang),
-// vẽ toàn bộ bảng 1 lần; tích dòng -> Tạo thùng mới / Thêm vào thùng đang mở (POST /QAForm/Thung/BoVao). Không reload.
+// vẽ toàn bộ bảng 1 lần rồi phân trang phía trình duyệt (ẩn dòng ngoài trang bằng class); tích dòng -> Tạo thùng mới / Thêm vào thùng đang mở (POST /QAForm/Thung/BoVao). Không reload.
 (function () {
     var $ = function (id) { return document.getElementById(id); };
     var SO_COT = 22;
     var maDangXem = '';   // mã phối màu (orderUcode) của kết quả đang hiện (dùng khi bỏ vào thùng)
+    var locDangXem = null; // bộ lọc của kết quả đang hiện { ma, kh, hang }, null = chưa tra
     var dongHienTai = []; // dữ liệu dòng đang hiện, chỉ số = data-chi-so
+
+    // ===== Phân trang =====
+    // Vẫn vẽ đủ dòng vào tbody để lọc cột / sắp xếp kiểu Excel chạy trên toàn bộ kết quả và dòng đã tích
+    // ở trang khác vẫn giữ; chỉ ẩn dòng ngoài trang bằng class qa-ngoai-trang (hidden là của lọc cột).
+    var KHOA_CO_TRANG = 'qa-mes-co-trang';
+    var trang = 1;
+    var soDongLocTruoc = -1; // số dòng qua lọc lần trước: đổi bộ lọc thì về trang 1, vẽ lại cùng dữ liệu thì giữ trang
+    var coTrang = (function () {
+        var v = 0;
+        try { v = parseInt(localStorage.getItem(KHOA_CO_TRANG), 10); } catch (e) { /* bỏ qua */ }
+        return [50, 100, 200, 500].indexOf(v) >= 0 ? v : 100;
+    })();
+    var DONG_DANG_HIEN = '#qa-mes-tbody tr:not([hidden]):not(.qa-ngoai-trang)';
+
+    function nutTrang(nhan, soTrang, tieuDe, dangXem, khoa) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = nhan;
+        b.dataset.trang = soTrang;
+        if (tieuDe) b.title = tieuDe;
+        if (dangXem) b.className = 'dang-xem';
+        b.disabled = !!(khoa || dangXem);
+        return b;
+    }
+
+    function phanTrang() {
+        var khung = $('qa-mes-phantrang');
+        var ds = Array.prototype.filter.call($('qa-mes-tbody').rows, function (tr) { return tr.cells.length > 1; });
+        var qua = ds.filter(function (tr) { return !tr.hidden; });
+        var tong = qua.length;
+        var soTrang = Math.max(1, Math.ceil(tong / coTrang));
+        if (trang > soTrang) trang = soTrang;
+        if (trang < 1) trang = 1;
+        var dau = (trang - 1) * coTrang, cuoi = dau + coTrang;
+        ds.forEach(function (tr) { tr.classList.remove('qa-ngoai-trang'); });
+        qua.forEach(function (tr, i) { if (i < dau || i >= cuoi) tr.classList.add('qa-ngoai-trang'); });
+
+        khung.hidden = ds.length === 0;
+        $('qa-mes-trang-co').value = String(coTrang);
+        $('qa-mes-trang-tt').textContent = tong === 0 ? 'Không có dòng nào'
+            : 'Dòng ' + (dau + 1).toLocaleString('vi-VN') + '–' + Math.min(cuoi, tong).toLocaleString('vi-VN') + ' / ' + tong.toLocaleString('vi-VN')
+              + ' · Trang ' + trang + '/' + soTrang;
+        var nut = $('qa-mes-trang-nut');
+        nut.replaceChildren();
+        if (soTrang <= 1) return;
+        nut.appendChild(nutTrang('«', 1, 'Trang đầu', false, trang === 1));
+        nut.appendChild(nutTrang('‹', trang - 1, 'Trang trước', false, trang === 1));
+        var tu = Math.max(1, trang - 2), den = Math.min(soTrang, trang + 2);
+        function baCham() { var s = document.createElement('span'); s.className = 'ba-cham'; s.textContent = '…'; nut.appendChild(s); }
+        if (tu > 1) { nut.appendChild(nutTrang('1', 1)); if (tu > 2) baCham(); }
+        for (var t = tu; t <= den; t++) nut.appendChild(nutTrang(String(t), t, null, t === trang));
+        if (den < soTrang) { if (den < soTrang - 1) baCham(); nut.appendChild(nutTrang(String(soTrang), soTrang)); }
+        nut.appendChild(nutTrang('›', trang + 1, 'Trang sau', false, trang === soTrang));
+        nut.appendChild(nutTrang('»', soTrang, 'Trang cuối', false, trang === soTrang));
+    }
+
+    function denTrang(t) {
+        trang = t;
+        phanTrang();
+        capNhatChon();
+        var w = document.querySelector('.qa-mes-bang-wrap');
+        if (w) w.scrollTop = 0;
+    }
 
     function token() {
         var o = document.querySelector('input[name="__RequestVerificationToken"]');
@@ -52,7 +116,8 @@
     // Đếm dòng đã tích, đồng bộ ô "chọn tất cả" và bật/tắt nút thùng
     function capNhatChon() {
         // "Chọn tất cả" chỉ áp cho dòng chưa vào thùng — tránh vô tình kéo cả dòng đã đóng thùng
-        var tatCa = document.querySelectorAll('#qa-mes-tbody .qa-mes-chon-dong:not(:disabled):not([data-trong-thung])');
+        // Chỉ tính dòng đang hiện (lọc cột kiểu Excel ẩn bớt dòng)
+        var tatCa = document.querySelectorAll(DONG_DANG_HIEN + ' .qa-mes-chon-dong:not(:disabled):not([data-trong-thung])');
         var daChon = dsDaChon();
         var soTuDoChon = daChon.filter(function (cb) { return !laTrongThung(cb); }).length;
         var soTrongThung = daChon.length - soTuDoChon;
@@ -84,7 +149,7 @@
         });
 
         // Nhớ các dòng đang tích để F5 không mất (chỉ trong tab này)
-        if (maDangXem) luuTich(daChon.map(khoaTich));
+        if (locDangXem) luuTich(daChon.map(khoaTich));
     }
 
     // tichLai: danh sách dấu vân tay cần tích lại sau khi vẽ (khôi phục sau F5)
@@ -93,6 +158,7 @@
         var tbody = $('qa-mes-tbody');
         if (dongHienTai.length === 0) {
             tbody.replaceChildren(dongTrong('Không tìm thấy dữ liệu cho mã phối màu này.'));
+            phanTrang();
             capNhatChon();
             return;
         }
@@ -152,6 +218,7 @@
                 if (conLai[v] > 0) { cb.checked = true; conLai[v]--; }
             });
         }
+        phanTrang();
         capNhatChon();
     }
 
@@ -160,21 +227,36 @@
     // Chỉ xoá khi tra mã khác hoặc bấm "Làm mới".
     var KHOA_TICH = 'qa-mes-tich';
 
-    function luuTich(ds) {
-        try { sessionStorage.setItem(KHOA_TICH, JSON.stringify({ ma: maDangXem, ds: ds })); } catch (e) { /* bỏ qua */ }
+    function khoaLoc(l) { return l ? [l.ma, l.kh, l.hang].join('|') : ''; }
+    function docLoc() {
+        return { ma: $('qa-mes-ma').value.trim(), kh: $('qa-mes-kh').value.trim(), hang: $('qa-mes-hang').value.trim() };
     }
-    function docTich(ma) {
+    function ganLoc(l) {
+        $('qa-mes-ma').value = l.ma || '';
+        $('qa-mes-kh').value = l.kh || '';
+        $('qa-mes-hang').value = l.hang || '';
+    }
+    function thamSoLoc(l) {
+        return 'maPhoiMau=' + encodeURIComponent(l.ma) + '&maKhachHang=' + encodeURIComponent(l.kh) + '&maHang=' + encodeURIComponent(l.hang);
+    }
+    function luuTich(ds) {
+        try { sessionStorage.setItem(KHOA_TICH, JSON.stringify({ loc: locDangXem, ds: ds })); } catch (e) { /* bỏ qua */ }
+    }
+    function docTich(loc) {
         try {
             var x = JSON.parse(sessionStorage.getItem(KHOA_TICH) || 'null');
-            return x && x.ma === ma ? x.ds : [];
+            return x && x.loc && khoaLoc(x.loc) === khoaLoc(loc) ? x.ds : [];
         } catch (e) { return []; }
     }
     function xoaTich() {
         try { sessionStorage.removeItem(KHOA_TICH); } catch (e) { /* bỏ qua */ }
     }
-    function datMaLenDiaChi(ma) {
+    // Bộ lọc lên địa chỉ (?ma=&kh=&hang=) để F5 / gửi link tự tra lại
+    function datMaLenDiaChi(l) {
         var url = new URL(window.location.href);
-        if (ma) url.searchParams.set('ma', ma); else url.searchParams.delete('ma');
+        [['ma', l && l.ma], ['kh', l && l.kh], ['hang', l && l.hang]].forEach(function (p) {
+            if (p[1]) url.searchParams.set(p[0], p[1]); else url.searchParams.delete(p[0]);
+        });
         history.replaceState(null, '', url.pathname + url.search);
     }
 
@@ -207,33 +289,77 @@
     }
 
     // giuTich = tích lại các dòng đã lưu (F5, tra lại cùng mã); false = bắt đầu chọn mới
-    async function tra(ma, giuTich) {
-        var tichLai = giuTich ? docTich(ma) : [];
-        var nut = $('qa-mes-nut');
+    // lamMoi = true: nút "Cập nhật từ MES" — kéo thẳng MES và ghi đè bản đồng bộ trong DB
+    var textTong = '';   // dòng tổng của lần tra gần nhất (chưa kèm phần "đang lọc")
+
+    // Lọc cột kiểu Excel (qa-loc-cot.js): bỏ tích dòng vừa bị ẩn để không lỡ bỏ vào thùng, ghi số dòng đang hiện
+    document.addEventListener('qa-loc-cot:doi', function (e) {
+        if (e.target.id !== 'qa-mes-bang') return;
+        document.querySelectorAll('#qa-mes-tbody tr[hidden] .qa-mes-chon-dong:checked').forEach(function (cb) { cb.checked = false; });
+        if (e.detail.hien !== soDongLocTruoc) trang = 1;
+        soDongLocTruoc = e.detail.hien;
+        phanTrang();
+        capNhatChon();
+        var d = e.detail;
+        $('qa-mes-tong').textContent = textTong + (window.qaLocCot && window.qaLocCot.dangLoc($('qa-mes-bang'))
+            ? ' · Đang lọc cột: hiện ' + d.hien.toLocaleString('vi-VN') + '/' + d.tong.toLocaleString('vi-VN') + ' dòng' : '');
+    });
+
+    async function tra(loc, giuTich, lamMoi) {
+        var tichLai = giuTich ? docTich(loc) : [];
+        var nut = $(lamMoi ? 'qa-mes-capnhat' : 'qa-mes-nut');
+        var nutKhac = $(lamMoi ? 'qa-mes-nut' : 'qa-mes-capnhat');
         nut.disabled = true;
+        nutKhac.disabled = true;
         var nhanCu = nut.innerHTML;
-        nut.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang tra...';
+        nut.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + (lamMoi ? (loc.ma ? 'Đang lấy từ MES...' : 'Đang đồng bộ 7 ngày...') : 'Đang tra...');
         thongBao('');
         try {
-            var kq = await layJson('/QAForm/TraCuuMes/DuLieu?maPhoiMau=' + encodeURIComponent(ma));
+            var url = '/QAForm/TraCuuMes/' + (lamMoi ? 'LamMoi' : 'DuLieu') + '?' + thamSoLoc(loc);
+            var kq = lamMoi
+                ? await layJson(url, { method: 'POST', headers: { 'Accept': 'application/json', 'RequestVerificationToken': token() } })
+                : await layJson(url);
             if (!kq.thanhCong) { thongBao(kq.thongBao || 'Tra cứu thất bại.', 'loi'); return; }
-            if (kq.thongBao) thongBao(kq.thongBao, 'loi');
             var dl = kq.duLieu;
-            maDangXem = ma;
-            datMaLenDiaChi(ma);
+            if (kq.thongBao) thongBao(kq.thongBao, 'loi');
+            else if (dl.dongBo) thongBao(dl.dongBo, 'ok');
+            // Tra bộ lọc khác thì bỏ lọc cột cũ; tra lại cùng bộ lọc (sau khi bỏ vào thùng...) thì giữ
+            if (khoaLoc(loc) !== khoaLoc(locDangXem)) {
+                if (window.qaLocCot) window.qaLocCot.xoa($('qa-mes-bang'));
+                trang = 1;
+            }
+            maDangXem = loc.ma;
+            locDangXem = loc;
+            datMaLenDiaChi(loc);
             veBang(dl.dong, tichLai);
             var soVaoThung = dl.dong.filter(function (d) { return d.maThung; }).length;
-            var text = 'Tổng ' + dl.tong.toLocaleString('vi-VN') + ' dòng cho "' + ma + '"';
+            var moTa = [loc.ma && 'phối màu "' + loc.ma + '"', loc.kh && 'khách "' + loc.kh + '"', loc.hang && 'mã hàng "' + loc.hang + '"'].filter(Boolean).join(', ');
+            var text = 'Tổng ' + dl.tong.toLocaleString('vi-VN') + ' dòng' + (moTa ? ' cho ' + moTa : ' (tất cả mã)');
             if (soVaoThung > 0) text += ' — ' + soVaoThung.toLocaleString('vi-VN') + ' dòng đã vào thùng';
-            if (dl.tong > dl.dong.length) text += ' — chỉ hiện ' + dl.dong.length.toLocaleString('vi-VN') + ' dòng đầu, nhập mã đầy đủ hơn để thu hẹp';
+            if (dl.tong > dl.dong.length) text += ' — chỉ hiện ' + dl.dong.length.toLocaleString('vi-VN') + (loc.ma ? ' dòng đầu' : ' dòng đóng gói mới nhất') + ', nhập mã đầy đủ hơn để thu hẹp';
+            if (dl.capNhatLuc) text += dl.nguon === 'DB' ? ' · dữ liệu đồng bộ lúc ' + dl.capNhatLuc : ' · vừa lấy từ MES lúc ' + dl.capNhatLuc;
+            textTong = text;
+            var bang = $('qa-mes-bang');
+            if (window.qaLocCot && window.qaLocCot.dangLoc(bang)) {
+                var hien = bang.querySelectorAll('#qa-mes-tbody tr:not([hidden])').length;
+                text += ' · Đang lọc cột: hiện ' + hien.toLocaleString('vi-VN') + '/' + dl.dong.length.toLocaleString('vi-VN') + ' dòng';
+            }
             $('qa-mes-tong').textContent = text;
         } catch (e) {
             thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
         } finally {
             nut.disabled = false;
+            nutKhac.disabled = false;
             nut.innerHTML = nhanCu;
         }
     }
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#qa-mes-capnhat')) return;
+        var loc = docLoc();
+        if (loc.ma.length > 0 && loc.ma.length < 4) { thongBao('Mã phối màu cần ít nhất 4 ký tự (hoặc để trống để đồng bộ 7 ngày gần nhất).', 'loi'); return; }
+        tra(loc, khoaLoc(loc) === khoaLoc(locDangXem), true);
+    });
 
     // Bỏ các dòng đã tích vào thùng: idThung null = tạo thùng mới
     // Gom các dòng đang ở thùng theo mã thùng: { 'QA-...': soDong }
@@ -288,7 +414,7 @@
             $('qa-thung-ghichu').value = '';
             // Tải lại kết quả để cột "Thùng" cập nhật + khoá các dòng vừa bỏ vào
             await napThungMo(kq.duLieu && kq.duLieu.idThung);
-            await tra(maDangXem, false);
+            await tra(locDangXem || docLoc(), false);
             thongBao(kq.thongBao, 'ok');
         } catch (e) {
             thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
@@ -319,7 +445,7 @@
             });
             if (!kq.thanhCong) { thongBao(kq.thongBao || 'Không bỏ ra được.', 'loi'); return; }
             await napThungMo();
-            await tra(maDangXem, false);
+            await tra(locDangXem || docLoc(), false);
             thongBao(kq.thongBao, 'ok');
         } catch (e) {
             thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
@@ -332,23 +458,29 @@
     document.addEventListener('submit', function (e) {
         if (e.target.id !== 'qa-mes-form') return;
         e.preventDefault();
-        var ma = $('qa-mes-ma').value.trim();
-        if (ma.length < 4) { thongBao('Nhập mã phối màu (ít nhất 4 ký tự).', 'loi'); return; }
-        // Tra lại đúng mã đang xem thì giữ dòng đã tích, mã khác thì chọn lại từ đầu
-        tra(ma, ma === maDangXem);
+        var loc = docLoc();
+        // Để trống cả 3 ô = xem tất cả (bản đồng bộ trong DB, mới nhất trước)
+        if (loc.ma.length > 0 && loc.ma.length < 4) { thongBao('Mã phối màu cần ít nhất 4 ký tự (hoặc để trống).', 'loi'); return; }
+        // Tra lại đúng bộ lọc đang xem thì giữ dòng đã tích, khác thì chọn lại từ đầu
+        tra(loc, khoaLoc(loc) === khoaLoc(locDangXem));
     });
 
     // Nút "Làm mới": xoá kết quả, mã trên địa chỉ và các dòng đã tích
     document.addEventListener('click', function (e) {
         if (!e.target.closest('#qa-mes-lammoi')) return;
         maDangXem = '';
+        locDangXem = null;
+        textTong = '';
+        if (window.qaLocCot) window.qaLocCot.xoa($('qa-mes-bang'));
         dongHienTai = [];
         xoaTich();
-        datMaLenDiaChi('');
-        $('qa-mes-ma').value = '';
+        datMaLenDiaChi(null);
+        ganLoc({});
         $('qa-thung-ghichu').value = '';
         $('qa-mes-tbody').replaceChildren(dongTrong('Chưa có dữ liệu.'));
-        $('qa-mes-tong').textContent = 'Nhập mã phối màu rồi bấm Tra cứu.';
+        trang = 1;
+        phanTrang();
+        $('qa-mes-tong').textContent = 'Nhập mã phối màu / mã khách hàng / mã hàng rồi bấm Tra cứu (để trống cả 3 = xem tất cả).';
         thongBao('');
         capNhatChon();
         $('qa-mes-ma').focus();
@@ -357,7 +489,7 @@
     document.addEventListener('change', function (e) {
         if (e.target.id === 'qa-mes-chon-het') {
             var chon = e.target.checked;
-            document.querySelectorAll('#qa-mes-tbody .qa-mes-chon-dong:not(:disabled):not([data-trong-thung])').forEach(function (cb) { cb.checked = chon; });
+            document.querySelectorAll(DONG_DANG_HIEN + ' .qa-mes-chon-dong:not(:disabled):not([data-trong-thung])').forEach(function (cb) { cb.checked = chon; });
             capNhatChon();
         } else if (e.target.classList.contains('qa-mes-chon-dong') || e.target.id === 'qa-thung-chon') {
             capNhatChon();
@@ -385,7 +517,8 @@
     var trangThaiNeo = true;
     var loaiNeo = false;     // dòng mốc có đang ở thùng không
 
-    function dsDong() { return Array.prototype.slice.call(document.querySelectorAll('#qa-mes-tbody tr')); }
+    // Chỉ dòng đang hiện: kéo bôi đen không tích lan sang dòng đã bị lọc ẩn
+    function dsDong() { return Array.prototype.slice.call(document.querySelectorAll(DONG_DANG_HIEN)); }
     function oTich(tr) { return tr ? tr.querySelector('.qa-mes-chon-dong') : null; }
 
     // Áp trạng thái cho mọi dòng trong khoảng [a, b] CÙNG LOẠI với dòng mốc: bắt đầu kéo ở dòng chưa vào thùng
@@ -455,16 +588,57 @@
         document.body.classList.remove('qa-dang-keo');
     });
 
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('#qa-mes-trang-nut button[data-trang]');
+        if (b && !b.disabled) denTrang(parseInt(b.dataset.trang, 10));
+    });
+    document.addEventListener('change', function (e) {
+        if (e.target.id !== 'qa-mes-trang-co') return;
+        var dongDau = (trang - 1) * coTrang; // giữ dòng đầu đang xem khi đổi cỡ trang
+        coTrang = parseInt(e.target.value, 10) || 100;
+        try { localStorage.setItem(KHOA_CO_TRANG, String(coTrang)); } catch (err) { /* bỏ qua */ }
+        denTrang(Math.floor(dongDau / coTrang) + 1);
+    });
+
     napThungMo();
 
-    // Mở trang có ?ma=... (F5, link gửi nhau) -> tự tra lại và tích lại các dòng đã chọn.
-    // Bấm menu sang trang khác rồi quay lại (địa chỉ không còn ?ma) -> lấy mã đang xem lưu ở sessionStorage.
-    var maTuDiaChi = (new URLSearchParams(window.location.search).get('ma') || '').trim();
-    if (maTuDiaChi.length < 4) {
-        try { maTuDiaChi = ((JSON.parse(sessionStorage.getItem(KHOA_TICH) || 'null') || {}).ma || '').trim(); } catch (e) { maTuDiaChi = ''; }
+    // ===== Gợi ý khi gõ: datalist nạp từ dữ liệu đồng bộ, lọc theo các ô còn lại =====
+    var henGoiY = null, lanGoiY = 0;
+    document.addEventListener('input', function (e) {
+        var o = e.target.closest('[data-goi-y]');
+        if (!o) return;
+        clearTimeout(henGoiY);
+        henGoiY = setTimeout(function () { napGoiY(o); }, 250);
+    });
+    // Bấm vào ô (chưa gõ gì) cũng hiện gợi ý theo các ô còn lại
+    document.addEventListener('focusin', function (e) {
+        var o = e.target.closest('[data-goi-y]');
+        if (o) napGoiY(o);
+    });
+    async function napGoiY(o) {
+        var lan = ++lanGoiY;
+        var dl = $(o.getAttribute('list'));
+        try {
+            var kq = await layJson('/QAForm/TraCuuMes/GoiY?truong=' + o.dataset.goiY + '&q=' + encodeURIComponent(o.value.trim()) + '&' + thamSoLoc(docLoc()));
+            if (lan !== lanGoiY || !kq.thanhCong) return; // đã có lần gõ mới hơn
+            dl.replaceChildren();
+            (kq.duLieu || []).forEach(function (v) {
+                var op = document.createElement('option');
+                op.value = v;
+                dl.appendChild(op);
+            });
+        } catch (err) { /* không có gợi ý vẫn gõ tay được */ }
     }
-    if (maTuDiaChi.length >= 4) {
-        $('qa-mes-ma').value = maTuDiaChi;
-        tra(maTuDiaChi, true);
+
+    // Mở trang có ?ma=&kh=&hang= (F5, link gửi nhau) -> tự tra lại và tích lại các dòng đã chọn.
+    // Bấm menu sang trang khác rồi quay lại (địa chỉ không còn bộ lọc) -> lấy bộ lọc đang xem lưu ở sessionStorage.
+    var ts = new URLSearchParams(window.location.search);
+    var locDau = { ma: (ts.get('ma') || '').trim(), kh: (ts.get('kh') || '').trim(), hang: (ts.get('hang') || '').trim() };
+    if (!locDau.ma && !locDau.kh && !locDau.hang) {
+        try { locDau = (JSON.parse(sessionStorage.getItem(KHOA_TICH) || 'null') || {}).loc || locDau; } catch (e) { /* giữ rỗng */ }
+    }
+    if ((locDau.ma && locDau.ma.length >= 4) || locDau.kh || locDau.hang) {
+        ganLoc(locDau);
+        tra(docLoc(), true);
     }
 })();

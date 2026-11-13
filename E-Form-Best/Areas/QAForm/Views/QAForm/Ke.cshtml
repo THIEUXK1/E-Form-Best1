@@ -1,0 +1,16 @@
+@{
+    ViewData["Title"] = "Quản lý kệ QA";
+    ViewData["KeDocLap"] = true;
+    Layout = "~/Areas/QAForm/Views/Shared/_Layout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+@* Area QAForm không có _ViewImports nên tag helper <partial> không chạy -> dùng Html.PartialAsync *@
+<div class="qa-trang-co-dinh">
+@await Html.PartialAsync("_KeQuanLy")
+</div>
+
+@section Scripts {
+    <script src="~/js/qa-ke.js?v=5"></script>
+}

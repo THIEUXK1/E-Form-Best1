@@ -26,13 +26,13 @@ namespace E_Form_Best.Areas.QAForm.Services
         private const int TranDongMoiLan = 2000;
 
         private readonly ITFormContext _db;
-        private readonly MesApiService _mes;
+        private readonly MesKhoService _kho;
         private readonly ILogger<QaThungService> _logger;
 
-        public QaThungService(ITFormContext db, MesApiService mes, ILogger<QaThungService> logger)
+        public QaThungService(ITFormContext db, MesKhoService kho, ILogger<QaThungService> logger)
         {
             _db = db;
-            _mes = mes;
+            _kho = kho;
             _logger = logger;
         }
 
@@ -83,7 +83,7 @@ namespace E_Form_Best.Areas.QAForm.Services
                     t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.SlDongGoi) ?? 0,
                     t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.KlDongGoi) ?? 0,
                     t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.SoHop) ?? 0,
-                    t.IdKe, QaKeService.MaViTri(t.Ke != null ? t.Ke.MaKe : null, t.Tang, t.O),
+                    t.IdKe, QaKeService.MaViTri(t.Ke != null ? t.Ke.MaKe : null, t.Tang, t.O, t.Ke != null ? t.Ke.SoTang : 0),
                     null, 0))
                 .ToListAsync(ct);
             if (!coTim || ds.Count == 0) return ds;
@@ -128,7 +128,6 @@ namespace E_Form_Best.Areas.QAForm.Services
             dsVanTay = (dsVanTay ?? new()).Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
             var dsChuyen = (dsIdDongChuyen ?? new()).Where(i => i > 0).Distinct().ToList();
             if (dsVanTay.Count == 0 && dsChuyen.Count == 0) return new(false, "Chưa chọn dòng nào.");
-            if (dsVanTay.Count > 0 && maPhoiMau.Length < 4) return new(false, "Thiếu mã phối màu.");
             if (dsVanTay.Count + dsChuyen.Count > TranDongMoiLan) return new(false, $"Mỗi lần chỉ bỏ tối đa {TranDongMoiLan} dòng.");
             ghiChu = string.IsNullOrWhiteSpace(ghiChu) ? null : ghiChu.Trim();
             if (ghiChu?.Length > 500) ghiChu = ghiChu[..500];
@@ -137,9 +136,19 @@ namespace E_Form_Best.Areas.QAForm.Services
             var theoVanTay = new Dictionary<string, List<MesApiService.DongDongGoi>>();
             if (dsVanTay.Count > 0)
             {
-                var mes = await _mes.TraTatCaTheoPhoiMauAsync(maPhoiMau, ct);
-                if (!mes.ThanhCong) return new(false, mes.ThongBao);
-                theoVanTay = mes.Dong!.GroupBy(d => d.DauVanTay).ToDictionary(g => g.Key, g => g.ToList());
+                // Cùng nguồn trang tra cứu vừa hiện: tìm thẳng theo vân tay trong bản sao DB (kết quả tra trống có nhiều mã);
+                // thiếu dòng nào (DB chưa có / chưa tạo bảng) thì mới tra theo mã phối màu (kho tự gọi MES)
+                var tuDb = new List<MesApiService.DongDongGoi>();
+                try { tuDb = await _kho.TimTheoVanTayAsync(dsVanTay.Distinct().ToList(), ct); }
+                catch (Exception ex) when (ex is not OperationCanceledException) { _logger.LogError(ex, "Không đọc được QA_MesDongGoi khi bỏ vào thùng"); }
+                theoVanTay = tuDb.GroupBy(d => d.DauVanTay).ToDictionary(g => g.Key, g => g.ToList());
+                if (dsVanTay.Any(v => !theoVanTay.ContainsKey(v)))
+                {
+                    if (maPhoiMau.Length < 4) return new(false, "Không tìm thấy dòng đã chọn trong dữ liệu đồng bộ, tra lại rồi thử lại.");
+                    var mes = (await _kho.TraCuuAsync(maPhoiMau, ct)).Kq;
+                    if (!mes.ThanhCong) return new(false, mes.ThongBao);
+                    theoVanTay = mes.Dong!.GroupBy(d => d.DauVanTay).ToDictionary(g => g.Key, g => g.ToList());
+                }
             }
 
             // 2) Khoá đọc-ghi trong transaction serializable để 2 người bấm cùng lúc không cùng lấy 1 dòng / cùng 1 mã thùng

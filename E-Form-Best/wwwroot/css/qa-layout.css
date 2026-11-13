@@ -180,12 +180,28 @@ body { top: 0 !important; }
 .qa-btn:hover, .qa-btn:disabled { background: var(--qa-primary); color: #fff; }
 .qa-mes-form { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .qa-mes-form .form-control { max-width: 320px; }
+.qa-ke-day-ghichu { flex-basis: 100%; font-size: .85rem; color: #64748b; }
+.qa-mes-o { display: flex; align-items: center; gap: 8px; }
+.qa-mes-o .form-control { width: 210px; }
+@media (max-width: 576px) { .qa-mes-o { flex: 1 1 100%; } .qa-mes-o .form-control { width: auto; flex: 1; max-width: none; } .qa-mes-o .qa-mes-label { min-width: 110px; } }
 .qa-mes-label { font-weight: 700; color: var(--qa-primary); margin: 0; }
 .qa-mes-thongbao { margin-top: 10px; font-size: .9rem; min-height: 1.2em; }
 .qa-mes-thongbao.loi { color: #dc2626; font-weight: 600; }
 .qa-mes-tom { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; font-weight: 600; color: var(--qa-primary); }
 .qa-mes-trang { display: flex; align-items: center; gap: 8px; }
 .qa-mes-bang-wrap { overflow: auto; max-height: calc(100vh - 300px); border: 1px solid #e2e8f0; border-radius: 10px; }
+/* Phân trang tra cứu MES: dòng ngoài trang hiện tại ẩn bằng class (thuộc tính hidden dành cho lọc cột) */
+.qa-mes-bang tr.qa-ngoai-trang { display: none; }
+.qa-mes-phantrang { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 8px; font-size: 13px; }
+.qa-mes-phantrang[hidden] { display: none; }
+.qa-mes-trang-tt { color: #64748b; }
+.qa-mes-trang-nut { display: flex; flex-wrap: wrap; gap: 4px; }
+.qa-mes-trang-nut button { min-width: 32px; padding: 2px 8px; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 13px; }
+.qa-mes-trang-nut button.dang-xem { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+.qa-mes-trang-nut button:disabled:not(.dang-xem) { opacity: .45; }
+.qa-mes-trang-nut .ba-cham { padding: 2px 4px; color: #94a3b8; }
+.qa-mes-trang-co { display: flex; align-items: center; gap: 6px; margin: 0 0 0 auto; color: #64748b; }
+.qa-mes-trang-co select { width: auto; }
 .qa-mes-bang { width: 100%; border-collapse: collapse; font-size: .82rem; white-space: nowrap; }
 .qa-mes-bang th { position: sticky; top: 0; background: #ecfdf5; color: var(--qa-primary); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid #a7f3d0; }
 .qa-mes-bang td { padding: 6px 10px; border-bottom: 1px solid #f1f5f9; }
@@ -281,6 +297,46 @@ body.qa-dang-keo, body.qa-dang-keo * { user-select: none; cursor: cell !importan
 .qa-ke-form .qa-ke-so { flex: 0 1 100px; }
 .qa-ke-form-nut { display: flex; gap: 6px; }
 .qa-ke-ds-wrap { max-height: 30vh; }
+
+/* ===== Lọc cột kiểu Excel (qa-loc-cot.js) ===== */
+.qa-loc-nut { border: 0; background: transparent; color: #94a3b8; padding: 0 4px; margin-left: 4px; border-radius: 4px; line-height: 1; vertical-align: middle; }
+.qa-loc-nut:hover { background: #d1fae5; color: var(--qa-primary); }
+.qa-loc-nut.dang-loc { background: var(--qa-primary-2); color: #fff; }
+.qa-loc-hop { position: fixed; z-index: 2000; width: 280px; display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; box-shadow: 0 16px 36px rgba(0, 0, 0, .16); font-size: .85rem; }
+.qa-loc-sx { display: flex; flex-direction: column; }
+.qa-loc-sx button, .qa-loc-xoa-cot { border: 0; background: transparent; text-align: left; padding: 4px 6px; border-radius: 6px; color: #334155; }
+.qa-loc-sx button:hover, .qa-loc-xoa-cot:hover { background: #f0fdf4; }
+.qa-loc-xoa-cot { color: #dc2626; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+.qa-loc-ds { flex: 1 1 auto; min-height: 80px; max-height: 260px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px 6px; }
+.qa-loc-ds label { display: flex; align-items: center; gap: 6px; padding: 2px 0; white-space: nowrap; cursor: pointer; }
+.qa-loc-ds .qa-loc-tatca { font-weight: 700; border-bottom: 1px solid #f1f5f9; }
+.qa-loc-them { color: #64748b; font-style: italic; padding: 4px 0; }
+.qa-loc-nut-duoi { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* ===== Trang khoá cuộn (/QAForm/Thung, /TraCuuMes, /Ke): vừa khung nhìn, chỉ vùng bảng cuộn =====
+   Dùng height 100% thay vì 100vh vì menu % kích thước là body{zoom} — 100vh bị nhân zoom làm tràn.
+   Màn hình hẹp (< 992px) giữ cuộn cả trang như cũ. */
+@media (min-width: 992px) {
+    html:has(.qa-trang-co-dinh), body:has(.qa-trang-co-dinh) { height: 100%; overflow: hidden; }
+    body:has(.qa-trang-co-dinh) .qa-main { height: 100%; min-height: 0; }
+    body:has(.qa-trang-co-dinh) .qa-content { min-height: 0; overflow: hidden; display: flex; flex-direction: column; padding-top: 18px; padding-bottom: 16px; }
+    .qa-trang-co-dinh { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+    .qa-trang-co-dinh > .qa-card { margin: 0; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+    .qa-trang-co-dinh > .qa-card[hidden] { display: none; }
+    /* Thẻ không có bảng (ô tra cứu...) chỉ cao vừa nội dung, nhường chỗ cho thẻ có bảng */
+    .qa-trang-co-dinh > .qa-card:not(:has(.qa-mes-bang-wrap)) { flex: 0 0 auto; }
+    .qa-trang-co-dinh > .qa-card > * { flex-shrink: 0; }
+    .qa-trang-co-dinh > .qa-card:not(#qa-ke-khung) > .qa-mes-bang-wrap { flex: 1 1 auto; min-height: 110px; max-height: none; }
+    /* Đang xem chi tiết: thẻ chi tiết được phần lớn hơn danh sách */
+    .qa-trang-co-dinh > #qa-thung-chitiet { flex-grow: 1.4; }
+    .qa-trang-co-dinh .qa-ct-lichsu { max-height: 90px; }
+    /* Khung kệ mở trong trang thùng (danh sách kệ + sơ đồ ô) cuộn gọn trong thẻ */
+    .qa-trang-co-dinh > #qa-ke-khung:not([data-doc-lap]) { overflow: auto; }
+    /* Trang Quản lý kệ: bảng kệ và sơ đồ ô chia nhau chiều cao, mỗi phần tự cuộn */
+    .qa-trang-co-dinh > #qa-ke-khung[data-doc-lap] > .qa-ke-ds-wrap { flex: 1 1 0; min-height: 110px; max-height: none; }
+    .qa-trang-co-dinh > #qa-ke-khung[data-doc-lap] > #qa-ke-sodo-khung:not([hidden]) { flex: 1.3 1 0; min-height: 0; display: flex; flex-direction: column; }
+    .qa-trang-co-dinh > #qa-ke-khung[data-doc-lap] .qa-ke-sodo-wrap { flex: 1; min-height: 0; max-height: none; }
+}
 .qa-ke-sodo-ghichu { font-size: .8rem; color: #64748b; margin-bottom: 8px; }
 .qa-ke-sodo-wrap { overflow: auto; max-height: 60vh; }
 .qa-ke-sodo { display: grid; gap: 6px; min-width: max-content; }

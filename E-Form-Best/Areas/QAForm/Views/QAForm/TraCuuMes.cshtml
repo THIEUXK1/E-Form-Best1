@@ -5,11 +5,28 @@
 
 @Html.AntiForgeryToken()
 
+@* Trang khoá cuộn (màn hình rộng): chỉ vùng bảng cuộn — xem .qa-trang-co-dinh trong qa-layout.css *@
+<div class="qa-trang-co-dinh">
 <div class="qa-card">
     <form id="qa-mes-form" class="qa-mes-form" autocomplete="off">
-        <label for="qa-mes-ma" class="qa-mes-label">Mã phối màu</label>
-        <input id="qa-mes-ma" name="maPhoiMau" type="text" class="form-control" maxlength="50" placeholder="VD: P2610230294022" />
+        @* Gợi ý lấy từ dữ liệu đã đồng bộ (datalist do qa-tra-cuu-mes.js nạp khi gõ); ô nào trống = không lọc *@
+        <div class="qa-mes-o">
+            <label for="qa-mes-ma" class="qa-mes-label">Mã phối màu</label>
+            <input id="qa-mes-ma" name="maPhoiMau" type="text" class="form-control" maxlength="50" list="qa-mes-goiy-ma" data-goi-y="ma" placeholder="VD: P2610230294022" />
+            <datalist id="qa-mes-goiy-ma"></datalist>
+        </div>
+        <div class="qa-mes-o">
+            <label for="qa-mes-kh" class="qa-mes-label">Mã khách hàng</label>
+            <input id="qa-mes-kh" name="maKhachHang" type="text" class="form-control" maxlength="100" list="qa-mes-goiy-kh" data-goi-y="kh" placeholder="VD: R022Z" />
+            <datalist id="qa-mes-goiy-kh"></datalist>
+        </div>
+        <div class="qa-mes-o">
+            <label for="qa-mes-hang" class="qa-mes-label">Mã hàng</label>
+            <input id="qa-mes-hang" name="maHang" type="text" class="form-control" maxlength="100" list="qa-mes-goiy-hang" data-goi-y="hang" placeholder="VD: LRP7B197" />
+            <datalist id="qa-mes-goiy-hang"></datalist>
+        </div>
         <button type="submit" id="qa-mes-nut" class="btn qa-btn"><i class="fa fa-search"></i> Tra cứu</button>
+        <button type="button" id="qa-mes-capnhat" class="btn btn-outline-primary" title="Kéo dữ liệu mới nhất từ NH-MES ngay: để trống mã phối màu = 7 ngày đóng gói gần nhất; có mã = riêng mã đó (hệ thống vẫn tự đồng bộ 30 phút/lần)"><i class="fa fa-cloud-download"></i> Đồng bộ MES</button>
         <button type="button" id="qa-mes-lammoi" class="btn btn-outline-secondary" title="Xoá kết quả và các dòng đã tích"><i class="fa fa-refresh"></i> Làm mới</button>
     </form>
     <div id="qa-mes-thongbao" class="qa-mes-thongbao" role="status"></div>
@@ -17,7 +34,7 @@
 
 <div class="qa-card qa-mes-ketqua">
     <div class="qa-mes-tom">
-        <span id="qa-mes-tong">Nhập mã phối màu rồi bấm Tra cứu.</span>
+        <span id="qa-mes-tong">Nhập mã phối màu / mã khách hàng / mã hàng rồi bấm Tra cứu (để trống cả 3 = xem tất cả).</span>
         <span id="qa-mes-dachon" class="qa-mes-dachon"></span>
     </div>
 
@@ -36,31 +53,31 @@
     </div>
 
     <div class="qa-mes-bang-wrap">
-        <table class="qa-mes-bang" id="qa-mes-bang">
+        <table class="qa-mes-bang" id="qa-mes-bang" data-loc-cot>
             <thead>
                 <tr>
-                    <th class="qa-mes-chon"><input type="checkbox" id="qa-mes-chon-het" class="form-check-input" title="Chọn tất cả dòng chưa vào thùng" disabled /></th>
+                    <th class="qa-mes-chon"><input type="checkbox" id="qa-mes-chon-het" class="form-check-input" title="Chọn tất cả dòng chưa vào thùng (trang đang xem)" disabled /></th>
                     <th>#</th>
-                    <th>Thùng</th>
-                    <th class="qa-cot-phu">Mã khách cuối</th>
-                    <th>Mã phối màu</th>
-                    <th>Mã khách hàng</th>
-                    <th>Mã hàng</th>
-                    <th>Mã màu</th>
-                    <th>SL đơn hàng</th>
-                    <th>SL đóng gói (m)</th>
-                    <th class="qa-cot-phu">KL đóng gói (kg)</th>
-                    <th class="qa-cot-phu">Ghi chú</th>
-                    <th>Số hộp</th>
-                    <th>Loại</th>
-                    <th class="qa-cot-phu">Mô tả bất thường</th>
-                    <th class="qa-cot-phu">Ý kiến xử lý QC</th>
-                    <th class="qa-cot-phu">Công đoạn</th>
-                    <th class="qa-cot-phu">Số phiếu nhuộm</th>
-                    <th class="qa-cot-phu">Ngày nhận hàng</th>
-                    <th>Ngày đóng gói</th>
-                    <th class="qa-cot-phu">Số phiếu đóng gói</th>
-                    <th>Mã NV đóng gói</th>
+                    <th data-loc>Thùng</th>
+                    <th class="qa-cot-phu" data-loc>Mã khách cuối</th>
+                    <th data-loc>Mã phối màu</th>
+                    <th data-loc>Mã khách hàng</th>
+                    <th data-loc>Mã hàng</th>
+                    <th data-loc>Mã màu</th>
+                    <th data-loc>SL đơn hàng</th>
+                    <th data-loc>SL đóng gói (m)</th>
+                    <th class="qa-cot-phu" data-loc>KL đóng gói (kg)</th>
+                    <th class="qa-cot-phu" data-loc>Ghi chú</th>
+                    <th data-loc>Số hộp</th>
+                    <th data-loc>Loại</th>
+                    <th class="qa-cot-phu" data-loc>Mô tả bất thường</th>
+                    <th class="qa-cot-phu" data-loc>Ý kiến xử lý QC</th>
+                    <th class="qa-cot-phu" data-loc>Công đoạn</th>
+                    <th class="qa-cot-phu" data-loc>Số phiếu nhuộm</th>
+                    <th class="qa-cot-phu" data-loc>Ngày nhận hàng</th>
+                    <th data-loc>Ngày đóng gói</th>
+                    <th class="qa-cot-phu" data-loc>Số phiếu đóng gói</th>
+                    <th data-loc>Mã NV đóng gói</th>
                 </tr>
             </thead>
             <tbody id="qa-mes-tbody">
@@ -68,8 +85,23 @@
             </tbody>
         </table>
     </div>
+    @* Phân trang phía trình duyệt: qa-tra-cuu-mes.js vẽ nút trang *@
+    <div class="qa-mes-phantrang" id="qa-mes-phantrang" hidden>
+        <span id="qa-mes-trang-tt" class="qa-mes-trang-tt"></span>
+        <div id="qa-mes-trang-nut" class="qa-mes-trang-nut"></div>
+        <label class="qa-mes-trang-co">Mỗi trang
+            <select id="qa-mes-trang-co" class="form-select form-select-sm">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+            </select>
+        </label>
+    </div>
+</div>
 </div>
 
 @section Scripts {
-    <script src="~/js/qa-tra-cuu-mes.js?v=10"></script>
+    <script src="~/js/qa-loc-cot.js?v=1"></script>
+    <script src="~/js/qa-tra-cuu-mes.js?v=16"></script>
 }

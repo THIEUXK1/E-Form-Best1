@@ -1,4 +1,4 @@
-// Kệ chứa thùng QA ở trang /QAForm/Thung: thêm/sửa/xoá kệ, sơ đồ ô (tầng × ô) và thùng đang đặt. Không reload.
+// Kệ chứa thùng QA ở trang /QAForm/Ke (đứng riêng) và khung ẩn trang /QAForm/Thung: thêm/sửa/xoá kệ, sơ đồ ô (tầng × ô) và thùng đang đặt. Không reload.
 // Giao tiếp với qa-thung.js qua window.qaKe + sự kiện trên document:
 //   'qa-ke:doi'       — danh sách kệ vừa nạp lại (detail = mảng kệ)
 //   'qa-ke:chon-o'    — bấm 1 ô trên sơ đồ (detail = { idKe, tang, o })
@@ -18,6 +18,12 @@
         el.textContent = text || '';
         el.classList.toggle('loi', loai === 'loi');
         el.classList.toggle('ok', loai === 'ok');
+    }
+
+    // Mã vị trí giống QaKeService.MaViTri: kệ 1 tầng "A-A3" (kệ cha A, ô con A3), nhiều tầng "A-2-3"
+    function maO(ke, tang, o) { return ke.soTang === 1 ? ke.maKe + o : 'Tầng ' + tang + ' · ô ' + o; }
+    function maViTri(ke, tang, o) {
+        return ke.soTang === 1 ? ke.maKe + '-' + ke.maKe + o : ke.maKe + '-' + tang + '-' + o;
     }
 
     function phat(ten, chiTiet) { document.dispatchEvent(new CustomEvent(ten, { detail: chiTiet })); }
@@ -61,7 +67,7 @@
         var tbody = $('qa-ke-tbody');
         if (dsKe.length === 0) {
             var trTrong = document.createElement('tr');
-            o(trTrong, 'Chưa có kệ nào. Bấm Thêm kệ để tạo.', 'qa-mes-trong').colSpan = 7;
+            o(trTrong, 'Chưa có kệ nào. Bấm Thêm kệ hoặc Tạo dãy kệ (A–Z) để tạo.', 'qa-mes-trong').colSpan = 7;
             tbody.replaceChildren(trTrong);
         } else {
             var frag = document.createDocumentFragment();
@@ -72,7 +78,7 @@
                 o(tr, k.maKe, 'qa-mes-o-thung').title = 'Bấm để xem sơ đồ ô';
                 o(tr, k.tenKe);
                 o(tr, k.khuVuc);
-                o(tr, k.soTang + ' × ' + k.soO);
+                o(tr, k.soTang === 1 ? k.soO + ' ô (' + maO(k, 1, 1) + '–' + maO(k, 1, k.soO) + ')' : k.soTang + ' × ' + k.soO);
                 o(tr, k.soThung, 'so');
                 o(tr, k.ghiChu);
                 var td = document.createElement('td');
@@ -121,7 +127,7 @@
             for (var tang = ke.soTang; tang >= 1; tang--) {
                 var nhan = document.createElement('div');
                 nhan.className = 'qa-ke-tang';
-                nhan.textContent = 'Tầng ' + tang;
+                nhan.textContent = ke.soTang === 1 ? 'Kệ ' + ke.maKe : 'Tầng ' + tang;
                 frag.appendChild(nhan);
                 for (var so = 1; so <= ke.soO; so++) {
                     var dsThung = theoO[tang + '-' + so] || [];
@@ -132,7 +138,7 @@
                     oKe.dataset.o = so;
                     var ma = document.createElement('div');
                     ma.className = 'qa-ke-o-ma';
-                    ma.textContent = ke.maKe + '-' + tang + '-' + so;
+                    ma.textContent = ke.soTang === 1 ? maO(ke, 1, so) : maViTri(ke, tang, so);
                     oKe.appendChild(ma);
                     dsThung.forEach(function (t) {
                         var chip = document.createElement('button');
@@ -158,12 +164,37 @@
         $('qa-ke-ma').value = k ? k.maKe : '';
         $('qa-ke-ten').value = k ? (k.tenKe || '') : '';
         $('qa-ke-khuvuc').value = k ? (k.khuVuc || '') : '';
-        $('qa-ke-tang').value = k ? k.soTang : 3;
-        $('qa-ke-o').value = k ? k.soO : 4;
+        $('qa-ke-tang').value = k ? k.soTang : 1;
+        $('qa-ke-o').value = k ? k.soO : 6;
         $('qa-ke-ghichu').value = k ? (k.ghiChu || '') : '';
         $('qa-ke-luu').lastChild.textContent = k ? ' Lưu kệ ' + k.maKe : ' Lưu kệ';
+        $('qa-ke-day-form').hidden = true;
         $('qa-ke-form').hidden = false;
         $('qa-ke-ma').focus();
+    }
+
+    async function taoDayKe(e) {
+        e.preventDefault();
+        var nutTao = $('qa-ke-day-luu');
+        if (nutTao.disabled) return;
+        var tu = $('qa-ke-day-tu').value.trim().toUpperCase(), den = $('qa-ke-day-den').value.trim().toUpperCase();
+        if (!/^[A-Z]$/.test(tu) || !/^[A-Z]$/.test(den) || tu > den) { thongBao('Từ kệ / đến kệ là 1 chữ cái A–Z, từ ≤ đến.', 'loi'); return; }
+        var soO = parseInt($('qa-ke-day-o').value, 10) || 0, soTang = parseInt($('qa-ke-day-tang').value, 10) || 0;
+        var soKe = den.charCodeAt(0) - tu.charCodeAt(0) + 1;
+        if (!confirm('Tạo ' + soKe + ' kệ ' + tu + '–' + den + ', mỗi kệ ' + (soTang === 1 ? soO + ' ô' : soTang + ' tầng × ' + soO + ' ô') + '? (kệ đã có sẽ bỏ qua)')) return;
+        nutTao.disabled = true;
+        thongBao('Đang tạo...');
+        try {
+            var kq = await guiJson('/QAForm/Ke/TaoDay', {
+                tuMa: tu, denMa: den, soTang: soTang, soO: soO, khuVuc: $('qa-ke-day-khuvuc').value
+            });
+            thongBao(kq.thongBao, kq.thanhCong ? 'ok' : 'loi');
+            if (kq.thanhCong) { $('qa-ke-day-form').hidden = true; await napLai(); }
+        } catch (err) {
+            thongBao('Không gọi được máy chủ: ' + err.message, 'loi');
+        } finally {
+            nutTao.disabled = false;
+        }
     }
 
     async function luuKe(e) {
@@ -221,6 +252,8 @@
         if (e.target.closest('#qa-ke-an')) { $('qa-ke-khung').hidden = true; return; }
         if (e.target.closest('#qa-ke-them')) { moForm(null); return; }
         if (e.target.closest('#qa-ke-huy')) { $('qa-ke-form').hidden = true; return; }
+        if (e.target.closest('#qa-ke-day-mo')) { $('qa-ke-form').hidden = true; $('qa-ke-day-form').hidden = false; $('qa-ke-day-tu').focus(); return; }
+        if (e.target.closest('#qa-ke-day-huy')) { $('qa-ke-day-form').hidden = true; return; }
         var nutKe = e.target.closest('#qa-ke-tbody button[data-ke-lenh]');
         if (nutKe) {
             var id = parseInt(nutKe.dataset.id, 10);
@@ -229,7 +262,12 @@
             return;
         }
         var chip = e.target.closest('#qa-ke-sodo .qa-ke-chip');
-        if (chip) { phat('qa-ke:xem-thung', { idThung: parseInt(chip.dataset.idThung, 10) }); return; }
+        if (chip) {
+            // Trang /QAForm/Ke đứng riêng: mở thùng ở trang Danh sách thùng (tìm theo mã thùng)
+            if ($('qa-ke-khung').dataset.docLap) { window.location.href = '/QAForm/Thung?tim=' + encodeURIComponent(chip.textContent); return; }
+            phat('qa-ke:xem-thung', { idThung: parseInt(chip.dataset.idThung, 10) });
+            return;
+        }
         var oKe = e.target.closest('#qa-ke-sodo .qa-ke-o');
         if (oKe) {
             phat('qa-ke:chon-o', { idKe: parseInt(oKe.dataset.idKe, 10), tang: parseInt(oKe.dataset.tang, 10), o: parseInt(oKe.dataset.o, 10) });
@@ -241,10 +279,13 @@
 
     document.addEventListener('submit', function (e) {
         if (e.target.id === 'qa-ke-form') luuKe(e);
+        else if (e.target.id === 'qa-ke-day-form') taoDayKe(e);
     });
 
     window.qaKe = {
         ds: function () { return dsKe; },
+        maViTri: maViTri,
+        maO: maO,
         napLai: napLai,
         moSoDo: function (idKe) { $('qa-ke-khung').hidden = false; return xemSoDo(idKe); }
     };

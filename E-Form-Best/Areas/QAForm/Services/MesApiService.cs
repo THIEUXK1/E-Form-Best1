@@ -63,7 +63,7 @@ namespace E_Form_Best.Areas.QAForm.Services
             return (tong, dong);
         }
 
-        private static readonly JsonSerializerOptions JsonOpt = new() { PropertyNameCaseInsensitive = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString };
+        internal static readonly JsonSerializerOptions JsonOpt = new() { PropertyNameCaseInsensitive = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString };
 
         private readonly IConfiguration _configuration;
         private readonly ILogger<MesApiService> _logger;
@@ -102,30 +102,46 @@ namespace E_Form_Best.Areas.QAForm.Services
         /// Lấy TẤT CẢ dòng của 配色单号 (gộp nhiều trang MES ở server) để trình duyệt khỏi phải chuyển trang
         /// — mỗi lần chuyển trang trước đây là 1 vòng gọi MES ~1 giây.
         /// </summary>
-        public async Task<KetQuaTraCuu> TraTatCaTheoPhoiMauAsync(string orderUcode, CancellationToken ct)
+        public Task<KetQuaTraCuu> TraTatCaTheoPhoiMauAsync(string orderUcode, CancellationToken ct)
+            => TraTatCaAsync((trang, soDong) => TaoBody(orderUcode, "", "", trang, soDong), TranTongDong, ct);
+
+        // Trần 1 ngày đóng gói khi đồng bộ về DB — rộng hơn trần tra cứu vì cần đủ cả ngày
+        public const int TranDongMotNgay = 50000;
+
+        /// <summary>
+        /// Tất cả dòng có ngày đóng gói (pbDate) = ngay — dùng cho job đồng bộ MES về QA_MesDongGoi.
+        /// Kq.Tong > Kq.Dong.Count nghĩa là chưa lấy đủ (vượt trần), nơi gọi không được coi là bản đầy đủ của ngày.
+        /// </summary>
+        public Task<KetQuaTraCuu> TraTatCaTheoNgayAsync(DateOnly ngay, CancellationToken ct)
         {
-            var dau = await TraTheoPhoiMauAsync(orderUcode, 1, DongMoiLanGoi, ct);
+            var s = ngay.ToString("yyyy-MM-dd");
+            return TraTatCaAsync((trang, soDong) => TaoBody("", s, s, trang, soDong), TranDongMotNgay, ct);
+        }
+
+        private async Task<KetQuaTraCuu> TraTatCaAsync(Func<int, int, string> taoBody, int tran, CancellationToken ct)
+        {
+            var dau = await GoiReportAsync(taoBody(1, DongMoiLanGoi), ct);
             if (!dau.ThanhCong || dau.Tong <= DongMoiLanGoi) return dau;
 
-            var tatCa = new List<DongDongGoi>(Math.Min(dau.Tong, TranTongDong));
+            var tatCa = new List<DongDongGoi>(Math.Min(dau.Tong, tran));
             tatCa.AddRange(dau.Dong!);
-            for (int trang = 2; tatCa.Count < Math.Min(dau.Tong, TranTongDong); trang++)
+            for (int trang = 2; tatCa.Count < Math.Min(dau.Tong, tran); trang++)
             {
-                var kq = await TraTheoPhoiMauAsync(orderUcode, trang, DongMoiLanGoi, ct);
+                var kq = await GoiReportAsync(taoBody(trang, DongMoiLanGoi), ct);
                 if (!kq.ThanhCong) return kq;
                 if (kq.Dong == null || kq.Dong.Count == 0) break;
                 tatCa.AddRange(kq.Dong);
             }
-            if (tatCa.Count > TranTongDong) tatCa.RemoveRange(TranTongDong, tatCa.Count - TranTongDong);
+            if (tatCa.Count > tran) tatCa.RemoveRange(tran, tatCa.Count - tran);
             return new(true, "", dau.Tong, tatCa);
         }
 
         /// <summary>Tra theo 配色单号 (orderUcode), MES so khớp gần đúng (isLike=like) giống ô tìm trên trang MES.</summary>
-        public async Task<KetQuaTraCuu> TraTheoPhoiMauAsync(string orderUcode, int trang, int soDong, CancellationToken ct)
-        {
-            if (!CoCauHinh) return new(false, "Chưa cấu hình tài khoản MES (MesApi__User / MesApi__Pass trong .env).");
+        public Task<KetQuaTraCuu> TraTheoPhoiMauAsync(string orderUcode, int trang, int soDong, CancellationToken ct)
+            => GoiReportAsync(TaoBody(orderUcode, "", "", trang, soDong), ct);
 
-            var body = JsonSerializer.Serialize(new
+        private string TaoBody(string orderUcode, string pbDateStart, string pbDateEnd, int trang, int soDong)
+            => JsonSerializer.Serialize(new
             {
                 pageNumber = trang,
                 pageSize = soDong,
@@ -133,14 +149,18 @@ namespace E_Form_Best.Areas.QAForm.Services
                 status = "",
                 pbLvList = Array.Empty<string>(),
                 manuStepList = Array.Empty<string>(),
-                pbDateStart = "",
-                pbDateEnd = "",
+                pbDateStart,
+                pbDateEnd,
                 orderUcode,
                 isLike = "like",
                 orgFilterValue = (string?)null,
                 firstSearch = false,
                 sortOrder = "asc"
             });
+
+        private async Task<KetQuaTraCuu> GoiReportAsync(string body, CancellationToken ct)
+        {
+            if (!CoCauHinh) return new(false, "Chưa cấu hình tài khoản MES (MesApi__User / MesApi__Pass trong .env).");
 
             try
             {

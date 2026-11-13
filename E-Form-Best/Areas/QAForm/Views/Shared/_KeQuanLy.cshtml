@@ -1,0 +1,69 @@
+@* Khung quản lý kệ + sơ đồ ô, dùng chung trang /QAForm/Ke (ViewData["KeDocLap"] = true) và khung ẩn ở /QAForm/Thung. JS: qa-ke.js *@
+@{
+    var docLap = ViewData["KeDocLap"] as bool? == true;
+}
+<div class="qa-card" id="qa-ke-khung" hidden="@(!docLap)" data-doc-lap="@(docLap ? "1" : null)">
+    <div class="qa-mes-tom">
+        <span id="qa-ke-tom">Kệ chứa thùng</span>
+        <span class="qa-thung-nut">
+            <button type="button" class="btn btn-sm qa-btn" id="qa-ke-them"><i class="fa fa-plus"></i> Thêm kệ</button>
+            <button type="button" class="btn btn-sm btn-outline-success" id="qa-ke-day-mo" title="Tạo một lần nhiều kệ A, B, C… cùng số ô"><i class="fa fa-th-large"></i> Tạo dãy kệ</button>
+            @if (!docLap)
+            {
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ke-an"><i class="fa fa-times"></i> Đóng</button>
+            }
+        </span>
+    </div>
+    <form id="qa-ke-form" class="qa-ke-form" hidden autocomplete="off">
+        <input type="hidden" id="qa-ke-id">
+        <label class="qa-tem-o"><span>Mã kệ *</span><input type="text" class="form-control form-control-sm" id="qa-ke-ma" maxlength="20" required placeholder="VD: A"></label>
+        <label class="qa-tem-o"><span>Tên kệ</span><input type="text" class="form-control form-control-sm" id="qa-ke-ten" maxlength="100"></label>
+        <label class="qa-tem-o"><span>Khu vực đặt kệ</span><input type="text" class="form-control form-control-sm" id="qa-ke-khuvuc" maxlength="100" placeholder="VD: Kho QA - dãy 1"></label>
+        <label class="qa-tem-o qa-ke-so"><span>Số tầng *</span><input type="number" class="form-control form-control-sm" id="qa-ke-tang" min="1" max="50" value="1" required></label>
+        <label class="qa-tem-o qa-ke-so"><span>Ô mỗi tầng *</span><input type="number" class="form-control form-control-sm" id="qa-ke-o" min="1" max="50" value="6" required></label>
+        <label class="qa-tem-o"><span>Ghi chú</span><input type="text" class="form-control form-control-sm" id="qa-ke-ghichu" maxlength="500"></label>
+        <span class="qa-ke-form-nut">
+            <button type="submit" class="btn btn-sm btn-success" id="qa-ke-luu"><i class="fa fa-save"></i> Lưu kệ</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ke-huy">Huỷ</button>
+        </span>
+    </form>
+    @* Tạo nhanh dãy kệ A..Z; kệ đã có thì bỏ qua *@
+    <form id="qa-ke-day-form" class="qa-ke-form" hidden autocomplete="off">
+        <label class="qa-tem-o qa-ke-so"><span>Từ kệ *</span><input type="text" class="form-control form-control-sm" id="qa-ke-day-tu" maxlength="1" value="A" required></label>
+        <label class="qa-tem-o qa-ke-so"><span>Đến kệ *</span><input type="text" class="form-control form-control-sm" id="qa-ke-day-den" maxlength="1" value="Z" required></label>
+        <label class="qa-tem-o qa-ke-so"><span>Số tầng *</span><input type="number" class="form-control form-control-sm" id="qa-ke-day-tang" min="1" max="50" value="1" required></label>
+        <label class="qa-tem-o qa-ke-so"><span>Ô mỗi tầng *</span><input type="number" class="form-control form-control-sm" id="qa-ke-day-o" min="1" max="50" value="6" required></label>
+        <label class="qa-tem-o"><span>Khu vực đặt kệ</span><input type="text" class="form-control form-control-sm" id="qa-ke-day-khuvuc" maxlength="100" placeholder="VD: Kho QA"></label>
+        <span class="qa-ke-form-nut">
+            <button type="submit" class="btn btn-sm btn-success" id="qa-ke-day-luu"><i class="fa fa-check"></i> Tạo dãy</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ke-day-huy">Huỷ</button>
+        </span>
+        <span class="qa-ke-day-ghichu">Kệ 1 tầng: kệ cha A, ô con A1…A6, vị trí ghi A-A1. Kệ đã có sẽ được bỏ qua.</span>
+    </form>
+    <div id="qa-ke-thongbao" class="qa-mes-thongbao" role="status"></div>
+    <div class="qa-mes-bang-wrap qa-ke-ds-wrap">
+        <table class="qa-mes-bang">
+            <thead>
+                <tr>
+                    <th>Mã kệ</th>
+                    <th>Tên kệ</th>
+                    <th>Khu vực</th>
+                    <th>Tầng × ô</th>
+                    <th>Số thùng</th>
+                    <th>Ghi chú</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="qa-ke-tbody">
+                <tr><td colspan="7" class="qa-mes-trong">Đang tải...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="qa-ke-sodo-khung" hidden>
+        <h6 class="qa-ct-lichsu-tieude" id="qa-ke-sodo-tieude"></h6>
+        <div class="qa-ke-sodo-ghichu">@(docLap
+            ? "Tầng 1 sát sàn. Bấm mã thùng để mở thùng đó ở trang Danh sách thùng; xếp thùng vào ô làm ở trang Danh sách thùng."
+            : "Tầng 1 sát sàn. Bấm mã thùng để xem chi tiết; đã tích thùng ở danh sách (hoặc đang xem chi tiết một thùng) thì bấm ô để chọn vị trí cho thùng đó.")</div>
+        <div class="qa-ke-sodo-wrap"><div id="qa-ke-sodo" class="qa-ke-sodo"></div></div>
+    </div>
+</div>

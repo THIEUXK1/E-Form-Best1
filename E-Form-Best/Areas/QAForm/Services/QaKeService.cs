@@ -8,7 +8,8 @@ namespace E_Form_Best.Areas.QAForm.Services
 {
     /// <summary>
     /// Kệ chứa thùng QA (QA_Ke) + vị trí thùng trên kệ (QA_Thung.id_ke/tang/o).
-    /// Kệ chia ô theo tầng × ô, mã vị trí = MaKe-tầng-ô; 1 ô chứa được nhiều thùng nên không chặn trùng ô.
+    /// Kệ chia ô theo tầng × ô, mã vị trí = MaKe-tầng-ô; kệ 1 tầng: kệ cha A, ô con A1…A6, vị trí "A-A1".
+    /// 1 ô chứa được nhiều thùng nên không chặn trùng ô.
     /// Tầng đánh số từ dưới lên (tầng 1 sát sàn), ô từ trái sang.
     /// </summary>
     public class QaKeService
@@ -21,6 +22,9 @@ namespace E_Form_Best.Areas.QAForm.Services
 
         public record LuuKeVao(int? IdKe, string? MaKe, string? TenKe, string? KhuVuc, int SoTang, int SoO, string? GhiChu);
 
+        // Tạo nhanh dãy kệ 1 chữ cái TuMa..DenMa (vd A..Z), cùng kích thước
+        public record TaoDayKeVao(string? TuMa, string? DenMa, int SoTang, int SoO, string? KhuVuc);
+
         public const int TranTangO = 50;
 
         // Mã kệ in lên tem/vị trí nên chỉ cho chữ, số, gạch dưới, chấm
@@ -30,8 +34,19 @@ namespace E_Form_Best.Areas.QAForm.Services
 
         public QaKeService(ITFormContext db) => _db = db;
 
-        public static string? MaViTri(string? maKe, int? tang, int? o)
-            => maKe == null || tang == null || o == null ? null : $"{maKe}-{tang}-{o}";
+        /// <summary>
+        /// Mã vị trí hiển thị. Kệ 1 tầng: "A-A3" (kệ cha A, ô con A3); kệ nhiều tầng "A-2-3".
+        /// soTang = 0: không rõ số tầng -> dạng đầy đủ.
+        /// </summary>
+        public static string? MaViTri(string? maKe, int? tang, int? o, int soTang = 0)
+        {
+            if (maKe == null || tang == null || o == null) return null;
+            if (soTang == 1) return $"{maKe}-{maKe}{o}";
+            return $"{maKe}-{tang}-{o}";
+        }
+
+        // "A3" / "AB12" (chữ + số dính liền) = ô con của kệ 1 tầng
+        private static readonly Regex ViTriGon = new("^([A-Z_.]*[A-Z_.])([0-9]+)$", RegexOptions.Compiled);
 
         public Task<List<KeTomTat>> DsKeAsync(CancellationToken ct)
             => _db.QaKes.Where(k => k.NgayXoa == null)
@@ -99,6 +114,31 @@ namespace E_Form_Best.Areas.QAForm.Services
             return new(true, vao.IdKe == null ? $"Đã thêm kệ {maKe}." : $"Đã lưu kệ {maKe}.", ke.IdKe);
         }
 
+        /// <summary>Tạo các kệ mã TuMa..DenMa (1 chữ cái A–Z) chưa có; kệ đã có thì bỏ qua, không sửa.</summary>
+        public async Task<KetQua> TaoDayKeAsync(TaoDayKeVao vao, string? nguoi, CancellationToken ct)
+        {
+            var tu = (vao.TuMa ?? "").Trim().ToUpperInvariant();
+            var den = (vao.DenMa ?? "").Trim().ToUpperInvariant();
+            if (tu.Length != 1 || den.Length != 1 || tu[0] < 'A' || tu[0] > 'Z' || den[0] < 'A' || den[0] > 'Z' || tu[0] > den[0])
+                return new(false, "Nhập từ kệ và đến kệ là 1 chữ cái A–Z (vd A đến Z).");
+            if (vao.SoTang < 1 || vao.SoTang > TranTangO || vao.SoO < 1 || vao.SoO > TranTangO)
+                return new(false, $"Số tầng và số ô mỗi tầng phải từ 1 đến {TranTangO}.");
+            var khuVuc = Gon(vao.KhuVuc, 100);
+            var dsMa = Enumerable.Range(tu[0], den[0] - tu[0] + 1).Select(c => ((char)c).ToString()).ToList();
+            var bayGio = DateTime.Now;
+
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var daCo = await _db.QaKes.Where(k => dsMa.Contains(k.MaKe) && k.NgayXoa == null).Select(k => k.MaKe).ToListAsync(ct);
+            var canTao = dsMa.Except(daCo).ToList();
+            foreach (var ma in canTao)
+                _db.QaKes.Add(new QaKe { MaKe = ma, KhuVuc = khuVuc, SoTang = vao.SoTang, SoO = vao.SoO, NgayTao = bayGio, NguoiTao = nguoi });
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            if (canTao.Count == 0) return new(true, $"Các kệ {tu}–{den} đều đã có, không tạo thêm.");
+            return new(true, $"Đã tạo {canTao.Count} kệ ({string.Join(", ", canTao)})"
+                + (daCo.Count > 0 ? $"; bỏ qua {daCo.Count} kệ đã có ({string.Join(", ", daCo.OrderBy(x => x))})." : "."));
+        }
+
         /// <summary>Xoá mềm kệ; chỉ xoá được khi không còn thùng nào trên kệ.</summary>
         public async Task<KetQua> XoaKeAsync(int idKe, string? nguoi, CancellationToken ct)
         {
@@ -115,19 +155,27 @@ namespace E_Form_Best.Areas.QAForm.Services
         public const int TranThungMoiLan = 500;
 
         /// <summary>
-        /// Gán theo vị trí gõ tay "MaKe-tầng-ô" (chấp nhận khoảng trắng thay dấu -, không phân biệt hoa thường).
-        /// Mã kệ không chứa dấu - nên tách được chắc chắn 3 phần. viTri trống = gỡ khỏi kệ.
+        /// Gán theo vị trí "MaKe-tầng-ô", hoặc kệ 1 tầng "A-A3" / "A3" / "A-3" (chấp nhận khoảng trắng thay dấu -,
+        /// không phân biệt hoa thường). Mã kệ không chứa dấu - nên tách được chắc chắn. viTri trống = gỡ khỏi kệ.
         /// </summary>
         public async Task<KetQua> XepTheoViTriAsync(List<int>? dsIdThung, string? viTri, string? nguoi, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(viTri)) return await XepThungAsync(dsIdThung, null, null, null, nguoi, ct);
             var phan = viTri.Trim().ToUpperInvariant().Split(new[] { '-', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            if (phan.Length != 3 || !int.TryParse(phan[1], out var tang) || !int.TryParse(phan[2], out var o))
-                return new(false, $"Vị trí \"{viTri.Trim()}\" không đúng dạng Mã kệ-tầng-ô (vd A-2-3).");
-            var maKe = phan[0];
-            var idKe = await _db.QaKes.Where(k => k.MaKe == maKe && k.NgayXoa == null).Select(k => (int?)k.IdKe).FirstOrDefaultAsync(ct);
-            if (idKe == null) return new(false, $"Chưa có kệ {maKe} — bấm nút Kệ để thêm kệ trước.");
-            return await XepThungAsync(dsIdThung, idKe, tang, o, nguoi, ct);
+            string maKe;
+            int tang, o;
+            bool dangGon = false;   // chỉ ghi ô, ngầm hiểu tầng 1 -> kệ phải đúng 1 tầng
+            Match m;
+            if (phan.Length == 3 && int.TryParse(phan[1], out tang) && int.TryParse(phan[2], out o)) maKe = phan[0];
+            else if (phan.Length == 2 && int.TryParse(phan[1], out o)) { maKe = phan[0]; tang = 1; dangGon = true; }
+            // "A-A3": kệ cha + ô con, ô con phải thuộc đúng kệ cha
+            else if (phan.Length == 2 && (m = ViTriGon.Match(phan[1])).Success && m.Groups[1].Value == phan[0] && int.TryParse(m.Groups[2].Value, out o)) { maKe = phan[0]; tang = 1; dangGon = true; }
+            else if (phan.Length == 1 && (m = ViTriGon.Match(phan[0])).Success && int.TryParse(m.Groups[2].Value, out o)) { maKe = m.Groups[1].Value; tang = 1; dangGon = true; }
+            else return new(false, $"Vị trí \"{viTri.Trim()}\" không đúng dạng: A-A3 (kệ 1 tầng) hoặc Mã kệ-tầng-ô (vd A-2-3).");
+            var ke = await _db.QaKes.Where(k => k.MaKe == maKe && k.NgayXoa == null).Select(k => new { k.IdKe, k.SoTang }).FirstOrDefaultAsync(ct);
+            if (ke == null) return new(false, $"Chưa có kệ {maKe} — thêm kệ ở trang Quản lý kệ trước.");
+            if (dangGon && ke.SoTang != 1) return new(false, $"Kệ {maKe} có {ke.SoTang} tầng — ghi đủ dạng {maKe}-tầng-ô (vd {maKe}-1-{o}).");
+            return await XepThungAsync(dsIdThung, ke.IdKe, tang, o, nguoi, ct);
         }
 
         /// <summary>
@@ -153,7 +201,7 @@ namespace E_Form_Best.Areas.QAForm.Services
                 if (canGo.Count == 0) return new(true, dsThung.Count == 1 ? $"Thùng {dsThung[0].MaThung} chưa xếp kệ." : "Các thùng đã chọn đều chưa xếp kệ.");
                 foreach (var t in canGo)
                 {
-                    GhiLichSu(t.IdThung, nguoi, "GoKe", $"Gỡ khỏi vị trí {MaViTri(t.Ke?.MaKe, t.Tang, t.O)}", bayGio);
+                    GhiLichSu(t.IdThung, nguoi, "GoKe", $"Gỡ khỏi vị trí {MaViTri(t.Ke?.MaKe, t.Tang, t.O, t.Ke?.SoTang ?? 0)}", bayGio);
                     t.IdKe = null; t.Tang = null; t.O = null; t.Ke = null;
                 }
                 await _db.SaveChangesAsync(ct);
@@ -164,13 +212,15 @@ namespace E_Form_Best.Areas.QAForm.Services
             var ke = await _db.QaKes.FirstOrDefaultAsync(k => k.IdKe == idKe && k.NgayXoa == null, ct);
             if (ke == null) return new(false, "Không tìm thấy kệ (có thể đã bị xoá).");
             if (tang == null || o == null || tang < 1 || tang > ke.SoTang || o < 1 || o > ke.SoO)
-                return new(false, $"Kệ {ke.MaKe} có {ke.SoTang} tầng × {ke.SoO} ô — chọn tầng và ô trong khoảng đó.");
-            var moi = MaViTri(ke.MaKe, tang, o);
+                return new(false, ke.SoTang == 1
+                    ? $"Kệ {ke.MaKe} có {ke.SoO} ô ({MaViTri(ke.MaKe, 1, 1, 1)}–{MaViTri(ke.MaKe, 1, ke.SoO, 1)})."
+                    : $"Kệ {ke.MaKe} có {ke.SoTang} tầng × {ke.SoO} ô — chọn tầng và ô trong khoảng đó.");
+            var moi = MaViTri(ke.MaKe, tang, o, ke.SoTang);
             var canXep = dsThung.Where(t => !(t.IdKe == ke.IdKe && t.Tang == tang && t.O == o)).ToList();
             if (canXep.Count == 0) return new(true, dsThung.Count == 1 ? $"Thùng {dsThung[0].MaThung} đã ở {moi}." : $"Các thùng đã chọn đều đã ở {moi}.");
             foreach (var t in canXep)
             {
-                var cu = MaViTri(t.Ke?.MaKe, t.Tang, t.O);
+                var cu = MaViTri(t.Ke?.MaKe, t.Tang, t.O, t.Ke?.SoTang ?? 0);
                 GhiLichSu(t.IdThung, nguoi, "XepKe", cu == null ? $"Xếp vào {moi}" : $"Chuyển từ {cu} sang {moi}", bayGio);
                 t.IdKe = ke.IdKe; t.Tang = tang; t.O = o; t.Ke = ke;
             }

@@ -5,6 +5,8 @@
 
 @Html.AntiForgeryToken()
 
+@* Trang khoá cuộn (màn hình rộng): các thẻ chia nhau chiều cao màn hình, chỉ vùng bảng cuộn — xem .qa-trang-co-dinh trong qa-layout.css *@
+<div class="qa-trang-co-dinh">
 <div class="qa-card">
     <div class="qa-mes-tom">
         <span id="qa-thung-tom">Đang tải...</span>
@@ -29,7 +31,9 @@
     <div id="qa-thung-thongbao" class="qa-mes-thongbao" role="status"></div>
     <div id="qa-xep-thanh" class="qa-ct-vitri qa-xep-thanh" hidden>
         <span class="qa-ct-vitri-nhan"><i class="fa fa-check-square-o"></i> Đã chọn <b id="qa-xep-so">0</b> thùng → </span>
-        <input type="text" id="qa-xep-vitri" class="form-control form-control-sm qa-xep-vitri" maxlength="40" placeholder="Vị trí, vd A-2-3" title="Mã kệ-tầng-ô; Enter để gán">
+        <select id="qa-xep-ke" class="form-select form-select-sm" title="Kệ"><option value="">-- Chọn kệ --</option></select>
+        <select id="qa-xep-tang" class="form-select form-select-sm" title="Tầng"></select>
+        <select id="qa-xep-o" class="form-select form-select-sm" title="Ô trong kệ"></select>
         <button type="button" class="btn btn-sm btn-success" id="qa-xep-luu"><i class="fa fa-check"></i> Gán</button>
         <button type="button" class="btn btn-sm btn-outline-danger" id="qa-xep-go"><i class="fa fa-sign-out"></i> Gỡ khỏi kệ</button>
         <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-xep-bo">Bỏ chọn</button>
@@ -59,52 +63,7 @@
     </div>
 </div>
 
-<div class="qa-card" id="qa-ke-khung" hidden>
-    <div class="qa-mes-tom">
-        <span id="qa-ke-tom">Kệ chứa thùng</span>
-        <span class="qa-thung-nut">
-            <button type="button" class="btn btn-sm qa-btn" id="qa-ke-them"><i class="fa fa-plus"></i> Thêm kệ</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ke-an"><i class="fa fa-times"></i> Đóng</button>
-        </span>
-    </div>
-    <form id="qa-ke-form" class="qa-ke-form" hidden autocomplete="off">
-        <input type="hidden" id="qa-ke-id">
-        <label class="qa-tem-o"><span>Mã kệ *</span><input type="text" class="form-control form-control-sm" id="qa-ke-ma" maxlength="20" required placeholder="VD: A"></label>
-        <label class="qa-tem-o"><span>Tên kệ</span><input type="text" class="form-control form-control-sm" id="qa-ke-ten" maxlength="100"></label>
-        <label class="qa-tem-o"><span>Khu vực đặt kệ</span><input type="text" class="form-control form-control-sm" id="qa-ke-khuvuc" maxlength="100" placeholder="VD: Kho QA - dãy 1"></label>
-        <label class="qa-tem-o qa-ke-so"><span>Số tầng *</span><input type="number" class="form-control form-control-sm" id="qa-ke-tang" min="1" max="50" value="3" required></label>
-        <label class="qa-tem-o qa-ke-so"><span>Ô mỗi tầng *</span><input type="number" class="form-control form-control-sm" id="qa-ke-o" min="1" max="50" value="4" required></label>
-        <label class="qa-tem-o"><span>Ghi chú</span><input type="text" class="form-control form-control-sm" id="qa-ke-ghichu" maxlength="500"></label>
-        <span class="qa-ke-form-nut">
-            <button type="submit" class="btn btn-sm btn-success" id="qa-ke-luu"><i class="fa fa-save"></i> Lưu kệ</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ke-huy">Huỷ</button>
-        </span>
-    </form>
-    <div id="qa-ke-thongbao" class="qa-mes-thongbao" role="status"></div>
-    <div class="qa-mes-bang-wrap qa-ke-ds-wrap">
-        <table class="qa-mes-bang">
-            <thead>
-                <tr>
-                    <th>Mã kệ</th>
-                    <th>Tên kệ</th>
-                    <th>Khu vực</th>
-                    <th>Tầng × ô</th>
-                    <th>Số thùng</th>
-                    <th>Ghi chú</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody id="qa-ke-tbody">
-                <tr><td colspan="7" class="qa-mes-trong">Đang tải...</td></tr>
-            </tbody>
-        </table>
-    </div>
-    <div id="qa-ke-sodo-khung" hidden>
-        <h6 class="qa-ct-lichsu-tieude" id="qa-ke-sodo-tieude"></h6>
-        <div class="qa-ke-sodo-ghichu">Tầng 1 sát sàn. Bấm mã thùng để xem chi tiết; đã tích thùng ở danh sách (hoặc đang xem chi tiết một thùng) thì bấm ô để chọn vị trí cho thùng đó.</div>
-        <div class="qa-ke-sodo-wrap"><div id="qa-ke-sodo" class="qa-ke-sodo"></div></div>
-    </div>
-</div>
+@await Html.PartialAsync("_KeQuanLy")
 
 <div class="qa-card" id="qa-thung-chitiet" hidden>
     <div class="qa-mes-tom">
@@ -160,6 +119,7 @@
     <div id="qa-ct-tongban" class="qa-ct-tongban"></div>
     <h6 class="qa-ct-lichsu-tieude">Nhật ký thùng</h6>
     <ul id="qa-ct-lichsu" class="qa-ct-lichsu"></ul>
+</div>
 </div>
 
 <div class="modal fade" id="qa-tem-modal" tabindex="-1" aria-labelledby="qa-tem-modal-tieude" aria-hidden="true">
@@ -265,6 +225,6 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
     <script src="~/js/qa-thung-tem.js?v=2"></script>
-    <script src="~/js/qa-ke.js?v=2"></script>
-    <script src="~/js/qa-thung.js?v=11"></script>
+    <script src="~/js/qa-ke.js?v=5"></script>
+    <script src="~/js/qa-thung.js?v=15"></script>
 }

@@ -428,6 +428,7 @@
             veThanhBo();
         }
         if (e.target.id === 'qa-ct-ke') veTangO(parseInt(e.target.value, 10), null, null);
+        if (e.target.id === 'qa-xep-ke') veTangO(parseInt(e.target.value, 10), null, null, 'qa-xep-');
         if (e.target.id === 'qa-thung-chon-het') {
             var chon = e.target.checked;
             dsDangHien().forEach(function (t) { if (chon) daChon.add(t.idThung); else daChon.delete(t.idThung); });
@@ -447,7 +448,8 @@
         sel.appendChild(op);
     }
 
-    // Ô chọn tầng/ô theo kích thước kệ đang chọn; tầng liệt kê từ trên xuống như sơ đồ
+    // Ô chọn tầng/ô theo kích thước kệ đang chọn; tầng liệt kê từ trên xuống như sơ đồ.
+    // Kệ 1 tầng (kệ cha A): ẩn chọn tầng, ô ghi A1…A6
     function veTangO(idKe, tang, oChon, tienTo) {
         tienTo = tienTo || 'qa-ct-';
         var ke = timKe(idKe);
@@ -455,9 +457,10 @@
         selTang.replaceChildren();
         selO.replaceChildren();
         selTang.disabled = selO.disabled = !ke;
+        selTang.hidden = !!ke && ke.soTang === 1;
         if (!ke) { luaChon(selTang, '', 'Tầng'); luaChon(selO, '', 'Ô'); return; }
         for (var i = ke.soTang; i >= 1; i--) luaChon(selTang, i, 'Tầng ' + i);
-        for (var j = 1; j <= ke.soO; j++) luaChon(selO, j, 'Ô ' + j);
+        for (var j = 1; j <= ke.soO; j++) luaChon(selO, j, ke.soTang === 1 ? ke.maKe + j : 'Ô ' + j);
         selTang.value = tang && tang <= ke.soTang ? tang : 1;
         selO.value = oChon && oChon <= ke.soO ? oChon : 1;
     }
@@ -495,15 +498,22 @@
         var het = $('qa-thung-chon-het');
         het.checked = dsHien.length > 0 && soHienChon === dsHien.length;
         het.indeterminate = soHienChon > 0 && soHienChon < dsHien.length;
-        if (dangAn && !thanh.hidden) $('qa-xep-vitri').focus();
+        if (dangAn && !thanh.hidden) {
+            // Mở thanh: nạp danh sách kệ, giữ kệ đã chọn lần trước
+            var selKe = $('qa-xep-ke'), cu = parseInt(selKe.value, 10);
+            napOChonKe(selKe, timKe(cu) ? cu : null);
+            veTangO(parseInt(selKe.value, 10), null, null, 'qa-xep-');
+            selKe.focus();
+        }
     }
 
-    // Gán theo vị trí gõ tay (vd A-2-3); máy chủ tách mã kệ / tầng / ô và kiểm kệ có tồn tại
+    // Gán theo kệ + ô đã chọn (ghép thành mã vị trí A-A1 / A-2-3); máy chủ tách lại và kiểm kệ có tồn tại
     async function xepNhieu(nutBam, go) {
         var ds = Array.from(daChon);
         if (ds.length === 0) return;
-        var viTri = $('qa-xep-vitri').value.trim();
-        if (!go && !viTri) { thongBao('Nhập vị trí (vd A-2-3) rồi bấm Gán.', 'loi'); $('qa-xep-vitri').focus(); return; }
+        var keChon = timKe(parseInt($('qa-xep-ke').value, 10));
+        if (!go && !keChon) { thongBao('Chọn kệ và ô rồi bấm Gán.', 'loi'); $('qa-xep-ke').focus(); return; }
+        var viTri = go ? '' : window.qaKe.maViTri(keChon, parseInt($('qa-xep-tang').value, 10) || 1, parseInt($('qa-xep-o').value, 10) || 1);
         if (go && !confirm('Gỡ ' + ds.length + ' thùng đã chọn khỏi kệ?')) return;
         nutBam.disabled = true;
         try {
@@ -515,7 +525,6 @@
             thongBao(kq.thongBao, kq.thanhCong ? 'ok' : 'loi');
             if (kq.thanhCong) {
                 daChon.clear();
-                $('qa-xep-vitri').value = '';
                 await napDanhSach();
                 if (idDangXem && ds.indexOf(idDangXem) >= 0) await xemChiTiet(idDangXem, true);
                 if (window.qaKe) window.qaKe.napLai();
@@ -563,7 +572,6 @@
     }
 
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && e.target.id === 'qa-xep-vitri') { e.preventDefault(); xepNhieu($('qa-xep-luu'), false); }
         // Enter ở ô số bản: lưu (qua sự kiện change) rồi nhảy xuống dòng dưới để nhập liên tục
         if (e.key === 'Enter' && e.target.classList.contains('qa-ct-soban-o')) {
             e.preventDefault();
@@ -589,10 +597,12 @@
         var d = e.detail;
         var ke = timKe(d.idKe);
         if (ke && daChon.size > 0) {
-            $('qa-xep-vitri').value = ke.maKe + '-' + d.tang + '-' + d.o;
+            var vt = window.qaKe.maViTri(ke, d.tang, d.o);
+            $('qa-xep-ke').value = d.idKe;
+            veTangO(d.idKe, d.tang, d.o, 'qa-xep-');
             $('qa-xep-thanh').scrollIntoView({ behavior: 'smooth', block: 'center' });
             $('qa-xep-luu').focus();
-            thongBao('Đã điền vị trí ' + ke.maKe + '-' + d.tang + '-' + d.o + ' cho ' + daChon.size + ' thùng đã tích — bấm Gán để lưu.', 'ok');
+            thongBao('Đã điền vị trí ' + vt + ' cho ' + daChon.size + ' thùng đã tích — bấm Gán để lưu.', 'ok');
             return;
         }
         if (!idDangXem || !ke) { thongBao('Bấm 1 thùng trong danh sách để xem chi tiết trước, rồi bấm ô trên sơ đồ để chọn vị trí cho thùng đó.', 'loi'); return; }
@@ -601,7 +611,7 @@
         var nutXep = $('qa-ct-xep');
         nutXep.scrollIntoView({ behavior: 'smooth', block: 'center' });
         nutXep.focus();
-        thongBao('Đã chọn ô ' + ke.maKe + '-' + d.tang + '-' + d.o + ' cho thùng ' + (thungDangXem ? thungDangXem.maThung : '') + ' — bấm Xếp vào kệ để lưu.', 'ok');
+        thongBao('Đã chọn ô ' + window.qaKe.maViTri(ke, d.tang, d.o) + ' cho thùng ' + (thungDangXem ? thungDangXem.maThung : '') + ' — bấm Xếp vào kệ để lưu.', 'ok');
     });
 
     document.addEventListener('qa-ke:xem-thung', function (e) { xemChiTiet(e.detail.idThung); });
@@ -615,6 +625,125 @@
             return kq.thanhCong ? { thung: kq.duLieu.thung, dong: kq.duLieu.dong } : null;
         });
     }
+    // ===== Tích bằng kéo chuột (bôi đen) — giống trang Tra cứu =====
+    // Nhấn giữ rồi kéo qua các dòng: mọi dòng đi qua nhận cùng trạng thái với dòng đầu sau khi đảo.
+    // Shift + bấm: áp cho cả khoảng từ dòng bấm trước.
+    //  - Danh sách thùng: bấm-thả tại chỗ trên dòng vẫn là mở chi tiết; nhấn giữ rồi rê sang dòng khác mới là bôi đen.
+    //    Bấm ở cột ô tích thì tích ngay như trang Tra cứu.
+    //  - Dòng trong chi tiết: bấm vào dòng vốn đã là tích, nên kéo từ bất kỳ đâu trên dòng (trừ ô nhập số bản).
+    var bangKeo = [
+        {
+            tbody: 'qa-thung-tbody',
+            batDau: function (e) { return !!e.target.closest('td.qa-mes-chon'); },
+            // Ngoài cột ô tích: chỉ "chờ kéo", rê sang dòng khác mới bắt đầu bôi đen
+            choKeo: function (e) { return !e.target.closest('button, a, input, select, textarea, .qa-thung-nut'); },
+            oTich: function (tr) { return tr && tr.dataset.id ? tr.querySelector('.qa-thung-chon') : null; },
+            ap: function (tr, cb, chon) { cb.checked = chon; tichThung(parseInt(tr.dataset.id, 10), chon); },
+            xong: function () { }
+        },
+        {
+            tbody: 'qa-ct-tbody',
+            batDau: function (e) { return !e.target.closest('input:not(.qa-ct-chon), button, a, select, textarea'); },
+            oTich: function (tr) { return tr ? tr.querySelector('.qa-ct-chon') : null; },
+            ap: function (tr, cb, chon) { cb.checked = chon; },
+            xong: function () { veThanhBo(); }
+        }
+    ];
+    var keo = null;            // { bang, trangThai, dau, banDau } khi đang kéo
+    var neo = null;            // { bang, chiSo, trangThai } dòng bấm gần nhất cho Shift + bấm
+    var boQuaClick = false;    // mousedown đã tự tích -> chặn click ngay sau đó khỏi đảo/mở chi tiết lần nữa
+    var choKeo = null;         // { bang, chiSo } nhấn giữ ở dòng danh sách thùng, chưa rê sang dòng khác
+
+    function dsDongBang(bang) { return Array.prototype.slice.call($(bang.tbody).querySelectorAll('tr')); }
+
+    function apKhoangBang(bang, a, b, trangThai, banDau) {
+        var ds = dsDongBang(bang);
+        ds.forEach(function (tr, i) {
+            var cb = bang.oTich(tr);
+            if (!cb || cb.disabled) return;
+            var trong = i >= Math.min(a, b) && i <= Math.max(a, b);
+            var muon = trong ? trangThai : (banDau ? banDau[i] : cb.checked);
+            if (cb.checked !== muon) bang.ap(tr, cb, muon);
+        });
+        bang.xong();
+    }
+
+    function batDauKeo(bang, ds, chiSo, trangThai) {
+        neo = { bang: bang, chiSo: chiSo, trangThai: trangThai };
+        keo = { bang: bang, trangThai: trangThai, dau: chiSo, banDau: ds.map(function (r) { var c = bang.oTich(r); return c ? c.checked : false; }) };
+        document.body.classList.add('qa-dang-keo');
+    }
+
+    document.addEventListener('mousedown', function (e) {
+        boQuaClick = false;
+        choKeo = null;
+        if (e.button !== 0) return;
+        var bang = null, tr = null;
+        for (var k = 0; k < bangKeo.length; k++) {
+            tr = e.target.closest('#' + bangKeo[k].tbody + ' tr');
+            if (tr) { bang = bangKeo[k]; break; }
+        }
+        if (!bang) return;
+        var cb = bang.oTich(tr);
+        if (!cb || cb.disabled) return;
+        if (!bang.batDau(e)) {
+            if (bang.choKeo && bang.choKeo(e) && !e.shiftKey) {
+                e.preventDefault(); // không bôi đen chữ nếu rê chuột
+                choKeo = { bang: bang, chiSo: dsDongBang(bang).indexOf(tr) };
+            }
+            return;
+        }
+        e.preventDefault(); // không bôi đen chữ khi kéo
+        boQuaClick = true;
+        var ds = dsDongBang(bang);
+        var chiSo = ds.indexOf(tr);
+        if (e.shiftKey && neo && neo.bang === bang) {
+            apKhoangBang(bang, neo.chiSo, chiSo, neo.trangThai, null);
+            return;
+        }
+        var trangThai = !cb.checked;
+        batDauKeo(bang, ds, chiSo, trangThai);
+        bang.ap(tr, cb, trangThai);
+        bang.xong();
+    });
+
+    document.addEventListener('mouseover', function (e) {
+        // Đang "chờ kéo" ở danh sách thùng mà rê sang dòng khác -> bắt đầu bôi đen từ dòng nhấn
+        if (choKeo && !keo) {
+            var trMoi = e.target.closest('#' + choKeo.bang.tbody + ' tr');
+            if (!trMoi) return;
+            var dsCho = dsDongBang(choKeo.bang);
+            var chiSoMoi = dsCho.indexOf(trMoi);
+            if (chiSoMoi < 0 || chiSoMoi === choKeo.chiSo) return;
+            var cbDau = choKeo.bang.oTich(dsCho[choKeo.chiSo]);
+            if (!cbDau) { choKeo = null; return; }
+            batDauKeo(choKeo.bang, dsCho, choKeo.chiSo, !cbDau.checked);
+            boQuaClick = true; // thả chuột xong không mở chi tiết
+            choKeo = null;
+        }
+        if (!keo) return;
+        var tr = e.target.closest('#' + keo.bang.tbody + ' tr');
+        if (!tr) return;
+        var chiSo = dsDongBang(keo.bang).indexOf(tr);
+        if (chiSo >= 0) apKhoangBang(keo.bang, keo.dau, chiSo, keo.trangThai, keo.banDau);
+    });
+
+    document.addEventListener('mouseup', function () {
+        choKeo = null;
+        if (!keo) return;
+        keo = null;
+        document.body.classList.remove('qa-dang-keo');
+    });
+
+    // Chạy ở pha capture, trước các xử lý click khác của trang
+    document.addEventListener('click', function (e) {
+        if (!boQuaClick) return;
+        boQuaClick = false;
+        if (e.detail === 0) return; // phím Space trên ô tích: để mặc định
+        e.preventDefault();
+        e.stopPropagation();
+    }, true);
+
     if (tuKhoa) $('qa-thung-tim').value = tuKhoa;
     napDanhSach();
 })();

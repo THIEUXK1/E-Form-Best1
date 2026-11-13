@@ -12,14 +12,14 @@ namespace E_Form_Best.Areas.QAForm.Controllers
     [Authorize(Policy = QaQuyen.Policy)]
     public class QAFormController : Controller
     {
-        private readonly MesApiService _mes;
+        private readonly MesKhoService _kho;
         private readonly QaThungService _thung;
         private readonly QaKeService _ke;
         private readonly ILogger<QAFormController> _logger;
 
-        public QAFormController(MesApiService mes, QaThungService thung, QaKeService ke, ILogger<QAFormController> logger)
+        public QAFormController(MesKhoService kho, QaThungService thung, QaKeService ke, ILogger<QAFormController> logger)
         {
-            _mes = mes;
+            _kho = kho;
             _thung = thung;
             _ke = ke;
             _logger = logger;
@@ -50,30 +50,90 @@ namespace E_Form_Best.Areas.QAForm.Controllers
             return View();
         }
 
+        // Đọc từ bản sao DB (job đồng bộ MES); mã chưa có trong DB thì gọi MES trực tiếp
         [HttpGet("/QAForm/TraCuuMes/DuLieu")]
-        public async Task<IActionResult> TraCuuMesDuLieu(string? maPhoiMau, CancellationToken ct = default)
-        {
-            maPhoiMau = (maPhoiMau ?? "").Trim();
-            // Bắt buộc nhập đủ dài để không kéo cả kho dữ liệu MES về
-            if (maPhoiMau.Length < 4 || maPhoiMau.Length > 50)
-                return Json(new { thanhCong = false, thongBao = "Nhập mã phối màu (ít nhất 4 ký tự)." });
+        public Task<IActionResult> TraCuuMesDuLieu(string? maPhoiMau, string? maKhachHang, string? maHang, CancellationToken ct = default)
+            => TraCuuMesAsync(maPhoiMau, maKhachHang, maHang, lamMoi: false, ct);
 
-            // Trả hết 1 lần, trình duyệt không phải chuyển trang
-            var kq = await _mes.TraTatCaTheoPhoiMauAsync(maPhoiMau, ct);
+        // Gợi ý khi gõ vào ô lọc, lấy từ giá trị đang có trong bản sao DB. truong: ma | kh | hang
+        [HttpGet("/QAForm/TraCuuMes/GoiY")]
+        public async Task<IActionResult> TraCuuMesGoiY(string? truong, string? q, string? maPhoiMau, string? maKhachHang, string? maHang, CancellationToken ct = default)
+        {
+            truong = truong is "kh" or "hang" ? truong : "ma";
+            q = (q ?? "").Trim();
+            if (q.Length > 100) return Json(new { thanhCong = true, thongBao = "", duLieu = Array.Empty<string>() });
+            try
+            {
+                var ds = await _kho.GoiYAsync(truong, q, TaoLoc(maPhoiMau, maKhachHang, maHang), ct);
+                return Json(new { thanhCong = true, thongBao = "", duLieu = ds });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi gợi ý tra cứu MES");
+                return Json(new { thanhCong = false, thongBao = "Không đọc được gợi ý: " + ex.Message });
+            }
+        }
+
+        private const int SoNgayDongBoNgay = 7;
+
+        private static MesKhoService.LocTraCuu TaoLoc(string? ma, string? kh, string? hang)
+        {
+            static string Cat(string? s) { s = (s ?? "").Trim(); return s.Length > 100 ? s[..100] : s; }
+            return new(Cat(ma), Cat(kh), Cat(hang));
+        }
+
+        // Nút "Đồng bộ MES": có mã phối màu -> kéo lại riêng mã đó; để trống -> kéo lại cả SoNgayDongBoNgay ngày gần nhất,
+        // rồi trả kết quả theo bộ lọc đang nhập
+        [HttpPost("/QAForm/TraCuuMes/LamMoi")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> TraCuuMesLamMoi(string? maPhoiMau, string? maKhachHang, string? maHang, CancellationToken ct = default)
+            => TraCuuMesAsync(maPhoiMau, maKhachHang, maHang, lamMoi: true, ct);
+
+        private async Task<IActionResult> TraCuuMesAsync(string? maPhoiMau, string? maKhachHang, string? maHang, bool lamMoi, CancellationToken ct)
+        {
+            var loc = TaoLoc(maPhoiMau, maKhachHang, maHang);
+            // Để trống cả 3 ô = xem toàn bộ bản sao DB (mới nhất trước); có nhập mã phối màu thì đủ dài để không kéo cả kho MES về
+            if (loc.Ma.Length > 0 && (loc.Ma.Length < 4 || loc.Ma.Length > 50))
+                return Json(new { thanhCong = false, thongBao = "Mã phối màu cần ít nhất 4 ký tự (hoặc để trống)." });
+
+            string? dongBo = null;
+            MesKhoService.KetQuaKho kho;
+            if (lamMoi && loc.Ma.Length == 0)
+            {
+                var (soNgay, soDong, loiDongBo) = await _kho.DongBoGanDayAsync(SoNgayDongBoNgay, ct);
+                if (loiDongBo != null && soNgay == 0) return Json(new { thanhCong = false, thongBao = "Đồng bộ MES lỗi: " + loiDongBo });
+                dongBo = $"Đã đồng bộ {soNgay} ngày gần nhất từ MES ({soDong:N0} dòng)" + (loiDongBo != null ? " — dừng giữa chừng: " + loiDongBo : ".");
+                kho = await _kho.TraCuuAsync(loc, ct);
+            }
+            else kho = lamMoi ? await _kho.LamMoiTheoPhoiMauAsync(loc, ct) : await _kho.TraCuuAsync(loc, ct);
+            var kq = kho.Kq;
             if (!kq.ThanhCong) return Json(new { thanhCong = false, thongBao = kq.ThongBao });
 
+            var thongBao = "";
             try
             {
                 await _thung.GanMaThungAsync(kq.Dong!, ct);
             }
             catch (Exception ex)
             {
-                // Không đọc được bảng thùng vẫn cho xem dữ liệu MES, chỉ báo thiếu cột "Thùng"
+                // Không đọc được bảng thùng vẫn cho xem dữ liệu, chỉ báo thiếu cột "Thùng"
                 _logger.LogError(ex, "Không gắn được mã thùng QA cho kết quả tra cứu");
-                return Json(new { thanhCong = true, thongBao = "Không đọc được dữ liệu thùng: " + ex.Message,
-                    duLieu = new { tong = kq.Tong, tran = MesApiService.TranTongDong, dong = kq.Dong } });
+                thongBao = "Không đọc được dữ liệu thùng: " + ex.Message;
             }
-            return Json(new { thanhCong = true, thongBao = "", duLieu = new { tong = kq.Tong, tran = MesApiService.TranTongDong, dong = kq.Dong } });
+            return Json(new
+            {
+                thanhCong = true,
+                thongBao,
+                duLieu = new
+                {
+                    tong = kq.Tong,
+                    tran = MesApiService.TranTongDong,
+                    dong = kq.Dong,
+                    nguon = kho.Nguon,
+                    capNhatLuc = kho.CapNhatLuc?.ToString("dd/MM/yyyy HH:mm"),
+                    dongBo
+                }
+            });
         }
 
         // ===== THÙNG =====
@@ -113,7 +173,7 @@ namespace E_Form_Best.Areas.QAForm.Controllers
                 duLieu = new
                 {
                     thung = new { thung.IdThung, thung.MaThung, thung.TrangThai, thung.GhiChu, thung.NgayTao, thung.NguoiTao, thung.NgayDong, thung.NguoiDong,
-                        thung.IdKe, thung.Tang, thung.O, ViTri = QaKeService.MaViTri(thung.Ke?.MaKe, thung.Tang, thung.O) },
+                        thung.IdKe, thung.Tang, thung.O, ViTri = QaKeService.MaViTri(thung.Ke?.MaKe, thung.Tang, thung.O, thung.Ke?.SoTang ?? 0) },
                     dong = dong.Select(d => new
                     {
                         d.IdDong, d.MaPhoiMau, d.MaKhachCuoi, d.MaKhachHang, d.MaHang, d.MaMau, d.SlDonHang, d.SlDongGoi, d.KlDongGoi,
@@ -194,6 +254,13 @@ namespace E_Form_Best.Areas.QAForm.Controllers
 
         // ===== KỆ =====
 
+        // Trang quản lý kệ riêng (menu "Quản lý kệ"); cùng khung với nút "Kệ" ở trang Danh sách thùng
+        [HttpGet("/QAForm/Ke")]
+        public IActionResult Ke()
+        {
+            return View();
+        }
+
         [HttpGet("/QAForm/Ke/DanhSach")]
         public async Task<IActionResult> KeDanhSach(CancellationToken ct = default)
         {
@@ -236,6 +303,23 @@ namespace E_Form_Best.Areas.QAForm.Controllers
                 // Trùng mã kệ do 2 người lưu cùng lúc (UX_QA_Ke_MaKe_ConDung)
                 _logger.LogWarning(ex, "Lỗi lưu kệ QA");
                 return Json(new { thanhCong = false, thongBao = "Không lưu được (có thể trùng mã kệ với người khác vừa lưu), kiểm tra lại." });
+            }
+        }
+
+        // Tạo nhanh dãy kệ A..Z (bỏ qua mã đã có)
+        [HttpPost("/QAForm/Ke/TaoDay")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KeTaoDay([FromBody] QaKeService.TaoDayKeVao vao, CancellationToken ct = default)
+        {
+            try
+            {
+                var kq = await _ke.TaoDayKeAsync(vao, NguoiDung, ct);
+                return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao });
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogWarning(ex, "Lỗi tạo dãy kệ QA");
+                return Json(new { thanhCong = false, thongBao = "Không tạo được (có thể người khác vừa tạo cùng mã kệ), tải lại rồi thử lại." });
             }
         }
 
