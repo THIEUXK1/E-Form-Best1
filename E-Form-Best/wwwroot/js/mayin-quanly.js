@@ -148,12 +148,12 @@
             luuTru: dangXemLuuTru
         };
 
-        $('#mayinTableBody').html('<tr><td colspan="12" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
+        $('#mayinTableBody').html('<tr><td colspan="13" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>');
 
         $.getJSON('/QLMayIn/GetDanhSach', thamSo)
             .done(function (res) {
                 if (!res.thanhCong) {
-                    $('#mayinTableBody').html('<tr><td colspan="12" class="text-center text-danger py-4">'
+                    $('#mayinTableBody').html('<tr><td colspan="13" class="text-center text-danger py-4">'
                         + escapeHtml(res.thongBao || 'Không tải được dữ liệu') + '</td></tr>');
                     return;
                 }
@@ -169,7 +169,7 @@
                 $('#soLuuTru').text(dinhDangSo(res.tomTat.soLuuTru));
             })
             .fail(function () {
-                $('#mayinTableBody').html('<tr><td colspan="12" class="text-center text-danger py-4">Lỗi kết nối máy chủ.</td></tr>');
+                $('#mayinTableBody').html('<tr><td colspan="13" class="text-center text-danger py-4">Lỗi kết nối máy chủ.</td></tr>');
             });
     }
 
@@ -214,7 +214,7 @@
     function veBang(duLieu) {
 
         if (!duLieu || duLieu.length === 0) {
-            $('#mayinTableBody').html('<tr><td colspan="12" class="text-center text-muted py-4">Không có máy in nào khớp bộ lọc.</td></tr>');
+            $('#mayinTableBody').html('<tr><td colspan="13" class="text-center text-muted py-4">Không có máy in nào khớp bộ lọc.</td></tr>');
             return;
         }
 
@@ -237,6 +237,11 @@
             return '<tr class="js-dong-may" data-id="' + x.idMayIn + '" tabindex="0">'
                 + '<td class="js-o-chon" style="cursor:pointer;"><input type="checkbox" class="form-check-input js-chon-may" value="' + x.idMayIn + '" title="Chọn máy #' + x.idMayIn + '"></td>'
                 + '<td class="text-muted small">' + (i + 1) + '</td>'
+                // Loại máy do server xác định (đồng hồ màu → danh sách IT khai tay → mực C/M/Y)
+                + '<td>' + (x.laMau
+                        ? '<span class="mayin-loai mayin-loai-mau" title="Máy in màu">Màu</span>'
+                        : '<span class="mayin-loai mayin-loai-dt" title="Máy in đen trắng">Đ/T</span>')
+                + '</td>'
                 // Mã #id trong DB để đối chiếu nhanh với bảng MayIn khi tra lỗi / soạn script
                 + '<td class="small">' + dongChu(x.boPhan, 'fw-bold') + dongChu(x.viTri, 'text-muted')
                     + '<div class="text-muted" style="font-size:.7rem;">#' + x.idMayIn + '</div></td>'

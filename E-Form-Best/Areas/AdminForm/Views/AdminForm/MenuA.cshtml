@@ -36,7 +36,7 @@
 
     @* Hiệu ứng nền theo mùa & ngày lễ — mặc định TẮT, bật bằng nút ở góc phải trên *@
     <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=21" />
-    <script src="~/js/hieu-ung-mua.js?v=30"></script>
+    <script src="~/js/hieu-ung-mua.js?v=202611130826"></script>
     <script src="~/js/menu-tai-khoan.js?v=1" defer></script>
 
     <style>
@@ -338,6 +338,17 @@
                     <div class="icon-emoji" style="font-size: 50px; margin-bottom: 10px;">🎯</div>
                     <span style="font-size: 28px; font-weight: 800; letter-spacing: 2px;">WORK</span>
                     <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Task Assign</small>
+                </a>
+            }
+
+            @* Khối QA: đang dựng, chỉ quyền All thấy (controller cũng chặn Roles = "All") *@
+            @if (User.IsInRole("All"))
+            {
+                <a href="/QAForm/Logo" class="menu-card"
+                   style="width: 220px; height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border-radius: 30px; border: 1px solid rgba(0, 212, 255, 0.2); color: white; text-decoration: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;">
+                    <div class="icon-emoji" style="font-size: 50px; margin-bottom: 10px;">✅</div>
+                    <span style="font-size: 28px; font-weight: 800; letter-spacing: 2px;">QA</span>
+                    <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Quality Assurance</small>
                 </a>
             }
         </div>

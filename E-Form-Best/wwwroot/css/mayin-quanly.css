@@ -104,16 +104,19 @@
         padding: 0.4rem 0.35rem;
     }
 
+    /* Cột: 1 chọn · 2 # · 3 Loại (màu/đen trắng) · 4 Bộ phận · 5 Model · 6 Tên máy/IP ·
+       7 Chỉ số · 8 Hôm nay · 9 7 ngày · 10 30 ngày · 11 Mực/Trống · 12 Trạng thái · 13 nút */
     .mayin-bang thead th:nth-child(1) { width: 34px; }
-    .mayin-bang thead th:nth-child(2) { width: 12%; }
-    .mayin-bang thead th:nth-child(3) { width: 12%; }
-    .mayin-bang thead th:nth-child(5) { width: 10%; }
-    .mayin-bang thead th:nth-child(6),
+    .mayin-bang thead th:nth-child(2) { width: 32px; }
+    .mayin-bang thead th:nth-child(3) { width: 46px; }
+    .mayin-bang thead th:nth-child(4) { width: 12%; }
+    .mayin-bang thead th:nth-child(6) { width: 10%; }
     .mayin-bang thead th:nth-child(7),
-    .mayin-bang thead th:nth-child(8) { width: 7.5%; }
-    .mayin-bang thead th:nth-child(9) { width: 11%; }
-    .mayin-bang thead th:nth-child(10) { width: 10%; }
-    .mayin-bang thead th:nth-child(11) { width: 108px; }
+    .mayin-bang thead th:nth-child(8),
+    .mayin-bang thead th:nth-child(9) { width: 7.5%; }
+    .mayin-bang thead th:nth-child(10) { width: 11%; }
+    .mayin-bang thead th:nth-child(11) { width: 10%; }
+    .mayin-bang thead th:nth-child(12) { width: 108px; }
 
     /* Hai bảng "Ai đã in" dùng chung .mayin-bang nên phải gỡ độ rộng của bảng danh sách 16 cột ở trên */
     .mayin-bang.mayin-bang-lsi thead th { width: auto; }
@@ -345,3 +348,23 @@ html.fp-lock .mayin-dai-the-so {
         outline: 2px solid #0ea5e9;
         outline-offset: -2px;
     }
+
+
+/* Nhãn cột Loại: máy màu nổi bật để dễ thấy, đen trắng để nhạt */
+.mayin-loai {
+    display: inline-block;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: .65rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.mayin-loai-mau {
+    color: #fff;
+    background: linear-gradient(90deg, #06b6d4, #ec4899, #eab308);
+}
+.mayin-loai-dt {
+    color: #475569;
+    background: #e2e8f0;
+}

@@ -376,7 +376,8 @@
     // Trang chủ: hạt phủ toàn màn hình. Các trang có layout: hạt chỉ rơi trong
     // khung menu bên trái, nằm sau chữ và biểu tượng của menu.
     function khungChua() {
-        return document.getElementById("nenTrangChu") ? null : document.getElementById("sidebar");
+        // Layout QA đặt id riêng cho menu (#qa-sidebar) nên phải tìm cả hai
+        return document.getElementById("nenTrangChu") ? null : (document.getElementById("sidebar") || document.getElementById("qa-sidebar"));
     }
 
     function taoCanvas() {
@@ -675,7 +676,7 @@
     // le: chủ đề lễ đang chạy (null = mùa); muc: 0–3 theo MUC_LE
     function batHat(cauHinh, le, muc) {
         // Trang có layout mà chưa dựng xong menu thì thôi, lát nữa gọi lại
-        if (!document.getElementById("nenTrangChu") && !document.getElementById("sidebar")) return;
+        if (!document.getElementById("nenTrangChu") && !khungChua()) return;
         mauHat = cauHinh.mau || "#ffffff";
         kieuHat = cauHinh.kieu || "chu";
         mucDangChay = MUC_LE[muc] || null;
@@ -870,7 +871,7 @@
         // DOMContentLoaded (phải chờ cả ảnh/script cuối trang) — đợi thì có một
         // quãng menu trống rồi sao mới hiện ra, nhìn như hiệu ứng bị tải lại.
         (function choKhung() {
-            if (document.getElementById("nenTrangChu") || document.getElementById("sidebar")) {
+            if (document.getElementById("nenTrangChu") || khungChua()) {
                 apDung();
                 return;
             }

@@ -98,8 +98,16 @@
             return '<span class="badge rounded-pill ' + lop + ' me-1 mb-1">' + c.cong + ' ' + escapeHtml(c.ten) + '</span>';
         }).join('');
 
+        // Ghi rõ đang quét IP nào (lấy từ DB) để đối chiếu khi máy đổi IP mà danh mục chưa cập nhật
+        var ip = mayDangXem && mayDangXem.diaChiIp;
+        var dongIp = ip
+            ? escapeHtml(ip) + ' <a href="http://' + encodeURIComponent(ip) + '/" target="_blank" rel="noopener"'
+                + ' class="ms-1 text-decoration-none" title="Mở trang web của máy in"><i class="fa fa-arrow-up-right-from-square"></i></a>'
+            : null;
+
         return khoiVuong('<i class="fa fa-network-wired me-1"></i> Mạng',
-            dongThongTin('Ping', trangThai)
+            dongThongTin('IP trong DB', dongIp)
+            + dongThongTin('Ping', trangThai)
             + dongThongTin('Thời gian phản hồi', mang.thoiGianMs === null ? null : mang.thoiGianMs + ' ms')
             + dongThongTin('TTL', mang.ttl === null ? null : mang.ttl + (mang.soRouter ? ' (qua ' + mang.soRouter + ' router)' : ' (cùng lớp mạng)'))
             + '<div class="mt-2">' + (cong || '<span class="text-muted small">Không dò được cổng nào</span>') + '</div>');
@@ -397,7 +405,7 @@
             + dongThongTin('Bộ phận', trong(m.boPhan))
             + dongThongTin('Vị trí', trong(m.viTri));
 
-        var ketNoi = dongThongTin('Địa chỉ IP', m.diaChiIp ? escapeHtml(m.diaChiIp) : '<span class="text-muted">cắm USB / không nối mạng</span>')
+        var ketNoi = dongThongTin('Địa chỉ IP (DB)', m.diaChiIp ? escapeHtml(m.diaChiIp) : '<span class="text-muted">cắm USB / không nối mạng</span>')
             + dongThongTin('Trạng thái', nhanTrangThai(m.trangThai))
             + dongThongTin('Đọc tự động', m.theoDoiTuDong
                 ? '<span class="text-success">Có</span>'

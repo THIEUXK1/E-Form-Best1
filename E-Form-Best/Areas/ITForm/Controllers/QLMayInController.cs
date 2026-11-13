@@ -265,10 +265,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 {
                     IdMayIn = c.IdMayIn, NgayChot = c.NgayChot, CounterTong = c.CounterTong,
                     CounterIn = c.CounterIn, CounterCopy = c.CounterCopy, CounterScan = c.CounterScan,
+                    CounterInMau = c.CounterInMau,
                     TonerPhanTram = c.TonerPhanTram, DrumPhanTram = c.DrumPhanTram,
                     VatTuJson = c.VatTuJson, TrangThaiThietBi = c.TrangThaiThietBi
                 })
                 .ToListAsync();
+
+            var khoaMayMau = LayKhoaMayMau();
 
             var theoMay = dsChiSo.GroupBy(c => c.IdMayIn)
                                  .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.NgayChot).ToList());
@@ -283,6 +286,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 theoMay.TryGetValue(m.IdMayIn, out var lichSu);
                 var moiNhat = lichSu?.FirstOrDefault();
+                var vatTu = PhanTichVatTu(moiNhat?.VatTuJson);
+
+                // Cùng căn cứ với file Excel theo tháng: máy tự báo đồng hồ in màu → danh sách IT
+                // khai tay → đoán theo mực C/M/Y, model, ghi chú.
+                var laMau = (lichSu?.Any(x => x.CounterInMau != null) ?? false)
+                         || TrongDanhSachMayMau(khoaMayMau, m.BoPhan, m.Serial)
+                         || PhanLoaiMau(vatTu, m.Model, m.GhiChu) == "Màu";
 
                 // Trang in trong N ngày = chênh lệch counter giữa bản đọc mới nhất và bản đọc
                 // cũ nhất còn nằm trong khoảng đó. Thiếu mốc cũ thì không suy ra được → null.
@@ -343,7 +353,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     Toner = moiNhat?.TonerPhanTram,
                     Drum = moiNhat?.DrumPhanTram,
                     // Máy in màu: danh sách đầy đủ từng mực/trống để hover lên thanh là thấy màu nào sắp hết
-                    VatTu = PhanTichVatTu(moiNhat?.VatTuJson),
+                    VatTu = vatTu,
+                    LaMau = laMau,
                     TrangThaiThietBi = moiNhat?.TrangThaiThietBi,
                     TrangInHomNay = TrangInHomNay(c => c.CounterTong),
                     TrangIn7Ngay = TrangIn(7, c => c.CounterTong),
@@ -357,12 +368,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                     m.NguoiLuuTru
                 };
             })
-            // Thứ tự cuối cùng: máy đọc được mực/trống → máy đang bật → máy có IP nhưng không
-            // phản hồi → máy cắm USB/không IP. Máy có số mực là nhóm cần theo dõi sát nhất vì
-            // biết trước lúc phải thay vật tư.
-            .OrderByDescending(x => x.Toner != null || x.Drum != null)
+            // Thứ tự cuối cùng: máy cắm USB/không IP luôn xuống cuối (kể cả máy màu, vì không
+            // theo dõi qua mạng được). Trong nhóm có IP: máy màu lên đầu (IT theo dõi riêng vì
+            // mực màu đắt) → máy đọc được mực/trống → máy đang bật → máy không phản hồi.
+            .OrderBy(x => x.DiaChiIp == null)
+            .ThenByDescending(x => x.LaMau)
+            .ThenByDescending(x => x.Toner != null || x.Drum != null)
             .ThenByDescending(x => x.Online)
-            .ThenBy(x => x.DiaChiIp == null)
             .ThenBy(x => x.BoPhan)
             .ThenBy(x => x.ViTri)
             .ToList();

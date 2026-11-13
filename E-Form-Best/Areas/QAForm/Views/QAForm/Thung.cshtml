@@ -1,0 +1,268 @@
+@{
+    ViewData["Title"] = "Danh sách thùng QA";
+    Layout = "~/Areas/QAForm/Views/Shared/_Layout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="qa-card">
+    <div class="qa-mes-tom">
+        <span id="qa-thung-tom">Đang tải...</span>
+        <div class="qa-thung-loc">
+            <select id="qa-thung-loc" class="form-select form-select-sm">
+                <option value="">Tất cả</option>
+                <option value="Mo">Đang mở</option>
+                <option value="DaDong">Đã đóng</option>
+            </select>
+            <select id="qa-thung-loc-ke" class="form-select form-select-sm" title="Lọc theo kệ">
+                <option value="">Mọi kệ</option>
+                <option value="0">Chưa xếp kệ</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="qa-ke-mo" title="Thêm, sửa kệ và xem sơ đồ ô"><i class="fa fa-th"></i> Kệ</button>
+            <select id="qa-thung-tem-mau" class="form-select form-select-sm" title="Mẫu tem dùng khi bấm In tem"></select>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="qa-thung-tem-tuychinh" title="Chọn khổ, nội dung, cỡ chữ của tem"><i class="fa fa-sliders"></i> Tùy chỉnh tem</button>
+            <a href="/QAForm/TraCuuMes" class="btn btn-sm qa-btn"><i class="fa fa-plus"></i> Tạo thùng từ tra cứu</a>
+        </div>
+    </div>
+    <div id="qa-thung-thongbao" class="qa-mes-thongbao" role="status"></div>
+    <div id="qa-xep-thanh" class="qa-ct-vitri qa-xep-thanh" hidden>
+        <span class="qa-ct-vitri-nhan"><i class="fa fa-check-square-o"></i> Đã chọn <b id="qa-xep-so">0</b> thùng → </span>
+        <input type="text" id="qa-xep-vitri" class="form-control form-control-sm qa-xep-vitri" maxlength="40" placeholder="Vị trí, vd A-2-3" title="Mã kệ-tầng-ô; Enter để gán">
+        <button type="button" class="btn btn-sm btn-success" id="qa-xep-luu"><i class="fa fa-check"></i> Gán</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="qa-xep-go"><i class="fa fa-sign-out"></i> Gỡ khỏi kệ</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-xep-bo">Bỏ chọn</button>
+    </div>
+    <div class="qa-mes-bang-wrap qa-thung-ds-wrap">
+        <table class="qa-mes-bang">
+            <thead>
+                <tr>
+                    <th class="qa-mes-chon"><input type="checkbox" class="form-check-input" id="qa-thung-chon-het" title="Chọn tất cả thùng đang hiện"></th>
+                    <th>Mã thùng</th>
+                    <th>Trạng thái</th>
+                    <th>Vị trí</th>
+                    <th>Số dòng</th>
+                    <th>Tổng (m)</th>
+                    <th>Tổng (kg)</th>
+                    <th>Số hộp</th>
+                    <th>Ngày tạo</th>
+                    <th>Người tạo</th>
+                    <th>Ghi chú</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="qa-thung-tbody">
+                <tr><td colspan="12" class="qa-mes-trong">Đang tải...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="qa-card" id="qa-ke-khung" hidden>
+    <div class="qa-mes-tom">
+        <span id="qa-ke-tom">Kệ chứa thùng</span>
+        <span class="qa-thung-nut">
+            <button type="button" class="btn btn-sm qa-btn" id="qa-ke-them"><i class="fa fa-plus"></i> Thêm kệ</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ke-an"><i class="fa fa-times"></i> Đóng</button>
+        </span>
+    </div>
+    <form id="qa-ke-form" class="qa-ke-form" hidden autocomplete="off">
+        <input type="hidden" id="qa-ke-id">
+        <label class="qa-tem-o"><span>Mã kệ *</span><input type="text" class="form-control form-control-sm" id="qa-ke-ma" maxlength="20" required placeholder="VD: A"></label>
+        <label class="qa-tem-o"><span>Tên kệ</span><input type="text" class="form-control form-control-sm" id="qa-ke-ten" maxlength="100"></label>
+        <label class="qa-tem-o"><span>Khu vực đặt kệ</span><input type="text" class="form-control form-control-sm" id="qa-ke-khuvuc" maxlength="100" placeholder="VD: Kho QA - dãy 1"></label>
+        <label class="qa-tem-o qa-ke-so"><span>Số tầng *</span><input type="number" class="form-control form-control-sm" id="qa-ke-tang" min="1" max="50" value="3" required></label>
+        <label class="qa-tem-o qa-ke-so"><span>Ô mỗi tầng *</span><input type="number" class="form-control form-control-sm" id="qa-ke-o" min="1" max="50" value="4" required></label>
+        <label class="qa-tem-o"><span>Ghi chú</span><input type="text" class="form-control form-control-sm" id="qa-ke-ghichu" maxlength="500"></label>
+        <span class="qa-ke-form-nut">
+            <button type="submit" class="btn btn-sm btn-success" id="qa-ke-luu"><i class="fa fa-save"></i> Lưu kệ</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ke-huy">Huỷ</button>
+        </span>
+    </form>
+    <div id="qa-ke-thongbao" class="qa-mes-thongbao" role="status"></div>
+    <div class="qa-mes-bang-wrap qa-ke-ds-wrap">
+        <table class="qa-mes-bang">
+            <thead>
+                <tr>
+                    <th>Mã kệ</th>
+                    <th>Tên kệ</th>
+                    <th>Khu vực</th>
+                    <th>Tầng × ô</th>
+                    <th>Số thùng</th>
+                    <th>Ghi chú</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="qa-ke-tbody">
+                <tr><td colspan="7" class="qa-mes-trong">Đang tải...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="qa-ke-sodo-khung" hidden>
+        <h6 class="qa-ct-lichsu-tieude" id="qa-ke-sodo-tieude"></h6>
+        <div class="qa-ke-sodo-ghichu">Tầng 1 sát sàn. Bấm mã thùng để xem chi tiết; đã tích thùng ở danh sách (hoặc đang xem chi tiết một thùng) thì bấm ô để chọn vị trí cho thùng đó.</div>
+        <div class="qa-ke-sodo-wrap"><div id="qa-ke-sodo" class="qa-ke-sodo"></div></div>
+    </div>
+</div>
+
+<div class="qa-card" id="qa-thung-chitiet" hidden>
+    <div class="qa-mes-tom">
+        <span id="qa-ct-tieude"></span>
+        <span class="qa-thung-nut">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-hien-cot="qa-ct-bang" title="Chỉ cột quan trọng (tô vàng trong file đóng gói) hiện mặc định"><i class="fa fa-columns"></i> <span>Hiện tất cả cột</span></button>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="qa-ct-in"><i class="fa fa-print"></i> In tem</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ct-dong"><i class="fa fa-times"></i> Đóng chi tiết</button>
+        </span>
+    </div>
+    <div id="qa-ct-bo-thanh" class="qa-ct-bo-thanh" hidden>
+        <span>Đã chọn <b id="qa-ct-bo-so">0</b> dòng</span>
+        <button type="button" class="btn btn-sm btn-danger" id="qa-ct-bo-ra"><i class="fa fa-sign-out"></i> Bỏ ra khỏi thùng</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ct-bo-huy">Bỏ chọn</button>
+    </div>
+    <div class="qa-ct-vitri">
+        <span class="qa-ct-vitri-nhan"><i class="fa fa-map-marker"></i> Vị trí: <b id="qa-ct-vitri-hien">—</b></span>
+        <select id="qa-ct-ke" class="form-select form-select-sm" title="Kệ"><option value="">-- Chọn kệ --</option></select>
+        <select id="qa-ct-tang" class="form-select form-select-sm" title="Tầng"></select>
+        <select id="qa-ct-o" class="form-select form-select-sm" title="Ô"></select>
+        <button type="button" class="btn btn-sm btn-success" id="qa-ct-xep"><i class="fa fa-check"></i> Xếp vào kệ</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="qa-ct-go" hidden><i class="fa fa-sign-out"></i> Gỡ khỏi kệ</button>
+    </div>
+    <div class="qa-mes-bang-wrap">
+        <table class="qa-mes-bang" id="qa-ct-bang">
+            <thead>
+                <tr>
+                    <th class="qa-mes-chon"><input type="checkbox" class="form-check-input" id="qa-ct-chon-het" title="Chọn tất cả dòng"></th>
+                    <th>#</th>
+                    <th>Mã phối màu</th>
+                    <th class="qa-cot-phu">Mã khách cuối</th>
+                    <th>Mã khách hàng</th>
+                    <th>Mã hàng</th>
+                    <th>Mã màu</th>
+                    <th>SL đơn hàng</th>
+                    <th>SL đóng gói (m)</th>
+                    <th class="qa-cot-phu">KL đóng gói (kg)</th>
+                    <th>Số hộp</th>
+                    <th title="Nhập tay; Enter để lưu và xuống dòng dưới">Số bản</th>
+                    <th>Loại</th>
+                    <th class="qa-cot-phu">Mô tả bất thường</th>
+                    <th class="qa-cot-phu">Số phiếu nhuộm</th>
+                    <th>Ngày đóng gói</th>
+                    <th class="qa-cot-phu">Số phiếu đóng gói</th>
+                    <th>Mã NV đóng gói</th>
+                    <th>Bỏ vào lúc</th>
+                    <th>Người bỏ vào</th>
+                </tr>
+            </thead>
+            <tbody id="qa-ct-tbody"></tbody>
+        </table>
+    </div>
+    <div id="qa-ct-tongban" class="qa-ct-tongban"></div>
+    <h6 class="qa-ct-lichsu-tieude">Nhật ký thùng</h6>
+    <ul id="qa-ct-lichsu" class="qa-ct-lichsu"></ul>
+</div>
+
+<div class="modal fade" id="qa-tem-modal" tabindex="-1" aria-labelledby="qa-tem-modal-tieude" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qa-tem-modal-tieude"><i class="fa fa-print"></i> Tùy chỉnh tem dán thùng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="qa-tem-luoi">
+                    <div id="qa-tem-form" class="qa-tem-form">
+                        <div class="qa-tem-nhom">
+                            <h6>Mẫu tem</h6>
+                            <select id="qa-tem-mau" class="form-select form-select-sm"></select>
+                            <label class="qa-tem-o qa-tem-o-rong"><span>Tên mẫu</span><input type="text" class="form-control form-control-sm" data-k="ten" maxlength="60"></label>
+                        </div>
+                        <div class="qa-tem-nhom">
+                            <h6>Khổ tem (mm)</h6>
+                            <select id="qa-tem-kho" class="form-select form-select-sm">
+                                <option value="">Tự nhập</option>
+                                <option value="100x150">100 × 150</option>
+                                <option value="100x100">100 × 100</option>
+                                <option value="100x75">100 × 75</option>
+                                <option value="100x50">100 × 50</option>
+                                <option value="80x60">80 × 60</option>
+                                <option value="70x50">70 × 50</option>
+                                <option value="60x40">60 × 40</option>
+                                <option value="50x30">50 × 30</option>
+                                <option value="148x210">A5 dọc (148 × 210)</option>
+                                <option value="210x148">A5 ngang (210 × 148)</option>
+                            </select>
+                            <div class="qa-tem-hang">
+                                <label class="qa-tem-o"><span>Rộng</span><input type="number" class="form-control form-control-sm" data-k="rong" id="qa-tem-rong" min="20" max="300" step="1"></label>
+                                <label class="qa-tem-o"><span>Cao</span><input type="number" class="form-control form-control-sm" data-k="cao" id="qa-tem-cao" min="15" max="300" step="1"></label>
+                                <label class="qa-tem-o"><span>Lề</span><input type="number" class="form-control form-control-sm" data-k="le" min="0" max="15" step="0.5"></label>
+                            </div>
+                        </div>
+                        <div class="qa-tem-nhom">
+                            <h6>Nội dung in</h6>
+                            <div class="qa-tem-tich">
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="tieuDe"> Dòng tiêu đề</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="ngayTao"> Ngày tạo</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="maThung"> Mã thùng (chữ to)</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="maVach"> Mã vạch</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="qr"> Mã QR</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="tong"> Ô tổng dòng/m/kg/hộp</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="khachHang"> Khách hàng</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="ghiChu"> Ghi chú thùng</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="bang"> Bảng chi tiết</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="nguoiTao"> Người tạo</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="ngayIn"> Ngày in</label>
+                            </div>
+                            <label class="qa-tem-o qa-tem-o-rong"><span>Chữ tiêu đề</span><input type="text" class="form-control form-control-sm" data-k="tieuDe" maxlength="40"></label>
+                            <label class="qa-tem-o qa-tem-o-rong"><span>Dòng chữ in thêm (để trống nếu không cần)</span><input type="text" class="form-control form-control-sm" data-k="chuThem" maxlength="120"></label>
+                        </div>
+                        <div class="qa-tem-nhom">
+                            <h6>Cỡ (mm)</h6>
+                            <div class="qa-tem-hang">
+                                <label class="qa-tem-o"><span>Chữ mã thùng</span><input type="number" class="form-control form-control-sm" data-k="coMa" min="3" max="30" step="0.5"></label>
+                                <label class="qa-tem-o"><span>Cao mã vạch</span><input type="number" class="form-control form-control-sm" data-k="caoVach" min="5" max="60" step="1"></label>
+                                <label class="qa-tem-o"><span>Cạnh QR</span><input type="number" class="form-control form-control-sm" data-k="coQr" min="8" max="80" step="1"></label>
+                                <label class="qa-tem-o"><span>Chữ nội dung</span><input type="number" class="form-control form-control-sm" data-k="coChu" min="1.5" max="8" step="0.1"></label>
+                            </div>
+                        </div>
+                        <div class="qa-tem-nhom">
+                            <h6>Cột bảng chi tiết</h6>
+                            <div class="qa-tem-tich">
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="maPhoiMau"> Mã phối màu</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="maHang"> Mã hàng</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="maMau"> Mã màu</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="maKhachHang"> Mã KH</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="maKhachCuoi"> KH cuối</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="soPhieuNhuom"> Phiếu nhuộm</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="soPhieuDongGoi"> Phiếu đóng gói</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="loai"> Loại</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="m"> Mét</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="kg"> Kg</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-cot="hop"> Số hộp</label>
+                            </div>
+                            <label class="form-check"><input type="checkbox" class="form-check-input" data-k="gop"> Gộp các dòng trùng cột chữ (cộng dồn m/kg/hộp)</label>
+                        </div>
+                    </div>
+                    <div class="qa-tem-xem-cot">
+                        <div id="qa-tem-xem-khung" class="qa-tem-xem-khung"><iframe id="qa-tem-xem" title="Xem trước tem"></iframe></div>
+                        <div id="qa-tem-xem-ghichu" class="qa-tem-xem-ghichu"></div>
+                        <div id="qa-tem-thongbao" class="qa-tem-thongbao" role="status"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-danger me-auto" data-lenh="xoa"><i class="fa fa-trash"></i> Xoá mẫu</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-lenh="macdinh"><i class="fa fa-undo"></i> Mẫu mặc định</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-lenh="inthu"><i class="fa fa-print"></i> In thử</button>
+                <button type="button" class="btn btn-sm btn-outline-success" data-lenh="luumoi"><i class="fa fa-copy"></i> Lưu thành mẫu mới</button>
+                <button type="button" class="btn btn-sm btn-success" data-lenh="luu"><i class="fa fa-save"></i> Lưu mẫu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="~/js/qa-thung-tem.js?v=2"></script>
+    <script src="~/js/qa-ke.js?v=2"></script>
+    <script src="~/js/qa-thung.js?v=10"></script>
+}

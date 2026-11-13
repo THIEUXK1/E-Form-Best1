@@ -119,6 +119,14 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<HrTemInLichSu> HrTemInLichSus { get; set; }
 
+    public virtual DbSet<QaThung> QaThungs { get; set; }
+
+    public virtual DbSet<QaThungDong> QaThungDongs { get; set; }
+
+    public virtual DbSet<QaThungLichSu> QaThungLichSus { get; set; }
+
+    public virtual DbSet<QaKe> QaKes { get; set; }
+
     public virtual DbSet<HrNhaThauQuaCong6> HrNhaThauQuaCong6s { get; set; }
 
     public virtual DbSet<HrQuanLyDuyetB2> HrQuanLyDuyetB2s { get; set; }

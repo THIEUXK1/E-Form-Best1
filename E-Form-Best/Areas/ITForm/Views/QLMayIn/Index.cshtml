@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 @* Dự án không đăng ký Tag Helper nên "~/" không phân giải được — dùng đường dẫn tuyệt đối + tự đánh version *@
 <link rel="stylesheet" href="/css/fixed-page-layout.css?v=202610270831">
-<link rel="stylesheet" href="/css/mayin-quanly.css?v=202611031627">
+<link rel="stylesheet" href="/css/mayin-quanly.css?v=202611111600">
 
 <div class="main-card" data-fp-card>
 
@@ -117,6 +117,7 @@
                 <tr>
                     <th style="width:28px;"><input type="checkbox" class="form-check-input" id="chonTatCa" title="Chọn tất cả máy đang hiện"></th>
                     <th>#</th>
+                    <th title="Máy in màu hay đen trắng">Loại</th>
                     <th>Bộ phận<br><span class="mayin-th-phu">Vị trí</span></th>
                     <th>Model<br><span class="mayin-th-phu">Serial</span></th>
                     <th>Tên máy in<br><span class="mayin-th-phu">IP</span></th>
@@ -130,7 +131,7 @@
                 </tr>
             </thead>
             <tbody id="mayinTableBody">
-                <tr><td colspan="12" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
+                <tr><td colspan="13" class="text-center text-muted py-4">Đang tải dữ liệu...</td></tr>
             </tbody>
         </table>
     </div>
@@ -253,6 +254,6 @@
 
 @section Scripts {
     <script src="/js/fixed-page-layout.js?v=202610270831" defer></script>
-    <script src="/js/mayin-quanly.js?v=202611101630"></script>
+    <script src="/js/mayin-quanly.js?v=202611111600"></script>
 }
 

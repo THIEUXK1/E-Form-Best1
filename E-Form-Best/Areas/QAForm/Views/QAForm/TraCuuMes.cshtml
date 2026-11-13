@@ -1,0 +1,75 @@
+@{
+    ViewData["Title"] = "Tra cứu mã phối màu (NH-MES)";
+    Layout = "~/Areas/QAForm/Views/Shared/_Layout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="qa-card">
+    <form id="qa-mes-form" class="qa-mes-form" autocomplete="off">
+        <label for="qa-mes-ma" class="qa-mes-label">Mã phối màu</label>
+        <input id="qa-mes-ma" name="maPhoiMau" type="text" class="form-control" maxlength="50" placeholder="VD: P2610230294022" />
+        <button type="submit" id="qa-mes-nut" class="btn qa-btn"><i class="fa fa-search"></i> Tra cứu</button>
+        <button type="button" id="qa-mes-lammoi" class="btn btn-outline-secondary" title="Xoá kết quả và các dòng đã tích"><i class="fa fa-refresh"></i> Làm mới</button>
+    </form>
+    <div id="qa-mes-thongbao" class="qa-mes-thongbao" role="status"></div>
+</div>
+
+<div class="qa-card qa-mes-ketqua">
+    <div class="qa-mes-tom">
+        <span id="qa-mes-tong">Nhập mã phối màu rồi bấm Tra cứu.</span>
+        <span id="qa-mes-dachon" class="qa-mes-dachon"></span>
+    </div>
+
+    @* Thanh thao tác thùng: chỉ bật khi đã tích ít nhất 1 dòng *@
+    <div class="qa-thung-thanh" id="qa-thung-thanh">
+        <input type="text" id="qa-thung-ghichu" class="form-control form-control-sm" maxlength="500" placeholder="Ghi chú thùng mới (không bắt buộc)" />
+        <button type="button" class="btn btn-sm qa-btn" id="qa-thung-tao" disabled><i class="fa fa-cube"></i> Tạo thùng mới</button>
+        <span class="qa-thung-hoac">hoặc</span>
+        <select id="qa-thung-chon" class="form-select form-select-sm">
+            <option value="">— Chọn thùng đang mở —</option>
+        </select>
+        <button type="button" class="btn btn-sm btn-outline-success" id="qa-thung-them" disabled><i class="fa fa-plus"></i> Thêm vào thùng</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="qa-thung-bora" disabled title="Bỏ các dòng đang ở thùng (đã tích) ra khỏi thùng"><i class="fa fa-sign-out"></i> Bỏ ra khỏi thùng</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-hien-cot="qa-mes-bang" title="Chỉ cột quan trọng (tô vàng trong file đóng gói) hiện mặc định"><i class="fa fa-columns"></i> <span>Hiện tất cả cột</span></button>
+        <a href="/QAForm/Thung" class="qa-thung-link"><i class="fa fa-cubes"></i> Danh sách thùng</a>
+    </div>
+
+    <div class="qa-mes-bang-wrap">
+        <table class="qa-mes-bang" id="qa-mes-bang">
+            <thead>
+                <tr>
+                    <th class="qa-mes-chon"><input type="checkbox" id="qa-mes-chon-het" class="form-check-input" title="Chọn tất cả dòng chưa vào thùng" disabled /></th>
+                    <th>#</th>
+                    <th>Thùng</th>
+                    <th class="qa-cot-phu">Mã khách cuối</th>
+                    <th>Mã phối màu</th>
+                    <th>Mã khách hàng</th>
+                    <th>Mã hàng</th>
+                    <th>Mã màu</th>
+                    <th>SL đơn hàng</th>
+                    <th>SL đóng gói (m)</th>
+                    <th class="qa-cot-phu">KL đóng gói (kg)</th>
+                    <th class="qa-cot-phu">Ghi chú</th>
+                    <th>Số hộp</th>
+                    <th>Loại</th>
+                    <th class="qa-cot-phu">Mô tả bất thường</th>
+                    <th class="qa-cot-phu">Ý kiến xử lý QC</th>
+                    <th class="qa-cot-phu">Công đoạn</th>
+                    <th class="qa-cot-phu">Số phiếu nhuộm</th>
+                    <th class="qa-cot-phu">Ngày nhận hàng</th>
+                    <th>Ngày đóng gói</th>
+                    <th class="qa-cot-phu">Số phiếu đóng gói</th>
+                    <th>Mã NV đóng gói</th>
+                </tr>
+            </thead>
+            <tbody id="qa-mes-tbody">
+                <tr><td colspan="22" class="qa-mes-trong">Chưa có dữ liệu.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/qa-tra-cuu-mes.js?v=10"></script>
+}

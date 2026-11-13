@@ -144,6 +144,10 @@ builder.Services.AddScoped<WlcMacService>();
 // Thêm MAC PDA/TV vào RADIUS (DaloRADIUS) qua app automation, form riêng cạnh nút WLC ở đơn Wi-Fi
 builder.Services.AddHttpClient(RadiusMacService.TenHttpClient, client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<RadiusMacService>();
+// QA: tra dữ liệu đóng gói NH-MES; singleton để giữ cookie phiên SSO OA giữa các lần tra
+builder.Services.AddSingleton<E_Form_Best.Areas.QAForm.Services.MesApiService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.QaThungService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.QaKeService>();
 // Bản chụp MAC trên WLC (KK_WlcMac) cho bảng MAC ở đơn Wi-Fi; chỉ quét khi IT bấm "Kiểm tra trên WLC" (bằng tài khoản domain IT nhập)
 builder.Services.AddScoped<WlcMacQuetService>();
 builder.Services.AddHostedService<AccessPointPingWorker>();

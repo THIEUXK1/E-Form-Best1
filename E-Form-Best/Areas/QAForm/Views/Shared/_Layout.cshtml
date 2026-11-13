@@ -1,0 +1,135 @@
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var currentUserName = User.Identity?.Name ?? "Khách";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - QA Quality Assurance</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✅</text></svg>">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    @* Thanh công cụ dùng chung với các phân hệ khác: ngôn ngữ, % kích thước, cài đặt giao diện *@
+    <link rel="stylesheet" href="~/css/dang-xem-don.css?v=12" />
+    <link rel="stylesheet" href="~/css/mau-chu-dao.css?v=8" />
+    <script src="~/js/mau-chu-dao.js?v=16"></script>
+    <script src="~/js/menu-thu-gon.js?v=11"></script>
+    <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=202611021659" />
+    <script src="~/js/hieu-ung-mua.js?v=202611121" ></script>
+    <link rel="stylesheet" href="~/css/qa-layout.css?v=15" />
+    @* Mức % kích thước: áp ngay trong head để trang không vẽ 100% rồi mới co lại *@
+    <script src="~/js/zoom-som.js?v=1"></script>
+    <script src="~/js/google-translate-init.js?v=2"></script>
+    <script async src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="qa-backdrop" id="qa-backdrop"></div>
+
+    <aside id="qa-sidebar" translate="no">
+        <a href="/" class="qa-brand">
+            <div class="qa-brand-logo">QA</div>
+            <div class="qa-brand-text">
+                <span class="qa-brand-title">E-FORM</span>
+                <span class="qa-brand-sub">Quality Assurance</span>
+            </div>
+        </a>
+
+        <nav class="qa-nav">
+            <div class="qa-nav-group">Tổng quan</div>
+            <a href="/QAForm/Logo" class="qa-nav-item @(currentAction == "Logo" ? "active" : "")" title="Trang chủ QA">
+                <i class="fa fa-home"></i> <span>Trang chủ QA</span>
+            </a>
+
+            <div class="qa-nav-sep"></div>
+            <a href="/QAForm/TraCuuMes" class="qa-nav-item @(currentAction == "TraCuuMes" ? "active" : "")" title="Tra cứu mã phối màu">
+                <i class="fa fa-search"></i> <span>Tra cứu mã phối màu</span>
+            </a>
+            <a href="/QAForm/Thung" class="qa-nav-item @(currentAction == "Thung" ? "active" : "")" title="Danh sách thùng">
+                <i class="fa fa-cubes"></i> <span>Danh sách thùng</span>
+            </a>
+        </nav>
+
+        <div class="qa-user">
+            <div id="qa-user-btn" class="qa-user-btn">
+                <div class="qa-avatar">@(string.IsNullOrEmpty(currentUserName) ? "U" : currentUserName.Substring(0, 1).ToUpper())</div>
+                <div class="qa-user-info">
+                    <div class="qa-user-name">@currentUserName</div>
+                    <div class="qa-user-dept">@phongBan</div>
+                </div>
+                <i class="fa fa-angle-up qa-user-arrow"></i>
+            </div>
+            <div id="qa-user-menu" class="qa-user-menu">
+                <a href="/ThongTinTaiKhoan" target="_blank"><i class="fa fa-user-circle-o"></i> Hồ sơ cá nhân</a>
+                <a href="/DonXetDuyet/DangXuat" class="qa-logout"><i class="fa fa-sign-out"></i> Đăng xuất</a>
+            </div>
+        </div>
+    </aside>
+
+    <div class="qa-main">
+        <header class="qa-header">
+            <button type="button" id="qa-toggle" class="qa-toggle" aria-label="Mở menu"><i class="fa fa-bars"></i></button>
+
+            @* Cùng id/class với layout IT/HR/SHD/Công việc để form-layout-chung.js và cai-dat-giao-dien.js gắn vào được *@
+            <div class="qa-cong-cu" translate="no">
+                <div class="qa-hop">
+                    <button type="button" id="btnLanguage" class="lang-btn">
+                        <i class="fa fa-globe"></i>
+                        <span id="currentLangText">Tiếng Việt</span>
+                        <i class="fa fa-angle-down lang-btn-mui"></i>
+                    </button>
+                    <div id="langDropdown">
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('vi', 'Tiếng Việt')" class="lang-item" id="lang-vi">
+                            <span>Tiếng Việt</span> <i class="fa fa-check"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('en', 'English')" class="lang-item" id="lang-en">
+                            <span>English</span> <i class="fa fa-check"></i>
+                        </a>
+                        <a href="javascript:void(0)" onclick="changeLanguageGTranslate('zh-CN', '中文')" class="lang-item" id="lang-zh-CN">
+                            <span>中文</span> <i class="fa fa-check"></i>
+                        </a>
+                    </div>
+                    <div id="google_translate_element" class="d-none"></div>
+                </div>
+
+                <div class="qa-hop">
+                    <button type="button" id="btnZoom" class="lang-btn">
+                        <i class="fa fa-search-plus"></i>
+                        <span id="currentZoomText">100%</span>
+                        <i class="fa fa-angle-down lang-btn-mui"></i>
+                    </button>
+                    <div id="zoomDropdown">
+                        @foreach (var muc in new[] { 50, 60, 70, 80, 90, 100, 110, 120 })
+                        {
+                            <a href="javascript:void(0)" onclick="changeZoom(@muc)" class="lang-item"><span>@(muc)%</span> <i class="fa fa-check"></i></a>
+                        }
+                    </div>
+                </div>
+
+                @* Nút bánh răng "Giao diện" do cai-dat-giao-dien.js chèn vào *@
+                <div id="slotCaiDatGiaoDien" class="qa-hop"></div>
+            </div>
+
+            <h1 class="qa-header-title">@ViewData["Title"]</h1>
+        </header>
+        <main class="qa-content">
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/qa-layout.js?v=2"></script>
+    <script src="~/js/form-layout-chung.js?v=2"></script>
+    <script src="~/js/cai-dat-giao-dien.js?v=15"></script>
+    @* Token cho form-layout-chung.js báo ngôn ngữ về máy chủ (/CaiDat/NgonNgu) *@
+    @Html.AntiForgeryToken()
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
