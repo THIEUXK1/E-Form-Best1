@@ -395,9 +395,6 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             // Lấy các thông tin từ Claims để kiểm tra quyền hạn điều phối đơn công việc
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
-            var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
-            var phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
-            var listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? ""; // Chuỗi chứa nhiều bộ phận quản lý phụ
 
             // 2. Lấy dữ liệu đơn công việc kết hợp nạp các bảng liên kết thực thể quan hệ
             var don = await _context.FormCongViecs
@@ -420,46 +417,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 .AsNoTracking()
                 .ToListAsync();
 
-            // 3. KIỂM TRA QUYỀN XEM (LOGIC CỘNG DỒN ĐỒNG BỘ BAN ĐẦU)
-            bool isAllowed = false;
-
-            // Điều kiện 1: Là người tạo đơn công việc này
-            if (don.IdNguoiTao == userId)
-            {
-                isAllowed = true;
-            }
-            // Điều kiện 2: Có quyền cao nhất hệ thống (AdminCV, AdminIT hoặc All)
-            else if (User.IsInRole("AdminCV") || User.IsInRole("AdminIT") || User.IsInRole("All"))
-            {
-                isAllowed = true;
-            }
-            // Điều kiện 3: Có quyền Quản lý duyệt đơn phòng ban công việc (QuanLyDuyetDonCV)
-            else if (User.IsInRole("QuanLyDuyetDonCV") || User.IsInRole("QuanLyDuyetDonIT"))
-            {
-                bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-                bool isSameDepartment = false;
-
-                if (!string.IsNullOrEmpty(don.BoPhan))
-                {
-                    if (!string.IsNullOrEmpty(listBoPhan))
-                    {
-                        var arrBoPhan = listBoPhan.Split(',').Select(x => x.Trim());
-                        isSameDepartment = arrBoPhan.Contains(don.BoPhan.Trim(), StringComparer.OrdinalIgnoreCase);
-                    }
-
-                    if (!isSameDepartment)
-                    {
-                        isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
-                    }
-                }
-
-                if (isSameCompany && isSameDepartment)
-                {
-                    isAllowed = true;
-                }
-            }
-
-            if (!isAllowed)
+            // 3. KIỂM TRA QUYỀN XEM: cùng phạm vi với danh sách (All/AdminCV xem hết, còn lại theo bộ phận + đơn của mình)
+            if (!await DuocXemDonCVAsync(id))
             {
                 return Forbid();
             }
@@ -1138,6 +1097,9 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         [HttpGet("/FormCongViec/ExportExcel/{id}")]
         public async Task<IActionResult> ExportExcel(int id)
         {
+            // Chỉ xuất đơn nằm trong phạm vi xem của người dùng (chống IDOR theo id trên URL)
+            if (!await DuocXemDonCVAsync(id)) return Forbid();
+
             var don = await _context.FormCongViecs
                 .Include(f => f.CvCongViecOrder1s)
                 .FirstOrDefaultAsync(m => m.Id == id);
@@ -1203,6 +1165,9 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         [HttpGet("/FormCongViec/ExportWord/{id}")]
         public async Task<IActionResult> ExportWord(int id)
         {
+            // Chỉ xuất đơn nằm trong phạm vi xem của người dùng (chống IDOR theo id trên URL)
+            if (!await DuocXemDonCVAsync(id)) return Forbid();
+
             var don = await _context.FormCongViecs
                 .Include(f => f.CvCongViecOrder1s)
                 .FirstOrDefaultAsync(m => m.Id == id);
@@ -1219,6 +1184,9 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         [HttpGet("/FormCongViec/ExportPDF/{id}")]
         public async Task<IActionResult> ExportPDF(int id)
         {
+            // Chỉ xuất đơn nằm trong phạm vi xem của người dùng (chống IDOR theo id trên URL)
+            if (!await DuocXemDonCVAsync(id)) return Forbid();
+
             var don = await _context.FormCongViecs
                 .Include(f => f.CvCongViecOrder1s)
                 .FirstOrDefaultAsync(m => m.Id == id);
@@ -1492,27 +1460,14 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                                 .Where(f => f.Danhmuc == "Công việc chỉ định");
 
             // --- PHÂN QUYỀN LỌC DỮ LIỆU ĐỒNG BỘ HỆ THỐNG ---
-            if (userRoles.Any(r => r == "All" || r == "AdminCV" || r == "AdminIT"))
+            if (XemTatCaCV())
             {
-                // Admin: Xem tất cả
+                // Admin: Xem tất cả (giữ điều kiện cũ: chỉ đơn đã qua bước duyệt)
                 query = query.Where(f => f.IdNguoiDuyet != null);
-            }
-            else if (userRoles.Contains("QuanLyDuyetDonCV") || userRoles.Contains("QuanLyDuyetDonIT"))
-            {
-                bool hasPhu = listTenBoPhan.Any();
-                query = query.Where(f =>
-                    (hasPhu && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan)) ||
-                    (!hasPhu && f.BoPhan == phongBanSession) ||
-                    (f.IdNguoiTao == userId)
-                );
             }
             else
             {
-                // NHÂN VIÊN THƯỜNG: Xem đơn mình tạo HOẶC đơn của người khác trong CÙNG BỘ PHẬN
-                query = query.Where(f =>
-                    f.IdNguoiTao == userId ||
-                    (f.BoPhan == phongBanSession && f.TenCongTy == tenCongTy)
-                );
+                query = LocPhamViXemCV(query);
             }
 
             // --- THỰC THI TRUY VẤN VỚI PROJECTION TOÀN DIỆN ---
@@ -1580,48 +1535,11 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             var query = _context.LichSuFormCongViecs.AsNoTracking();
 
             // --- HỆ THỐNG PHÂN QUYỀN TRUY VẤN LOG CHẶT CHẼ ---
-            if (User.IsInRole("AdminCV") || User.IsInRole("All"))
+            if (!XemTatCaCV())
             {
-                /* Quyền tối cao: Xem toàn bộ lịch sử hệ thống, không lọc theo công ty */
-            }
-            else if ( User.IsInRole("AdminIT"))
-            {
-                /* Ban quản trị phân hệ Công việc: Xem các đơn đã được duyệt qua cấp Quản lý */
-                query = query.Where(l =>
-                    l.IdFormCongViecNavigation != null &&
-                    l.IdFormCongViecNavigation.IdNguoiDuyet != null &&
-                    (l.IdFormCongViecNavigation.IdAdmin == userId ||
-                     l.IdFormCongViecNavigation.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId))
-                );
-            }
-            else
-            {
-                // Các tài khoản thông thường bắt buộc phải lọc nghiêm ngặt theo Pháp nhân Công ty
-                query = query.Where(l => l.IdFormCongViecNavigation != null && l.IdFormCongViecNavigation.TenCongTy == tenCongTy);
-
-                if (User.IsInRole("QuanLyDuyetDonCV") || User.IsInRole("QuanLyDuyetDonIT"))
-                {
-                    // Cấp quản lý: Nhìn thấy đơn tự tạo, đơn mình duyệt hoặc đơn thuộc phạm vi bộ phận phụ trách
-                    bool hasPhu = listTenBoPhan.Any();
-                    query = query.Where(l =>
-                        l.IdFormCongViecNavigation != null &&
-                        (
-                            l.IdFormCongViecNavigation.IdNguoiTao == userId ||
-                            l.IdFormCongViecNavigation.IdNguoiDuyet == userId ||
-                            (hasPhu && l.IdFormCongViecNavigation.BoPhan != null && listTenBoPhan.Contains(l.IdFormCongViecNavigation.BoPhan)) ||
-                            (!hasPhu && l.IdFormCongViecNavigation.BoPhan == phongBanSession)
-                        )
-                    );
-                }
-                else
-                {
-                    // Nhân viên thường: Chỉ nhìn thấy lịch sử đơn do mình tạo hoặc đơn mình được gán tên thực hiện
-                    query = query.Where(l =>
-                        l.IdFormCongViecNavigation != null &&
-                        (l.IdFormCongViecNavigation.IdNguoiTao == userId ||
-                         l.IdFormCongViecNavigation.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId))
-                    );
-                }
+                // Chỉ log của các đơn nằm trong phạm vi xem (bộ phận mình + đơn của mình), dịch thành IN (subquery)
+                var dsIdDonDuocXem = LocPhamViXemCV(_context.FormCongViecs.AsNoTracking()).Select(f => f.Id);
+                query = query.Where(l => l.IdFormCongViec != null && dsIdDonDuocXem.Contains(l.IdFormCongViec.Value));
             }
 
             // --- THỰC THI TRUY VẤN VỚI KỸ THUẬT PROJECTION TỐI ƯU TỐC ĐỘ ---
@@ -1838,34 +1756,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                     f.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId));
             }
 
-            if (User.IsInRole("AdminCV") || User.IsInRole("All") || User.IsInRole("AdminIT"))
-            {
-                /* Ban quản trị: xem tất cả đơn sắp quá hạn */
-            }
-            else
-            {
-                query = query.Where(f => f.TenCongTy == tenCongTy);
-
-                if (User.IsInRole("QuanLyDuyetDonCV") || User.IsInRole("QuanLyDuyetDonIT"))
-                {
-                    bool hasPhu = listTenBoPhan.Any();
-                    query = query.Where(f =>
-                        f.IdNguoiTao == userId ||
-                        f.IdNguoiDuyet == userId ||
-                        f.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId) ||
-                        (hasPhu && f.BoPhan != null && listTenBoPhan.Contains(f.BoPhan)) ||
-                        (!hasPhu && f.BoPhan == phongBanSession)
-                    );
-                }
-                else
-                {
-                    query = query.Where(f =>
-                        f.IdNguoiTao == userId ||
-                        f.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId));
-                }
-            }
-
-            return query;
+            return LocPhamViXemCV(query);
         }
 
         private (int userId, string tenCongTy, string phongBanSession, List<string> listTenBoPhan) LayThongTinPhanQuyenCV()
@@ -1883,6 +1774,35 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             return (userId, tenCongTy, phongBanSession, listTenBoPhan);
         }
+
+        // Phạm vi xem dữ liệu WORK (thống nhất cho danh sách, nhật ký, lịch, thống kê, chi tiết, xuất file):
+        // Chỉ All xem toàn bộ; mọi người khác (kể cả AdminCV, vì quyền này gán cho nhiều người chỉ để mở menu)
+        // chỉ xem đơn thuộc bộ phận mình (bộ phận chính hoặc các bộ phận phụ trách trong claim TenBoPhan) trong
+        // CÙNG công ty. Vẫn giữ đơn mình tạo/duyệt/xử lý/được giao để việc giao chéo bộ phận vẫn theo dõi được.
+        private bool XemTatCaCV() => User.IsInRole("All");
+
+        private IQueryable<FormCongViec> LocPhamViXemCV(IQueryable<FormCongViec> query)
+        {
+            if (XemTatCaCV()) return query;
+
+            var (userId, tenCongTy, phongBanSession, listTenBoPhan) = LayThongTinPhanQuyenCV();
+
+            // Thiếu claim công ty thì không mở theo bộ phận, tránh khớp nhầm các đơn có TenCongTy rỗng
+            var dsBoPhan = string.IsNullOrEmpty(tenCongTy)
+                ? new List<string>()
+                : listTenBoPhan.Append(phongBanSession).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList();
+
+            return query.Where(f =>
+                f.IdNguoiTao == userId ||
+                f.IdNguoiDuyet == userId ||
+                f.IdAdmin == userId ||
+                f.FormCongViecNguoiLienQuans.Any(ct => ct.IdNguoiDung == userId) ||
+                (f.TenCongTy == tenCongTy && f.BoPhan != null && dsBoPhan.Contains(f.BoPhan)));
+        }
+
+        // Chống IDOR cho các action nhận id đơn từ URL
+        private Task<bool> DuocXemDonCVAsync(int id) =>
+            LocPhamViXemCV(_context.FormCongViecs.AsNoTracking().Where(f => f.Id == id)).AnyAsync();
 
         // Đếm số đơn sắp quá hạn - dùng để hiện chấm đỏ cảnh báo quyết liệt ở menuA. Độc lập với cookie "đã đọc thông báo",
         // nên không bị mất dấu chấm đỏ cho tới khi đơn thực sự được xử lý xong hoặc dời hạn.
@@ -2761,7 +2681,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         {
             try
             {
-                var query = _context.FormCongViecs.AsNoTracking();
+                var query = LocPhamViXemCV(_context.FormCongViecs.AsNoTracking());
 
                 // Lọc theo khoảng thời gian chọn trên giao diện (Sử dụng mốc thời gian duyệt TimeNguoiDuyet)
                 if (fromDate.HasValue)
@@ -2812,6 +2732,13 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             {
                 // Truy vấn từ bảng FormCongViec_NguoiLienQuan đại diện cho mối quan hệ nhân sự được gán việc
                 var query = _context.FormCongViecNguoiLienQuans.AsNoTracking();
+
+                // Thống kê nhân sự cũng chỉ tính trên các đơn thuộc phạm vi xem
+                if (!XemTatCaCV())
+                {
+                    var dsIdDonDuocXem = LocPhamViXemCV(_context.FormCongViecs.AsNoTracking()).Select(f => f.Id);
+                    query = query.Where(x => dsIdDonDuocXem.Contains(x.IdFormCongViec));
+                }
 
                 // Lọc khoảng thời gian bảo vệ an toàn chống lỗi Null Reference
                 if (fromDate.HasValue)
@@ -2913,8 +2840,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             // để việc tạo từ tháng trước nhưng hết hạn tháng này vẫn hiện ra.
             // CHỈ lấy đúng các cột cần: bảng chi tiết có cột ảnh (varbinary) rất nặng,
             // dùng Include sẽ kéo cả BLOB về làm lịch tải rất chậm.
-            var danhSachDon = await _context.FormCongViecs
-                .AsNoTracking()
+            var danhSachDon = await LocPhamViXemCV(_context.FormCongViecs.AsNoTracking())
                 .Where(f => (f.TimeNguoiTao >= start && f.TimeNguoiTao <= end)
                             || f.CvCongViecOrder1s.Any(o => o.ThoiHanHoanThanh >= start && o.ThoiHanHoanThanh <= end))
                 .Select(f => new

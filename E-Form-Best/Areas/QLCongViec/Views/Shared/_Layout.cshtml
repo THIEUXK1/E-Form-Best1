@@ -357,8 +357,8 @@
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    @* CẬP NHẬT: THÊM KIỂM TRA QUYỀN "FORM_CV_VIEW" HOẶC "All" CHO TOÀN BỘ MENU *@
-                    @if (User.IsInRole("FORM_CV_VIEW") || User.IsInRole("All"))
+                    @* Nhóm Đơn công việc + Quản trị chỉ hiện với AdminCV/All; dữ liệu từng trang đã lọc theo bộ phận ở server *@
+                    @if (User.IsInRole("AdminCV") || User.IsInRole("All"))
                     {
                         @* Nhóm "Đơn công việc" gộp Đăng ký đơn + Đơn của tôi + Nhật ký hệ thống; đang ở trang con thì mở sẵn.
                            "Đăng ký đơn" vẫn mở trang /FormCongViec/DangKyDon liệt kê các loại đơn dạng thẻ *@
@@ -385,7 +385,8 @@
                             </a>
                         </div>
 
-                        @if (User.Claims.Any(c => c.Type == System.Security.Claims.ClaimTypes.Role) || User.IsInRole("All"))
+                        @* Công việc chỉ định / Lịch / Thống kê: cùng điều kiện AdminCV/All với nhóm bao ngoài *@
+                        @if (true)
                         {
                             <div style="height:1px; background:rgba(255,255,255,0.12); margin:20px 10px;"></div>
                             <div class="lang-text" style="font-size: 0.72rem; color: rgba(255, 255, 255, 0.45); text-transform: uppercase; letter-spacing: 1.5px; margin: 10px 0 10px 12px; font-weight: 700;">@L["Quản trị"]</div>

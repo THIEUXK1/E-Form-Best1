@@ -14,13 +14,8 @@
         userInitial = identity.Name.Substring(0, 1).ToUpper();
     }
 
-    // --- SỬA TẠI ĐÂY: Chỉ cho phép hiển thị nếu tài khoản có chính xác quyền xem công việc ---
-    bool hasWorkViewRole = false;
-    if (User?.Identity?.IsAuthenticated == true)
-    {
-        // Kiểm tra đích danh quyền FORM_CV_VIEW, hoặc tài khoản có vai trò tối cao "All"
-        hasWorkViewRole = User.IsInRole("FORM_CV_VIEW") || User.IsInRole("All");
-    }
+    // WORK mở cho mọi tài khoản đã đăng nhập; phạm vi dữ liệu (All xem hết, còn lại theo bộ phận) lọc ở server
+    bool hasWorkViewRole = User?.Identity?.IsAuthenticated == true;
 }
 <!DOCTYPE html>
 <html lang="vi">
