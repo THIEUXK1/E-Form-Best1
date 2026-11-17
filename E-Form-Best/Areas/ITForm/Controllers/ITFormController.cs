@@ -4072,83 +4072,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return RedirectToAction("LichSuIT");
             }
 
-            // 3. KIỂM TRA QUYỀN XEM (LOGIC CỘNG DỒN)
-            bool isAllowed = false;
-
-            // Điều kiện 1: Là người tạo đơn
-            if (don.IdNguoiTao == userId)
-            {
-                isAllowed = true;
-            }
-            // Điều kiện 2: Có quyền cao nhất (AdminIT hoặc All)
-            else if (User.IsInRole("AdminIT") || User.IsInRole("All"))
-            {
-                isAllowed = true;
-            }
-            // Điều kiện 3: Có quyền Quản lý duyệt đơn (QuanLyDuyetDonIT)
-            else if (User.IsInRole("QuanLyDuyetDonIT"))
-            {
-                // A. Check quyền duyệt của Quản lý trực tiếp người làm đơn
-                bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-                bool isSameDepartment = false;
-
-                if (!string.IsNullOrEmpty(don.BoPhan))
-                {
-                    // Lọc chính xác bằng mảng thay vì dùng Contains để tránh lỗi "IT" nằm trong "Kế toán IT"
-                    if (!string.IsNullOrEmpty(listBoPhan))
-                    {
-                        var arrBoPhan = listBoPhan.Split(',').Select(x => x.Trim());
-                        isSameDepartment = arrBoPhan.Contains(don.BoPhan.Trim(), StringComparer.OrdinalIgnoreCase);
-                    }
-
-                    // Nếu chưa khớp trong bảng UserBoPhan, check lại Phòng Ban chính trong bảng User
-                    if (!isSameDepartment)
-                    {
-                        isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
-                    }
-                }
-
-                if (isSameCompany && isSameDepartment)
-                {
-                    isAllowed = true;
-                }
-
-                // B. Check quyền của Quản lý bộ phận liên đới được gán xác nhận (Dành riêng cho Đơn 8)
-                if (!isAllowed && don.IdForm == "IT_CapQuyenOChung_8" && don.ItCapQuyenOchung8s.Any())
-                {
-                    var xacNhanOChung = don.ItCapQuyenOchung8s.First().ItXacNhanCapQuyen8s.FirstOrDefault();
-                    if (xacNhanOChung != null && !string.IsNullOrEmpty(xacNhanOChung.BoPhan))
-                    {
-                        string targetBoPhan = xacNhanOChung.BoPhan.Trim(); // Dạng: "Công ty A - IT"
-                        string primaryBoPhanStr = (tenCongTyUser + " - " + phongBanDon).Trim();
-
-                        // 1. Kiểm tra với Phòng Ban chính
-                        bool isMatchXacNhan = string.Equals(targetBoPhan, primaryBoPhanStr, StringComparison.OrdinalIgnoreCase);
-
-                        // 2. Kiểm tra với danh sách Phòng Ban phụ (Bảng UserBoPhan)
-                        if (!isMatchXacNhan && !string.IsNullOrEmpty(listBoPhan))
-                        {
-                            var arrBoPhanPhu = listBoPhan.Split(',').Select(x => x.Trim());
-                            foreach (var bp in arrBoPhanPhu)
-                            {
-                                string phuBoPhanStr = (tenCongTyUser + " - " + bp).Trim();
-                                if (string.Equals(targetBoPhan, phuBoPhanStr, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    isMatchXacNhan = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (isMatchXacNhan)
-                        {
-                            isAllowed = true;
-                        }
-                    }
-                }
-            }
-
-            if (!isAllowed)
+            // 3. KIỂM TRA QUYỀN XEM (dùng chung với xuất file + bình luận, xem DuocXemDonIt)
+            var boPhanXacNhan8 = don.ItCapQuyenOchung8s.FirstOrDefault()?.ItXacNhanCapQuyen8s.FirstOrDefault()?.BoPhan;
+            if (!DuocXemDonIt(don.IdNguoiTao, don.TenCongTy, don.BoPhan, don.IdForm, boPhanXacNhan8))
             {
                 return Forbid();
             }
@@ -4269,6 +4195,94 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // --- ACTION DOWNLOAD / XEM FILE (Giữ nguyên 100%) ---
         [Authorize]
+        // Quy tắc xem một đơn IT — một chỗ duy nhất cho ChiTiet, ExportExcel/Word/PDF, Lấy/Thêm bình luận.
+        // Trước đây chỉ ChiTiet kiểm; đổi id trên URL xuất file/đọc bình luận được đơn của người khác.
+        // boPhanXacNhan8: bộ phận được gán xác nhận của đơn 8 (dạng "Công ty A - IT"), null với đơn khác.
+        private bool DuocXemDonIt(int? idNguoiTao, string? tenCongTyDon, string? boPhanDon, string? idForm, string? boPhanXacNhan8)
+        {
+            if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId)) return false;
+            if (idNguoiTao == userId) return true;
+            if (User.IsInRole("AdminIT") || User.IsInRole("All")) return true;
+            if (!User.IsInRole("QuanLyDuyetDonIT")) return false;
+
+            var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var phongBanUser = User.FindFirst("PhongBan")?.Value ?? "";
+            var listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? ""; // "IT, HR, Kế toán"
+            var dsBoPhan = string.IsNullOrEmpty(listBoPhan) ? Array.Empty<string>() : listBoPhan.Split(',').Select(x => x.Trim()).ToArray();
+
+            // A. Quản lý trực tiếp: cùng công ty + bộ phận (so khớp cả mảng, tránh "IT" nằm trong "Kế toán IT")
+            bool isSameCompany = string.Equals(tenCongTyDon?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
+            bool isSameDepartment = false;
+            if (!string.IsNullOrEmpty(boPhanDon))
+            {
+                isSameDepartment = dsBoPhan.Contains(boPhanDon.Trim(), StringComparer.OrdinalIgnoreCase)
+                    || string.Equals(boPhanDon.Trim(), phongBanUser.Trim(), StringComparison.OrdinalIgnoreCase);
+            }
+            if (isSameCompany && isSameDepartment) return true;
+
+            // B. Đơn 8: quản lý bộ phận liên đới được gán xác nhận
+            return idForm == "IT_CapQuyenOChung_8" && !string.IsNullOrEmpty(boPhanXacNhan8) && ThuocBoPhanXacNhan8(boPhanXacNhan8);
+        }
+
+        // Người đang đăng nhập có thuộc "Công ty - Bộ phận" (dạng lưu ở ItXacNhanCapQuyen8.BoPhan) không — xét phòng ban chính + các bộ phận phụ
+        private bool ThuocBoPhanXacNhan8(string boPhanXacNhan8)
+        {
+            var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            var phongBanUser = User.FindFirst("PhongBan")?.Value ?? "";
+            var listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
+            string target = boPhanXacNhan8.Trim();
+            if (string.Equals(target, (tenCongTyUser + " - " + phongBanUser).Trim(), StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.IsNullOrEmpty(listBoPhan)) return false;
+            return listBoPhan.Split(',').Select(x => x.Trim())
+                .Any(bp => string.Equals(target, (tenCongTyUser + " - " + bp).Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        // File đính kèm/ảnh của đơn IT: tìm đơn chứa đúng tên file (bảng chính + 13 bảng con) rồi kiểm quyền xem đơn
+        private async Task<bool> DuocTaiFileDonItAsync(string tenFile)
+        {
+            var dong = await _context.FormIts.Where(x => x.FileDinhKem != null && x.FileDinhKem.Contains(tenFile)).Select(x => new { IdDon = (int?)x.Id, GiaTri = x.FileDinhKem })
+                .Concat(_context.ItMail1s.Where(x => x.DuonDanAnh != null && x.DuonDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuonDanAnh }))
+                .Concat(_context.ItOrderIt2s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ItDangKiSuDungWifi3s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ItDangKiSuDungDtban4s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ItDangKiTaiKhoanHeThong5s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ItDangkiTaiKhoanMayTinh6s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ItDonLapDatThietBi7s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ItCapQuyenOchung8s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ItThietKeTemIn9s.Where(x => x.DuonDanAnh != null && x.DuonDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuonDanAnh }))
+                .Concat(_context.ItCaiDatPhanMem10s.Where(x => x.DuonDanAnh != null && x.DuonDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuonDanAnh }))
+                .Concat(_context.ItLapTrinhUngDung11s.Where(x => x.DuonDanAnh != null && x.DuonDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuonDanAnh }))
+                .Concat(_context.ItTraThietBi12s.Where(x => x.DuonDanAnh != null && x.DuonDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuonDanAnh }))
+                .Concat(_context.ItCapQuyenInternet13s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormIt, GiaTri = x.DuongDanAnh }))
+                .AsNoTracking().ToListAsync();
+
+            foreach (var id in E_Form_Best.Areas.ITForm.Services.TepDinhKem.IdDonKhop(dong.Select(d => (d.IdDon, d.GiaTri)), tenFile))
+                if (await DuocXemDonItAsync(id)) return true;
+            return false;
+        }
+
+        // File bình luận lưu tên trần ở BinhLuanFormIt.FileDinhKem → đơn → quyền xem đơn
+        private async Task<bool> DuocTaiFileBinhLuanItAsync(string tenFile)
+        {
+            var dsId = await _context.BinhLuanFormIts.AsNoTracking()
+                .Where(b => b.FileDinhKem == tenFile && b.IdForm != null).Select(b => b.IdForm!.Value).Distinct().ToListAsync();
+            foreach (var id in dsId)
+                if (await DuocXemDonItAsync(id)) return true;
+            return false;
+        }
+
+        private async Task<bool> DuocXemDonItAsync(int idDon)
+        {
+            var d = await _context.FormIts.AsNoTracking().Where(f => f.Id == idDon)
+                .Select(f => new
+                {
+                    f.IdNguoiTao, f.TenCongTy, f.BoPhan, f.IdForm,
+                    BoPhanXacNhan8 = f.ItCapQuyenOchung8s.Select(o => o.ItXacNhanCapQuyen8s.Select(x => x.BoPhan).FirstOrDefault()).FirstOrDefault()
+                })
+                .FirstOrDefaultAsync();
+            return d != null && DuocXemDonIt(d.IdNguoiTao, d.TenCongTy, d.BoPhan, d.IdForm, d.BoPhanXacNhan8);
+        }
+
         [HttpGet("/FormIT/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
         {
@@ -4279,6 +4293,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (fullPath == null || !System.IO.File.Exists(fullPath))
                 return NotFound("Tệp tin không tồn tại.");
+            if (!await DuocTaiFileDonItAsync(fileName)) return Forbid(); // chỉ người xem được đơn chứa file
 
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
@@ -4399,6 +4414,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất xử lý hoặc không tồn tại.");
+            if (!await DuocXemDonItAsync(id)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             using (var workbook = new ClosedXML.Excel.XLWorkbook())
             {
@@ -4553,6 +4569,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+            if (!await DuocXemDonItAsync(id)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             string htmlContent = BuildHtmlContentIT(don, isForWord: true);
 
@@ -4580,6 +4597,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+            if (!await DuocXemDonItAsync(id)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             string htmlContent = BuildHtmlContentIT(don, isForWord: false);
             return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
@@ -4828,6 +4846,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/FormIT/LayBinhLuan/{idForm}")]
         public async Task<IActionResult> LayBinhLuan(int idForm, int skip = 0, int take = 20)
         {
+            if (!await DuocXemDonItAsync(idForm))
+            {
+                Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Json(new { success = false, message = "Bạn không có quyền xem đơn này." });
+            }
             try
             {
                 // 1. Truy vấn lấy dữ liệu từ database
@@ -4890,6 +4913,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var formIt = await _context.FormIts.FindAsync(idForm);
                 if (formIt == null)
                     return Json(new { success = false, message = "Không tìm thấy đơn" });
+                if (!await DuocXemDonItAsync(idForm))
+                    return Json(new { success = false, message = "Bạn không có quyền bình luận trên đơn này." });
 
                 string? fileName = null;
 
@@ -5084,6 +5109,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var fileInfo = new FileInfo(fullPath);
             if (!fileInfo.Exists)
                 return NotFound("File không tồn tại");
+            if (!await DuocTaiFileBinhLuanItAsync(fileName)) return Forbid(); // chỉ người xem được đơn chứa bình luận
 
             try
             {
@@ -5580,6 +5606,13 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var xacNhan = don.ItCapQuyenOchung8s.First().ItXacNhanCapQuyen8s.FirstOrDefault();
             if (xacNhan == null)
                 return Json(new { success = false, message = "Không tìm thấy dữ liệu xác nhận bộ phận!" });
+
+            // Cùng điều kiện hiện nút trong ChiTiet (isTargetManagerDon8): AdminIT/All, hoặc QuanLyDuyetDonIT thuộc đúng
+            // "Công ty - Bộ phận" được gán. Trước đây chỉ kiểm đăng nhập → ai cũng duyệt thay được quyền ổ chung.
+            bool laQuanTri = User.IsInRole("AdminIT") || User.IsInRole("All");
+            bool dungBoPhan = User.IsInRole("QuanLyDuyetDonIT") && !string.IsNullOrEmpty(xacNhan.BoPhan) && ThuocBoPhanXacNhan8(xacNhan.BoPhan);
+            if (!laQuanTri && !dungBoPhan)
+                return Json(new { success = false, message = "Bạn không phải quản lý bộ phận được gán xác nhận đơn này." });
 
             // 3. Cập nhật thông tin người thực hiện xác nhận vào bảng con 8
             xacNhan.TrangThai = status == "Duyet" ? "Đã xác nhận" : "Từ chối";
@@ -6094,6 +6127,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         #region BÁO CÁO THỐNG KÊ FORM IT
 
         // 1. Action này chỉ trả về giao diện (View)
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/BaoCaoThongKe")]
         public IActionResult BaoCaoThongKe()
         {
@@ -6104,6 +6138,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View();
         }
 
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/GetDataThongKe")]
         public async Task<IActionResult> GetDataThongKe(DateTime? fromDate, DateTime? toDate)
         {
@@ -6145,6 +6180,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/GetDataNguoiHoTro")]
         public async Task<IActionResult> GetDataNguoiHoTro(DateTime? fromDate, DateTime? toDate)
         {
@@ -6244,6 +6280,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             new string((mac ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 
         // 1. Action này trả về giao diện View mới
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/ThongKeMacWifi")]
         public IActionResult ThongKeMacWifi()
         {
@@ -6255,6 +6292,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 2. Action này lấy dữ liệu thống kê cho biểu đồ
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/GetDataThongKeMac")]
         public async Task<IActionResult> GetDataThongKeMac()
         {
@@ -6304,6 +6342,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 3. Action lấy danh sách chi tiết có bộ lọc, phân trang & SẮP XẾP
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/GetDanhSachMacWifi")]
         public async Task<IActionResult> GetDanhSachMacWifi(
             int page = 1, int pageSize = 50,
@@ -6406,6 +6445,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 4. Action Xuất file Excel
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/ExportExcelMacWifi")]
         public async Task<IActionResult> ExportExcelMacWifi(
             string? idForm = null, string? tenNguoiNv = null, string? boPhan = null,
@@ -6540,6 +6580,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public string Danhmuc { get; set; } = "";
         }
 
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/BaoCaoGanttTimeline")]
         public IActionResult BaoCaoGanttTimeline()
         {
@@ -6552,6 +6593,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // API lấy dữ liệu tiến trình - Chỉ lấy đơn đã duyệt, loại bỏ hoàn toàn đơn HỦY
         // Đặc biệt: Đơn chưa hoàn thành (TimeAdmin == null) luôn luôn hiển thị lơ lửng bất kể bộ lọc ngày tháng
+        [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
         [HttpGet("/FormIT/GetTimelineData")]
         public async Task<IActionResult> GetTimelineData(DateTime? fromDate, DateTime? toDate)
         {
@@ -6913,6 +6955,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region THỐNG KÊ TỔNG QUAN KIỂM KÊ VÀ LẤY DANH SÁCH
 
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/ThongKe")]
         public IActionResult ThongKeKiemKe()
         {
@@ -6924,6 +6967,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 1. HÀM NÀY DÙNG ĐỂ VẼ BIỂU ĐỒ (Giữ nguyên logic cực chuẩn của bạn)
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/GetDuLieuThongKe")]
         public IActionResult GetDuLieuThongKe()
         {
@@ -7003,10 +7047,11 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã thêm WinLicense và OfficeLicense)
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/GetKkThietBiss")]
         public IActionResult GetKkThietBiss()
         {
-            // Trang ThongKe chỉ yêu cầu đăng nhập → API giữ đúng mức đó, không để lộ cho người chưa đăng nhập.
+            // Chặn thêm ở đây phòng khi gỡ [Authorize] — dữ liệu có tên người dùng, serial toàn bộ thiết bị.
             if (User?.Identity?.IsAuthenticated != true)
                 return StatusCode(401, new { success = false, message = "Chưa đăng nhập" });
             try
@@ -7073,6 +7118,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 3. HÀM NÀY DÙNG ĐỂ LẤY LỊCH SỬ THAO TÁC CỦA THIẾT BỊ THEO ID
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/GetLichSuThietBi")]
         public IActionResult GetLichSuThietBi(int idThietBi)
         {
@@ -7221,6 +7267,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/GetKkTrangThais")]
         public IActionResult GetKkTrangThais()
         {
@@ -7922,6 +7969,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // HÀM LẤY LỊCH SỬ CÁC LẦN CHECK VÀ BẰNG CHỨNG ẢNH CỦA THIẾT BỊ
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/GetKkBangChungChecks")]
         public IActionResult GetKkBangChungChecks(int idThietBi)
         {
@@ -9018,6 +9066,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // HÀM 1: Lấy cục bộ dữ liệu JSON chi tiết đầy đủ phục vụ hiển thị nhanh qua Modal/API AJAX
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/GetChiTietThietBi")]
         public IActionResult GetChiTietThietBi(int idThietBi)
         {
@@ -9074,6 +9123,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // HÀM ĐIỀU HƯỚNG: Trang độc lập sang View (ChiTietThietBi.cshtml) hiển thị đầy đủ thông tin thực thể dữ liệu
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/ChiTietThietBi/{id}")]
         public IActionResult ChiTietThietBi(int id)
         {
@@ -11679,6 +11729,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 3. Giao diện trang xem cấu hình chi tiết mở rộng
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/ViewChiTietMayTinh")]
         public IActionResult ViewChiTietMayTinh(int idMay)
         {
@@ -11690,6 +11741,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 4. API bốc tách chuyên sâu cấu hình theo ID máy, liên kết toàn bộ Sub-Tables
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/ChiTietMayTinhTheoId")]
         public IActionResult ChiTietMayTinhTheoId(int idMay)
         {
@@ -11746,6 +11798,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 4b. DANH SÁCH THIẾT BỊ KIỂM KÊ ĐANG LIÊN KẾT VỚI MÁY (hiện ở trang chi tiết máy để biết vì sao chưa xóa được máy)
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/ThietBiKiemKeLienKet")]
         public async Task<IActionResult> ThietBiKiemKeLienKet(int idMay)
         {
@@ -11827,6 +11880,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // 4d. DANH SÁCH THIẾT BỊ KIỂM KÊ để chọn liên kết ở trang chi tiết máy.
         // Liệt kê đúng như trang /QLKiemKe/ThietBi (mọi thiết bị chưa xóa mềm), KỂ CẢ thiết bị đang gắn máy khác -
         // kèm tên máy đang gắn để người chọn biết mình sắp chuyển liên kết chứ không tưởng là thiết bị trống.
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/ThietBiKiemKeDeLienKet")]
         public async Task<IActionResult> ThietBiKiemKeDeLienKet(string? tuKhoa)
         {
@@ -11885,6 +11939,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public bool ChuyenLienKet { get; set; }
         }
 
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpPost("/QLKiemKe/LienKetThietBiKiemKe")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> LienKetThietBiKiemKe([FromBody] LienKetThietBiRequest? req)
@@ -11970,6 +12025,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // 5. API LẤY DANH SÁCH NHẬT KÝ LỊCH SỬ THAY ĐỔI CẤU HÌNH THEO ID MÁY (BỔ SUNG MỚI CHO COLLAPSE)
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
         [HttpGet("/QLKiemKe/LichSuThayDoiMayTinh")]
         public IActionResult LichSuThayDoiMayTinh(int idMay)
         {

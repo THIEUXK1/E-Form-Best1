@@ -2676,38 +2676,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 return RedirectToAction("LichSuHR");
             }
 
-            // 3. KIỂM TRA QUYỀN XEM
-            bool isAllowed = false;
-            if (don.IdNguoiTao == userId)
-            {
-                isAllowed = true;
-            }
-            else if (User.IsInRole("All") || User.IsInRole("AdminHR"))
-            {
-                isAllowed = true;
-            }
-            else if (User.IsInRole("QuanLyDuyetDonHR"))
-            {
-                bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-                string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
-                string phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
-
-                bool isSameDepartment = false;
-                if (!string.IsNullOrEmpty(don.BoPhan))
-                {
-                    if (!string.IsNullOrEmpty(listBoPhan))
-                        isSameDepartment = listBoPhan.Contains(don.BoPhan);
-                    else
-                        isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
-                }
-                if (isSameCompany && isSameDepartment) isAllowed = true;
-            }
-            else if (User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("GiamDocHR"))
-            {
-                isAllowed = true;
-            }
-
-            if (!isAllowed) return Forbid();
+            // 3. KIỂM TRA QUYỀN XEM (dùng chung với xuất file + bình luận, xem DuocXemDonHr)
+            if (!DuocXemDonHr(don.IdNguoiTao, don.TenCongTy, don.BoPhan)) return Forbid();
 
             // 4. Xử lý hiển thị
             if (don.LichSuFormHrs != null)
@@ -2741,6 +2711,65 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         [Authorize]
+        // Quy tắc xem một đơn HR — một chỗ duy nhất cho ChiTiet, ExportExcel/Word/PDF, Lấy/Thêm bình luận.
+        // Trước đây chỉ ChiTiet kiểm; đổi id trên URL xuất file/đọc bình luận được đơn của người khác.
+        // Giữ nguyên chuỗi else-if cũ: có QuanLyDuyetDonHR thì chỉ xét cùng công ty + bộ phận.
+        private bool DuocXemDonHr(int? idNguoiTao, string? tenCongTyDon, string? boPhanDon)
+        {
+            if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId)) return false;
+            if (idNguoiTao == userId) return true;
+            if (User.IsInRole("All") || User.IsInRole("AdminHR")) return true;
+            if (User.IsInRole("QuanLyDuyetDonHR"))
+            {
+                var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+                bool isSameCompany = string.Equals(tenCongTyDon?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
+                string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
+                string phongBanUser = User.FindFirst("PhongBan")?.Value ?? "";
+                bool isSameDepartment = false;
+                if (!string.IsNullOrEmpty(boPhanDon))
+                {
+                    if (!string.IsNullOrEmpty(listBoPhan))
+                        isSameDepartment = listBoPhan.Contains(boPhanDon);
+                    else
+                        isSameDepartment = string.Equals(boPhanDon.Trim(), phongBanUser.Trim(), StringComparison.OrdinalIgnoreCase);
+                }
+                return isSameCompany && isSameDepartment;
+            }
+            return User.IsInRole("QuanLyDuyetDonHR_B2") || User.IsInRole("GiamDocHR");
+        }
+
+        // File đính kèm/ảnh của đơn HR: tìm đơn chứa đúng tên file (bảng chính + 12 bảng con + bảo vệ) rồi kiểm quyền xem đơn
+        private async Task<bool> DuocTaiFileDonHrAsync(string tenFile)
+        {
+            var dong = await _context.FormHrs.Where(x => x.FileDinhKem != null && x.FileDinhKem.Contains(tenFile)).Select(x => new { IdDon = (int?)x.Id, GiaTri = x.FileDinhKem })
+                .Concat(_context.HrXinRaNgoai1s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrMangHangHoaRaCong2s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrDangKySuDungXeCongTac3s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrDangKySuDungXeDaily4s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrDonTiepKhac5s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrNhaThauQuaCong6s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrHoTroTienDienThoai7s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrDoiCaLam8s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrDonHoTroCongTac9s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrDonHoTroCongTac9s.Where(x => x.Anh != null && x.Anh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.Anh }))
+                .Concat(_context.HrDonKiTucXa10s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrDonLamLaiThe11s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrDonSuDungDienThoai12s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.HrBaoVeXacNhans.Where(x => x.DuongDanFile != null && x.DuongDanFile.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormHr, GiaTri = x.DuongDanFile }))
+                .AsNoTracking().ToListAsync();
+
+            foreach (var id in E_Form_Best.Areas.ITForm.Services.TepDinhKem.IdDonKhop(dong.Select(d => (d.IdDon, d.GiaTri)), tenFile))
+                if (await DuocXemDonHrAsync(id)) return true;
+            return false;
+        }
+
+        private async Task<bool> DuocXemDonHrAsync(int idDon)
+        {
+            var d = await _context.FormHrs.AsNoTracking().Where(f => f.Id == idDon)
+                .Select(f => new { f.IdNguoiTao, f.TenCongTy, f.BoPhan }).FirstOrDefaultAsync();
+            return d != null && DuocXemDonHr(d.IdNguoiTao, d.TenCongTy, d.BoPhan);
+        }
+
         [HttpGet("/FormHR/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string fileName)
         {
@@ -2748,6 +2777,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonHR";
             string? fullPath = DuongDanFileAnToan(networkPath, fileName);
             if (fullPath == null || !System.IO.File.Exists(fullPath)) return NotFound("Tệp tin không tồn tại.");
+            if (!await DuocTaiFileDonHrAsync(fileName)) return Forbid(); // chỉ người xem được đơn chứa file
 
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
@@ -2874,6 +2904,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+            if (!DuocXemDonHr(don.IdNguoiTao, don.TenCongTy, don.BoPhan)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             using (var workbook = new ClosedXML.Excel.XLWorkbook())
             {
@@ -3274,6 +3305,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+            if (!DuocXemDonHr(don.IdNguoiTao, don.TenCongTy, don.BoPhan)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             string htmlContent = BuildHtmlContent(don, isForWord: true);
 
@@ -3303,6 +3335,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+            if (!DuocXemDonHr(don.IdNguoiTao, don.TenCongTy, don.BoPhan)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             string htmlContent = BuildHtmlContent(don, isForWord: false);
             return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
@@ -3687,6 +3720,11 @@ namespace E_Form_Best.Areas.HRform.Controllers
         [HttpGet("/FormHR/LayBinhLuan/{idForm}")]
         public async Task<IActionResult> LayBinhLuan(int idForm, int skip = 0, int take = 20)
         {
+            if (!await DuocXemDonHrAsync(idForm))
+            {
+                Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Json(new { success = false, message = "Bạn không có quyền xem đơn này." });
+            }
             try
             {
                 var binhLuans = await _context.BinhLuanFormHrs
@@ -3743,6 +3781,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
                 var formHr = await _context.FormHrs.FindAsync(idForm);
                 if (formHr == null)
                     return Json(new { success = false, message = "Không tìm thấy đơn" });
+                if (!DuocXemDonHr(formHr.IdNguoiTao, formHr.TenCongTy, formHr.BoPhan))
+                    return Json(new { success = false, message = "Bạn không có quyền bình luận trên đơn này." });
 
                 // 3. Xử lý File an toàn
                 string? fileName = null;
@@ -3876,7 +3916,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
         [Authorize]
         [HttpGet("/FormHR/DownloadBinhLuanFile/{fileName}")]
-        public IActionResult DownloadBinhLuanFile(string fileName)
+        public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
@@ -3886,6 +3926,14 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
             var fileInfo = new FileInfo(fullPath);
             if (!fileInfo.Exists) return NotFound("File không tồn tại");
+
+            // Chỉ người xem được đơn chứa bình luận (BinhLuanFormHr.FileDinhKem lưu tên trần)
+            var dsIdDon = await _context.BinhLuanFormHrs.AsNoTracking()
+                .Where(b => b.FileDinhKem == fileName && b.IdFormHr != null).Select(b => b.IdFormHr!.Value).Distinct().ToListAsync();
+            bool duocTai = false;
+            foreach (var id in dsIdDon)
+                if (await DuocXemDonHrAsync(id)) { duocTai = true; break; }
+            if (!duocTai) return Forbid();
 
             string contentType = "application/octet-stream";
             string originalFileName = string.Join("_", fileName.Split('_').Skip(2));
@@ -5518,6 +5566,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
         }
 
+        [Authorize(Roles = "AdminHR,All")] // cùng quyền trang BaoCaoThongKe HR
         [HttpGet("/FormHR/GetDataNguoiHoTro")]
         public async Task<IActionResult> GetDataNguoiHoTro(DateTime? fromDate, DateTime? toDate)
         {

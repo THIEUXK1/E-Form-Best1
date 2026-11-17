@@ -499,7 +499,7 @@ app.UseSession();
 //                 hệ thống thật sự dùng được, thay vì chỉ biết web server còn chạy.
 app.MapGet("/health", () => Results.Ok("Healthy")).AllowAnonymous();
 
-app.MapGet("/health/ready", async (ITFormContext db) =>
+app.MapGet("/health/ready", async (ITFormContext db, ILogger<Program> log) =>
 {
     try
     {
@@ -509,7 +509,9 @@ app.MapGet("/health/ready", async (ITFormContext db) =>
     }
     catch (Exception ex)
     {
-        return Results.Text($"Unhealthy: {ex.Message}", statusCode: 503);
+        // Endpoint công khai: chi tiết lỗi SQL (tên server, login) chỉ ghi log, không trả ra ngoài
+        log.LogError(ex, "health/ready: loi ket noi database");
+        return Results.Text("Unhealthy: loi ket noi database", statusCode: 503);
     }
 }).AllowAnonymous();
 

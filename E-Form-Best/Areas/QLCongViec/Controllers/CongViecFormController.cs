@@ -504,6 +504,7 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             if (fullPath == null || !System.IO.File.Exists(fullPath))
                 return NotFound("Tệp tin tài liệu công việc không tồn tại.");
+            if (!await DuocTaiFileDonCVAsync(fileName)) return Forbid(); // chỉ người xem được phiếu chứa file
 
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
@@ -544,6 +545,14 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             var fileInfo = new FileInfo(fullPath);
             if (!fileInfo.Exists)
                 return NotFound("Tệp tin đính kèm thảo luận không tồn tại.");
+
+            // Chỉ người xem được phiếu chứa bình luận (BinhLuanFormCongViec.FileDinhKem lưu tên trần)
+            var dsIdDon = await _context.BinhLuanFormCongViecs.AsNoTracking()
+                .Where(b => b.FileDinhKem == fileName && b.IdForm != null).Select(b => b.IdForm!.Value).Distinct().ToListAsync();
+            bool duocTai = false;
+            foreach (var id in dsIdDon)
+                if (await DuocXemDonCVAsync(id)) { duocTai = true; break; }
+            if (!duocTai) return Forbid();
 
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
@@ -594,6 +603,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 var cvOrder = await _context.CvCongViecOrder1s.FirstOrDefaultAsync(x => x.IdFormCongViec == idForm);
                 if (cvOrder == null)
                     return Json(new { success = false, message = "Không tìm thấy chi tiết hạng mục công việc chỉ định!" });
+                if (!await DuocSuaHanMucAsync(idForm))
+                    return Json(new { success = false, message = "Bạn không có quyền điều chỉnh hạn mức phiếu này." });
 
                 string moTaLog = "";
 
@@ -736,6 +747,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             return Json(new { success = true, message = "Xử lý phiếu công việc thành công!" });
         }
 
+        // Cùng điều kiện nút "Đóng phiếu hoàn tất" trong ChiTiet — trước đây ai đăng nhập cũng đóng được phiếu người khác
+        [Authorize(Roles = "All,AdminCV,AdminIT")]
         [HttpPost("/FormCongViec/XacNhanHoanThanh")]
         public async Task<IActionResult> XacNhanHoanThanh([FromBody] System.Text.Json.JsonElement body)
         {
@@ -775,6 +788,9 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             var don = await _context.FormCongViecs.FirstOrDefaultAsync(x => x.Id == id);
             if (don == null) return Json(new { success = false });
+            // Chỉ người tạo phiếu được trả về làm lại (khớp nút trong ChiTiet)
+            if (!int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) || don.IdNguoiTao != uid)
+                return Json(new { success = false, message = "Chỉ người tạo phiếu mới được yêu cầu làm lại." });
 
             don.TrangThai = "DaDuyet"; // Trả về trạng thái chờ xử lý lại
             don.IdAdmin = null;
@@ -801,6 +817,18 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
             int id = body.GetProperty("id").GetInt32();
             int mucDo = body.GetProperty("mucDo").GetInt32();
             string nhanXet = body.GetProperty("nhanXet").GetString() ?? "";
+
+            // Chỉ người tạo phiếu, phiếu đã hoàn tất, chưa đánh giá (khớp điều kiện hiện khối khảo sát trong ChiTiet)
+            if (!int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid))
+                return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn." });
+            var donDg = await _context.FormCongViecs.AsNoTracking().Where(f => f.Id == id)
+                .Select(f => new { f.IdNguoiTao, f.TrangThai }).FirstOrDefaultAsync();
+            if (donDg == null || donDg.IdNguoiTao != uid || donDg.TrangThai != "HoanTat")
+                return Json(new { success = false, message = "Bạn không thể đánh giá phiếu này." });
+            if (mucDo < 1 || mucDo > 5)
+                return Json(new { success = false, message = "Mức độ đánh giá từ 1-5 sao." });
+            if (await _context.DanhGiaFormCongViecs.AnyAsync(d => d.IdFormCongViec == id))
+                return Json(new { success = false, message = "Phiếu này đã được đánh giá." });
 
             var dg = new DanhGiaFormCongViec
             {
@@ -830,6 +858,12 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         [HttpGet("/FormCongViec/LayBinhLuan/{idForm}")]
         public async Task<IActionResult> LayBinhLuan(int idForm, int skip = 0, int take = 20)
         {
+            // Cùng phạm vi xem với ChiTiet — trước đây đổi idForm là đọc được thảo luận của đơn khác
+            if (!await DuocXemDonCVAsync(idForm))
+            {
+                Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Json(new { success = false, message = "Bạn không có quyền xem phiếu này." });
+            }
             try
             {
                 var binhLuans = await _context.BinhLuanFormCongViecs
@@ -885,6 +919,8 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 var formCongViec = await _context.FormCongViecs.FindAsync(idForm);
                 if (formCongViec == null)
                     return Json(new { success = false, message = "Không tìm thấy dữ liệu phiếu công việc." });
+                if (!await DuocXemDonCVAsync(idForm))
+                    return Json(new { success = false, message = "Bạn không có quyền thảo luận trên phiếu này." });
 
                 string? fileName = null;
 
@@ -1801,6 +1837,37 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
         }
 
         // Chống IDOR cho các action nhận id đơn từ URL
+        // Cùng điều kiện hiện khối "Điều chỉnh hạn mức & ưu tiên" trong ChiTiet: All/AdminCV/AdminIT, người tạo,
+        // hoặc QuanLyDuyetDonCV/IT cùng công ty + bộ phận của phiếu. Trước đây server không kiểm → ai cũng dời hạn được.
+        private async Task<bool> DuocSuaHanMucAsync(int idForm)
+        {
+            if (User.IsInRole("All") || User.IsInRole("AdminCV") || User.IsInRole("AdminIT")) return true;
+            var d = await _context.FormCongViecs.AsNoTracking().Where(f => f.Id == idForm)
+                .Select(f => new { f.IdNguoiTao, f.TenCongTy, f.BoPhan }).FirstOrDefaultAsync();
+            if (d == null) return false;
+            if (int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) && d.IdNguoiTao == uid) return true;
+            if (!User.IsInRole("QuanLyDuyetDonCV") && !User.IsInRole("QuanLyDuyetDonIT")) return false;
+
+            var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+            if (!string.Equals(d.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(d.BoPhan)) return false;
+            var boPhan = d.BoPhan.Trim();
+            var listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
+            if (!string.IsNullOrEmpty(listBoPhan) && listBoPhan.Split(',').Select(x => x.Trim()).Contains(boPhan, StringComparer.OrdinalIgnoreCase)) return true;
+            return string.Equals(boPhan, (User.FindFirst("PhongBan")?.Value ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        // File đính kèm/ảnh của phiếu WORK: tìm phiếu chứa đúng tên file rồi kiểm phạm vi xem phiếu
+        private async Task<bool> DuocTaiFileDonCVAsync(string tenFile)
+        {
+            var dong = await _context.FormCongViecs.Where(x => x.FileDinhKem != null && x.FileDinhKem.Contains(tenFile)).Select(x => new { IdDon = (int?)x.Id, GiaTri = x.FileDinhKem })
+                .Concat(_context.CvCongViecOrder1s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormCongViec, GiaTri = x.DuongDanAnh }))
+                .AsNoTracking().ToListAsync();
+
+            foreach (var id in E_Form_Best.Areas.ITForm.Services.TepDinhKem.IdDonKhop(dong.Select(d => (d.IdDon, d.GiaTri)), tenFile))
+                if (await DuocXemDonCVAsync(id)) return true;
+            return false;
+        }
+
         private Task<bool> DuocXemDonCVAsync(int id) =>
             LocPhamViXemCV(_context.FormCongViecs.AsNoTracking().Where(f => f.Id == id)).AnyAsync();
 
@@ -2219,6 +2286,9 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 var daoTao = await _context.DaoTaos.FindAsync(idDaoTao);
                 if (daoTao == null) return Json(new { success = false, message = "Không tìm thấy bản ghi đào tạo." });
                 if (daoTao.IdAdmin != null) return Json(new { success = false, message = "Hồ sơ đã hoàn tất, không thể thêm ảnh." });
+                // Cùng quy tắc nút trên trang (coQuyenQuanLy) và Sửa/Xoá đào tạo: chủ bản ghi hoặc AdminDaoTao/All
+                if (daoTao.IdNguoiTao != userId && !User.IsInRole("AdminDaoTao") && !User.IsInRole("All"))
+                    return Json(new { success = false, message = "Bạn không có quyền thêm ảnh cho bản ghi đào tạo này." });
 
                 var danhSachAnhFile = Request.Form.Files.Where(f => f.Name == "AnhBangChung" && f.Length > 0).ToList();
                 if (!danhSachAnhFile.Any()) return Json(new { success = false, message = "Vui lòng chọn ít nhất 1 ảnh." });
@@ -2424,6 +2494,11 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 if (thamGia == null) return Json(new { success = false, message = "Không tìm thấy người tham dự." });
                 if (thamGia.IdDaoTaoNavigation.IdAdmin != null)
                     return Json(new { success = false, message = "Hồ sơ đã hoàn tất, không thể điểm danh thêm." });
+                // Điểm danh hộ người khác: chủ bản ghi hoặc AdminDaoTao/All (cùng quy tắc ô tích trên trang)
+                bool laChu = int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uidDd)
+                             && thamGia.IdDaoTaoNavigation.IdNguoiTao == uidDd;
+                if (!laChu && !User.IsInRole("AdminDaoTao") && !User.IsInRole("All"))
+                    return Json(new { success = false, message = "Bạn không có quyền điểm danh cho buổi đào tạo này." });
 
                 thamGia.CoMat = coMat;
                 thamGia.ThoiGianDiemDanh = coMat ? DateTime.Now : null;
@@ -2451,6 +2526,9 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
                 var daoTao = await _context.DaoTaos.FindAsync(idDaoTao);
                 if (daoTao == null) return Json(new { success = false, message = "Không tìm thấy bản ghi đào tạo." });
                 if (daoTao.IdAdmin != null) return Json(new { success = false, message = "Hồ sơ đã hoàn tất, không thể thêm tài liệu." });
+                // Cùng quy tắc nút trên trang (coQuyenQuanLy) và Sửa/Xoá đào tạo: chủ bản ghi hoặc AdminDaoTao/All
+                if (daoTao.IdNguoiTao != userId && !User.IsInRole("AdminDaoTao") && !User.IsInRole("All"))
+                    return Json(new { success = false, message = "Bạn không có quyền thêm tài liệu cho bản ghi đào tạo này." });
 
                 var file = Request.Form.Files.GetFile("TaiLieu");
                 if (file == null || file.Length == 0) return Json(new { success = false, message = "Vui lòng chọn tệp tài liệu." });
@@ -2654,6 +2732,22 @@ namespace E_Form_Best.Areas.QLCongViec.Controllers
 
             if (fullPath == null || !System.IO.File.Exists(fullPath))
                 return NotFound("Ảnh bằng chứng không tồn tại.");
+
+            // Cùng phạm vi danh sách trang Đào tạo: AdminDaoTao/All, người tạo, người tham gia, người duyệt
+            var dsIdDaoTao = await _context.DaoTaoAnhs.AsNoTracking().Where(a => a.TenFile == fileName).Select(a => a.IdDaoTao)
+                .Concat(_context.DaoTaoTaiLieus.AsNoTracking().Where(t => t.TenFile == fileName).Select(t => t.IdDaoTao))
+                .Distinct().ToListAsync();
+            if (dsIdDaoTao.Count == 0) return Forbid();
+            if (!User.IsInRole("AdminDaoTao") && !User.IsInRole("All"))
+            {
+                int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid);
+                var userMa = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+                bool duocXem = await _context.DaoTaos.AsNoTracking().AnyAsync(x => dsIdDaoTao.Contains(x.Id) && (
+                    x.IdNguoiTao == uid ||
+                    x.DaoTaoNguoiThamGias.Any(tg => tg.IdNguoiDung == uid) ||
+                    x.DaoTaoQuanLyDuyets.Any(d => d.IdnguoiXacNhan == uid || (d.MaNguoiXacNhan != null && d.MaNguoiXacNhan == userMa))));
+                if (!duocXem) return Forbid();
+            }
 
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))

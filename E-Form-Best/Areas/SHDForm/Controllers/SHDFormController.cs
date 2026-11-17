@@ -441,51 +441,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 return RedirectToAction("LichSuSHD");
             }
 
-            // 3. KIỂM TRA QUYỀN XEM (Logic cộng dồn)
-            bool isAllowed = false;
-
-            // Quyền 1: Người tạo đơn
-            if (don.IdNguoiTao == userId)
-            {
-                isAllowed = true;
-            }
-            // Quyền 2: Admin tổng hoặc AdminSHD
-            else if (User.IsInRole("All") || User.IsInRole("AdminSHD"))
-            {
-                isAllowed = true;
-            }
-            // Quyền 3: Quản lý duyệt đơn SHD (Cùng công ty và thuộc bộ phận quản lý)
-            else if (User.IsInRole("QuanLyDuyetDonSHD"))
-            {
-                bool isSameCompany = string.Equals(don.TenCongTy?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
-                string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
-                string phongBanDon = User.FindFirst("PhongBan")?.Value ?? "";
-
-                bool isSameDepartment = false;
-                if (!string.IsNullOrEmpty(don.BoPhan))
-                {
-                    if (!string.IsNullOrEmpty(listBoPhan))
-                    {
-                        isSameDepartment = listBoPhan.Contains(don.BoPhan);
-                    }
-                    else
-                    {
-                        isSameDepartment = string.Equals(don.BoPhan.Trim(), phongBanDon.Trim(), StringComparison.OrdinalIgnoreCase);
-                    }
-                }
-
-                if (isSameCompany && isSameDepartment)
-                {
-                    isAllowed = true;
-                }
-            }
-            // Quyền 4: Check theo Role QuanLyDuyetDonSHD_B2 và GiamDocSHD
-            else if (User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("GiamDocSHD"))
-            {
-                isAllowed = true;
-            }
-
-            if (!isAllowed)
+            // 3. KIỂM TRA QUYỀN XEM (dùng chung với xuất file + bình luận, xem DuocXemDonShd)
+            if (!DuocXemDonShd(don.IdNguoiTao, don.TenCongTy, don.BoPhan))
             {
                 return Forbid();
             }
@@ -517,6 +474,55 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
         // 6. Tải tệp tin SHD
         [Authorize]
+        // Quy tắc xem một đơn SHD — một chỗ duy nhất cho ChiTiet, ExportExcel/Word/PDF, Lấy/Thêm bình luận.
+        // Trước đây chỉ ChiTiet kiểm; đổi id trên URL xuất file/đọc bình luận được đơn của người khác.
+        // Giữ nguyên chuỗi else-if cũ: có QuanLyDuyetDonSHD thì chỉ xét cùng công ty + bộ phận.
+        private bool DuocXemDonShd(int? idNguoiTao, string? tenCongTyDon, string? boPhanDon)
+        {
+            if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId)) return false;
+            if (idNguoiTao == userId) return true;
+            if (User.IsInRole("All") || User.IsInRole("AdminSHD")) return true;
+            if (User.IsInRole("QuanLyDuyetDonSHD"))
+            {
+                var tenCongTyUser = User.FindFirst("TenCongTy")?.Value?.Trim() ?? "";
+                bool isSameCompany = string.Equals(tenCongTyDon?.Trim(), tenCongTyUser, StringComparison.OrdinalIgnoreCase);
+                string listBoPhan = User.FindFirst("TenBoPhan")?.Value ?? "";
+                string phongBanUser = User.FindFirst("PhongBan")?.Value ?? "";
+                bool isSameDepartment = false;
+                if (!string.IsNullOrEmpty(boPhanDon))
+                {
+                    if (!string.IsNullOrEmpty(listBoPhan))
+                        isSameDepartment = listBoPhan.Contains(boPhanDon);
+                    else
+                        isSameDepartment = string.Equals(boPhanDon.Trim(), phongBanUser.Trim(), StringComparison.OrdinalIgnoreCase);
+                }
+                return isSameCompany && isSameDepartment;
+            }
+            return User.IsInRole("QuanLyDuyetDonSHD_B2") || User.IsInRole("GiamDocSHD");
+        }
+
+        // File đính kèm/ảnh của đơn SHD: tìm đơn chứa đúng tên file (bảng chính + 2 bảng con) rồi kiểm quyền xem đơn
+        private async Task<bool> DuocTaiFileDonShdAsync(string tenFile)
+        {
+            var dong = await _context.FormShds.Where(x => x.FileDinhKem != null && x.FileDinhKem.Contains(tenFile)).Select(x => new { IdDon = (int?)x.Id, GiaTri = x.FileDinhKem })
+                .Concat(_context.ShdDangKySuDungXeCongTac1s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormShd, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ShdDangKySuDungXeCongTac1s.Where(x => x.Anh != null && x.Anh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormShd, GiaTri = x.Anh }))
+                .Concat(_context.ShdDangKySuDungXeDaily2s.Where(x => x.DuongDanAnh != null && x.DuongDanAnh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormShd, GiaTri = x.DuongDanAnh }))
+                .Concat(_context.ShdDangKySuDungXeDaily2s.Where(x => x.Anh != null && x.Anh.Contains(tenFile)).Select(x => new { IdDon = (int?)x.IdFormShd, GiaTri = x.Anh }))
+                .AsNoTracking().ToListAsync();
+
+            foreach (var id in E_Form_Best.Areas.ITForm.Services.TepDinhKem.IdDonKhop(dong.Select(d => (d.IdDon, d.GiaTri)), tenFile))
+                if (await DuocXemDonShdAsync(id)) return true;
+            return false;
+        }
+
+        private async Task<bool> DuocXemDonShdAsync(int idDon)
+        {
+            var d = await _context.FormShds.AsNoTracking().Where(f => f.Id == idDon)
+                .Select(f => new { f.IdNguoiTao, f.TenCongTy, f.BoPhan }).FirstOrDefaultAsync();
+            return d != null && DuocXemDonShd(d.IdNguoiTao, d.TenCongTy, d.BoPhan);
+        }
+
         [HttpGet("/FormSHD/DownloadFile/{fileName}")]
         public async Task<IActionResult> DownloadFile(string? fileName)
         {
@@ -524,6 +530,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             string networkPath = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\DonSHD";
             string? fullPath = DuongDanFileAnToan(networkPath, fileName);
             if (fullPath == null || !System.IO.File.Exists(fullPath)) return NotFound("Tệp tin không tồn tại.");
+            if (!await DuocTaiFileDonShdAsync(fileName)) return Forbid(); // chỉ người xem được đơn chứa file
 
             var memory = new MemoryStream();
             using (var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
@@ -629,6 +636,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất xử lý hoặc không tồn tại.");
+            if (!DuocXemDonShd(don.IdNguoiTao, don.TenCongTy, don.BoPhan)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             using (var workbook = new ClosedXML.Excel.XLWorkbook())
             {
@@ -757,6 +765,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+            if (!DuocXemDonShd(don.IdNguoiTao, don.TenCongTy, don.BoPhan)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             string htmlContent = BuildHtmlContentSHD(don, isForWord: true);
 
@@ -775,6 +784,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             if (don == null || don.IdAdmin == null)
                 return NotFound("Đơn chưa hoàn tất hoặc không tồn tại.");
+            if (!DuocXemDonShd(don.IdNguoiTao, don.TenCongTy, don.BoPhan)) return Forbid(); // chống đổi id trên URL xuất đơn người khác
 
             string htmlContent = BuildHtmlContentSHD(don, isForWord: false);
             return Content(htmlContent, "text/html", System.Text.Encoding.UTF8);
@@ -912,6 +922,11 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         [HttpGet("/FormSHD/LayBinhLuan/{idForm}")]
         public async Task<IActionResult> LayBinhLuan(int idForm, int skip = 0, int take = 20)
         {
+            if (!await DuocXemDonShdAsync(idForm))
+            {
+                Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Json(new { success = false, message = "Bạn không có quyền xem đơn này." });
+            }
             try
             {
                 var binhLuans = await _context.BinhLuanFormShds
@@ -967,6 +982,8 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
                 var formShd = await _context.FormShds.FindAsync(idForm);
                 if (formShd == null)
                     return Json(new { success = false, message = "Không tìm thấy đơn SHD" });
+                if (!DuocXemDonShd(formShd.IdNguoiTao, formShd.TenCongTy, formShd.BoPhan))
+                    return Json(new { success = false, message = "Bạn không có quyền bình luận trên đơn này." });
 
                 string? fileName = null;
 
@@ -1091,7 +1108,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
         [Authorize]
         [HttpGet("/FormSHD/DownloadBinhLuanFile/{fileName}")]
-        public IActionResult DownloadBinhLuanFile(string fileName)
+        public async Task<IActionResult> DownloadBinhLuanFile(string fileName)
         {
             if (string.IsNullOrEmpty(fileName)) return NotFound();
 
@@ -1101,6 +1118,14 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
 
             var fileInfo = new FileInfo(fullPath);
             if (!fileInfo.Exists) return NotFound("File SHD không tồn tại");
+
+            // Chỉ người xem được đơn chứa bình luận (BinhLuanFormShd.FileDinhKem lưu tên trần)
+            var dsIdDon = await _context.BinhLuanFormShds.AsNoTracking()
+                .Where(b => b.FileDinhKem == fileName && b.IdFormShd != null).Select(b => b.IdFormShd!.Value).Distinct().ToListAsync();
+            bool duocTai = false;
+            foreach (var id in dsIdDon)
+                if (await DuocXemDonShdAsync(id)) { duocTai = true; break; }
+            if (!duocTai) return Forbid();
 
             string originalFileName = string.Join("_", fileName.Split('_').Skip(2));
 
@@ -2358,6 +2383,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
         }
 
+        [Authorize(Roles = "AdminSHD,All,SHD")] // cùng quyền trang BaoCaoThongKe SHD
         [HttpGet("/FormSHD/GetDataNguoiHoTro")]
         public async Task<IActionResult> GetDataNguoiHoTro(DateTime? fromDate, DateTime? toDate)
         {
