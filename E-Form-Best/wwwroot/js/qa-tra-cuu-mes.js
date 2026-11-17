@@ -242,7 +242,7 @@
                 o(tr, '', 'so');
             }
             o(tr, d.endCustCode, 'qa-cot-phu');
-            o(tr, d.orderUcode);
+            o(tr, d.orderUcode, 'qa-copy');
             o(tr, d.custCode);
             o(tr, d.artCode);
             o(tr, d.colorCode);
@@ -706,6 +706,7 @@
         if (e.button !== 0) return;
         if (document.documentElement.classList.contains('qa-che-do-copy')) return; // đang bật "Bôi đen để copy"
         if (e.target.closest('.qa-ct-soban-o')) return; // bấm vào ô số paiban để gõ, không tích dòng
+        if (e.target.closest('.qa-copy')) return; // ô bấm-để-copy (mã phối màu): không tích dòng
         var tr = e.target.closest('#qa-mes-tbody tr');
         var cb = oTich(tr);
         if (!cb || cb.disabled) return;

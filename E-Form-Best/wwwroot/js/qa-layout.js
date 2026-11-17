@@ -56,4 +56,71 @@
         apHienCot(nut, hien);
         try { localStorage.setItem('qa-hien-cot-' + nut.dataset.hienCot, hien ? '1' : '0'); } catch (e2) { /* bỏ qua */ }
     });
+
+    // Ô .qa-copy (mã phối màu...): bấm = copy chữ trong ô. Chạy pha capture và chặn lan để không tích dòng / mở chi tiết.
+    // Máy chủ chạy http qua IP (không phải ngữ cảnh an toàn) thì navigator.clipboard không có -> dùng execCommand.
+    function copyChu(text) {
+        // API mới bị từ chối (trang mất focus, quyền...) thì thử cách cũ
+        if (navigator.clipboard && window.isSecureContext)
+            return navigator.clipboard.writeText(text).catch(function () { return copyCu(text); });
+        return copyCu(text);
+    }
+    function copyCu(text) {
+        return new Promise(function (xong, loi) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+            document.body.appendChild(ta);
+            ta.select();
+            var ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+            ta.remove();
+            if (ok) xong(); else loi(new Error('Trình duyệt chặn copy'));
+        });
+    }
+    document.addEventListener('click', function (e) {
+        var o = e.target.closest('.qa-copy');
+        if (!o) return;
+        // Đang bôi đen chữ trong ô để copy tay thì để mặc định
+        var chon = window.getSelection ? String(window.getSelection()) : '';
+        if (chon && o.contains(window.getSelection().anchorNode)) return;
+        var text = (o.textContent || '').trim();
+        if (!text) return;
+        e.preventDefault();
+        e.stopPropagation();
+        copyChu(text).then(function () {
+            o.classList.add('da-copy');
+            setTimeout(function () { o.classList.remove('da-copy'); }, 900);
+            if (window.qaThongBao) window.qaThongBao('Đã copy: ' + text, 'ok');
+        }, function (err) {
+            if (window.qaThongBao) window.qaThongBao('Không copy được: ' + err.message, 'loi');
+        });
+    }, true);
+
+    // Điện thoại: bảng .qa-mes-bang hiện dạng thẻ (CSS @media trong qa-layout.css), mỗi ô cần nhãn cột.
+    // Gắn data-nhan = chữ tiêu đề cột tương ứng mỗi khi tbody được vẽ lại; màn rộng không dùng nhãn này.
+    function tenCot(th) {
+        var t = '';
+        th.childNodes.forEach(function (n) { if (n.nodeType === 3 || (n.nodeType === 1 && !n.matches('button, input'))) t += n.textContent; });
+        return t.trim();
+    }
+    function ganNhan(bang) {
+        if (!bang.tHead || !bang.tHead.rows[0]) return;
+        var ten = Array.prototype.map.call(bang.tHead.rows[0].cells, tenCot);
+        Array.prototype.forEach.call(bang.tBodies, function (tb) {
+            Array.prototype.forEach.call(tb.rows, function (tr) {
+                if (tr.cells.length < 2) return; // dòng "chưa có dữ liệu" (1 ô colspan)
+                Array.prototype.forEach.call(tr.cells, function (td, i) {
+                    if (ten[i] && td.dataset.nhan !== ten[i]) td.dataset.nhan = ten[i];
+                });
+            });
+        });
+    }
+    document.querySelectorAll('table.qa-mes-bang').forEach(function (bang) {
+        ganNhan(bang);
+        Array.prototype.forEach.call(bang.tBodies, function (tb) {
+            new MutationObserver(function () { ganNhan(bang); }).observe(tb, { childList: true });
+        });
+    });
 })();

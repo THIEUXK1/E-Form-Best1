@@ -242,7 +242,7 @@
                     tdMuon.appendChild(tg);
                     tdMuon.title = 'Mượn lúc ' + ngayGio(d.muon.ngayMuon) + (d.muon.nguoiChoMuon ? ' · người cho mượn: ' + d.muon.nguoiChoMuon : '');
                 }
-                o(tr, d.maPhoiMau);
+                o(tr, d.maPhoiMau, 'qa-copy');
                 o(tr, d.maKhachCuoi, 'qa-cot-phu');
                 o(tr, d.maKhachHang);
                 o(tr, d.maHang);
@@ -662,6 +662,38 @@
         if (tr && String(window.getSelection() || '').length === 0) xemChiTiet(parseInt(tr.dataset.id, 10));
     });
 
+    // Quét mã vạch / QR trên tem bằng camera -> tìm theo mã đọc được; khớp đúng 1 thùng (mã hoặc tên) thì mở chi tiết luôn
+    async function quetMaThung(nutBam) {
+        if (!window.qaQuetMa) { thongBao('Chưa tải được chức năng quét mã, tải lại trang rồi thử lại.', 'loi'); return; }
+        var ma = await window.qaQuetMa('Quét mã thùng / tên thùng trên tem');
+        if (!ma) return;
+        clearTimeout(henTim);
+        $('qa-thung-tim').value = ma;
+        tuKhoa = ma;
+        nutBam.disabled = true;
+        try {
+            await napDanhSach();
+        } finally {
+            nutBam.disabled = false;
+        }
+        var thuong = ma.toLowerCase();
+        var khop = dsThung.filter(function (t) {
+            return (t.maThung || '').toLowerCase() === thuong || (t.tenThung || '').trim().toLowerCase() === thuong;
+        });
+        if (khop.length === 1) {
+            thongBao('Đã quét: ' + ma, 'ok');
+            xemChiTiet(khop[0].idThung);
+        } else if (dsThung.length === 0) {
+            thongBao('Đã quét "' + ma + '" nhưng không có thùng nào khớp.', 'loi');
+        } else {
+            thongBao('Đã quét "' + ma + '": ' + dsThung.length + ' thùng có chứa mã này, bấm để xem.', 'ok');
+        }
+    }
+    document.addEventListener('click', function (e) {
+        var nut = e.target.closest('#qa-thung-quet');
+        if (nut) quetMaThung(nut);
+    });
+
     // Ô tìm: chờ ngừng gõ 350 ms mới gọi server
     document.addEventListener('input', function (e) {
         if (e.target.id !== 'qa-thung-tim') return;
@@ -962,6 +994,7 @@
             if (tr) { bang = bangKeo[k]; break; }
         }
         if (!bang) return;
+        if (e.target.closest('.qa-copy')) return; // ô bấm-để-copy: không tích dòng
         var cb = bang.oTich(tr);
         if (!cb || cb.disabled) return;
         if (!bang.batDau(e)) {

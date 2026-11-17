@@ -46,6 +46,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         #region Trang đăng nhập
 
+        // Program.cs đặt FallbackPolicy bắt đăng nhập cho mọi endpoint → trang đăng nhập phải mở tường minh
+        [AllowAnonymous]
         [HttpGet("/DonXetDuyet/DangNhap")]
         public IActionResult DangNhap()
         {
@@ -54,6 +56,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View();
         }
 
+        [AllowAnonymous]
         [HttpPost("/DonXetDuyet/DangNhap")]
         [EnableRateLimiting("dang-nhap")] // Chặn tool quét tài khoản: tối đa 10 lần POST/phút cho mỗi IP
         public async Task<IActionResult> DangNhap(string email, string matKhau, string deviceName, [FromServices] IAntiforgery antiforgery, bool rememberMe = false)
@@ -499,6 +502,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        [AllowAnonymous] // cookie đã hết hạn vẫn bấm Đăng xuất được, không bị đá vòng qua trang đăng nhập
         [HttpGet("/DonXetDuyet/DangXuat")]
         public async Task<IActionResult> DangXuat()
         {
@@ -6923,6 +6927,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLKiemKe/GetDuLieuThongKe")]
         public IActionResult GetDuLieuThongKe()
         {
+            if (User?.Identity?.IsAuthenticated != true)
+                return StatusCode(401, new { success = false, message = "Chưa đăng nhập" });
             try
             {
                 // Lấy toàn bộ thiết bị đang hoạt động (Bỏ qua các thiết bị nằm trong thùng rác/có NgayXoa)
@@ -7000,6 +7006,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLKiemKe/GetKkThietBiss")]
         public IActionResult GetKkThietBiss()
         {
+            // Trang ThongKe chỉ yêu cầu đăng nhập → API giữ đúng mức đó, không để lộ cho người chưa đăng nhập.
+            if (User?.Identity?.IsAuthenticated != true)
+                return StatusCode(401, new { success = false, message = "Chưa đăng nhập" });
             try
             {
                 var data = _context.KkThietBis
@@ -7187,6 +7196,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // ==================== TRẠNG THÁI ====================
         // Lấy danh sách các giá trị Bản quyền Windows/Office ĐÃ TỪNG được nhập trong hệ thống, dùng làm gợi ý (datalist)
         // khi thêm/sửa thiết bị thủ công - thay vì chỉ có sẵn vài mẫu cứng, gợi ý sẽ phản ánh đúng dữ liệu thực tế đang dùng.
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpGet("/QLKiemKe/GetGoiYBanQuyen")]
         public IActionResult GetGoiYBanQuyen()
         {
@@ -7221,6 +7231,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
 
         [HttpPost("/QLKiemKe/SaveKkTrangThai")]
         [ValidateAntiForgeryToken]
@@ -7257,6 +7269,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
 
         [HttpPost("/QLKiemKe/DeleteKkTrangThai")]
         [ValidateAntiForgeryToken]
@@ -7302,6 +7316,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
+
         [HttpPost("/QLKiemKe/SaveKkCongTy")]
         [ValidateAntiForgeryToken]
         public IActionResult SaveKkCongTy(KkCongTy model)
@@ -7342,6 +7358,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
 
         [HttpPost("/QLKiemKe/DeleteKkCongTy")]
         [ValidateAntiForgeryToken]
@@ -7524,6 +7542,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
 
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
+
         [HttpPost("/QLKiemKe/DeleteKkBoPhan")]
         [ValidateAntiForgeryToken]
         public IActionResult DeleteKkBoPhan(int id)
@@ -7560,6 +7580,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
 
         [HttpPost("/QLKiemKe/SaveKkLoaiThietBi")]
         [ValidateAntiForgeryToken]
@@ -7598,6 +7620,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
 
         [HttpPost("/QLKiemKe/DeleteKkLoaiThietBi")]
         [ValidateAntiForgeryToken]
@@ -7695,6 +7719,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public int IdChan { get; set; }
         }
 
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
+
         [HttpGet("/QLKiemKe/GetDanhSachChan")]
         public IActionResult GetDanhSachChan()
         {
@@ -7715,6 +7741,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
 
         [HttpPost("/QLKiemKe/ChanThietBi")]
         public IActionResult ChanThietBi([FromBody] ChanThietBiRequest req)
@@ -7748,6 +7776,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
         }
+
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
 
         [HttpPost("/QLKiemKe/BoChanThietBi")]
         [ValidateAntiForgeryToken]
@@ -7799,6 +7829,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         [HttpGet("/QLKiemKe/GetKkThietBis")]
         public IActionResult GetKkThietBis()
         {
+            // Controller không có [Authorize] chung → API này phải tự chặn, trước đây ai không đăng nhập cũng đọc được toàn bộ thiết bị.
+            // Cùng nhóm quyền trang ThietBi + BaoCaoDinhKy (trang báo cáo định kỳ gọi lại API này).
+            if (User?.Identity?.IsAuthenticated != true)
+                return StatusCode(401, new { success = false, message = "Chưa đăng nhập" });
+            if (!User.IsInRole("KKTS-PFVN") && !User.IsInRole("AdminIT") && !User.IsInRole("All") && !User.IsInRole("BaoCaoDinhKy"))
+                return StatusCode(403, new { success = false, message = "Không có quyền" });
             try
             {
                 // DỌN DẸP THIẾT BỊ ĐÃ XÓA QUÁ 1 THÁNG (Dựa vào NgayXoa)
@@ -7913,6 +7949,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // HÀM LƯU THIẾT BỊ (CẬP NHẬT: CHECK TRÙNG THEO LOẠI & THAM SỐ LƯU NHÂN BẢN SAVE AS NEW)
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/SaveKkThietBi")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveKkThietBi([FromForm] KkThietBi model, IFormFile? AnhThietBi, bool saveAsNew = false)
@@ -8418,6 +8455,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // HÀM SỬA TRỰC TIẾP LOẠI THIẾT BỊ (Laptop/PC/MayAo/Server) CỦA 1 MÁY TÍNH TỪ TRANG DANH SÁCH
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
         [HttpPost("/QLKiemKe/CapNhatLoaiThietBiMay")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CapNhatLoaiThietBiMay([FromBody] CapNhatLoaiThietBiRequest req)
@@ -8449,6 +8487,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         {
             public List<int>? DanhSachIdMay { get; set; }
         }
+
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
 
         [HttpPost("/QLKiemKe/TuDongPhanLoaiThietBiChuaPhanLoai")]
         [ValidateAntiForgeryToken]
@@ -8599,6 +8639,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Trùng theo cặp TenMayTinh + LoaiThietBi thì cập nhật, không trùng thì thêm mới. TenViTri/IDCongTy/IDBoPhan/Ảnh bỏ qua, chỉ IdTrangThai được gán nếu người dùng chọn.
         // Bản quyền Windows được đồng bộ theo đúng dữ liệu quét được từ máy (BanQuyenWin). Bản quyền Office KHÔNG đụng vào ở luồng này -
         // trường này được quản lý riêng qua chức năng nhập nhanh Excel (ImportOfficeLicenseExcel), tránh bị ghi đè ngoài ý muốn khi đồng bộ.
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
         [HttpPost("/QLKiemKe/DongBoMayTinhSangThietBi")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DongBoMayTinhSangThietBi([FromBody] DongBoMayTinhRequest req)
@@ -8754,6 +8795,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // HÀM XÁC NHẬN CHECK THIẾT BỊ (MỚI: LƯU LỊCH SỬ BẰNG CHỨNG KIỂM KÊ VÀO BẢNG RIÊNG & THƯ MỤC MẠNG RIÊNG)
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/XacNhanCheck")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XacNhanCheck([FromForm] int idThietBi, [FromForm] IFormFile? AnhBangChung, [FromForm] string? ghiChuCheck)
@@ -8823,6 +8865,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // NÚT XÓA: Chuyển vào thùng rác
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/DeleteKkThietBi")]
         [ValidateAntiForgeryToken]
         public IActionResult DeleteKkThietBi(int id, string lyDo)
@@ -8866,6 +8909,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
 
         // NÚT KHÔI PHỤC: Lấy lại từ thùng rác
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/RestoreKkThietBi")]
         [ValidateAntiForgeryToken]
         public IActionResult RestoreKkThietBi(int id)
@@ -8948,6 +8992,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // NÚT XÓA VĨNH VIỄN: Hủy hoàn toàn khỏi CSDL
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/HardDeleteKkThietBi")]
         [ValidateAntiForgeryToken]
         public IActionResult HardDeleteKkThietBi(int id)
@@ -9062,6 +9107,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Bỏ qua các dòng có Cột B trống hoặc không khớp Tên máy tính nào trong hệ thống. Dòng 1 được coi là tiêu đề nên luôn bỏ qua.
         // Chỉ áp dụng cho thiết bị loại "Máy tính" (PC/máy cây) và "Laptop" - các loại thiết bị khác (Màn hình, Máy in...) không có Office nên bỏ qua dù trùng tên máy.
         // Chuẩn hóa Activated/Not Activated về đúng 2 giá trị đã dùng sẵn trong hệ thống ("Có bản quyền" / "Không có bản quyền") để đồng bộ với datalist và bộ lọc hiện có.
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/ImportOfficeLicenseExcel")]
         [ValidateAntiForgeryToken]
         public IActionResult ImportOfficeLicenseExcel(IFormFile file)
@@ -9188,6 +9234,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // Nhập nhanh bản quyền Windows từ file báo cáo license (sheet ALL_PC).
         // Khác với Office (chỉ lấy Activated/Not Activated), Windows phải lấy theo LOẠI KEY thì mới biết máy có license thật hay không.
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/ImportWinLicenseExcel")]
         [ValidateAntiForgeryToken]
         public IActionResult ImportWinLicenseExcel(IFormFile file)
@@ -9331,6 +9378,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // Xem trước dữ liệu Switch từ file trước khi đẩy vào DB: không lưu gì cả, chỉ đọc + đối chiếu trùng Serial.
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/PreviewSwitchExcel")]
         [ValidateAntiForgeryToken]
         public IActionResult PreviewSwitchExcel(IFormFile file)
@@ -9398,6 +9446,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Nhập nhanh Switch từ Excel: cột A=ip, B=hostname, C=model, D=version, E=serial, F=image (bỏ qua), G=error.
         // Trùng theo Serial + Loại thiết bị = Switch thì Cập nhật, chưa có thì Thêm mới.
         // Nhận cả file .xlsx/.xls (ClosedXML) lẫn .csv (tự tách theo dấu phẩy/chấm phẩy/tab).
+        [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // cùng quyền trang /QLKiemKe/ThietBi
         [HttpPost("/QLKiemKe/ImportSwitchExcel")]
         [ValidateAntiForgeryToken]
         public IActionResult ImportSwitchExcel(IFormFile file)
@@ -11376,6 +11425,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             public int IdMay { get; set; }
         }
 
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
+
         [HttpPost("/QLKiemKe/XoaMayTinh")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> XoaMayTinh([FromBody] XoaMayTinhRequest? req)
@@ -11459,6 +11510,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // Máy đã tồn tại (trùng Serial thật) thì bỏ qua để tránh ghi đè dữ liệu đã kiểm kê/gán chủ sở hữu ở local.
         // Serial dạng rác (BIOS không set, ví dụ "To be filled by O.E.M.") không dùng để đối chiếu trùng vì không phải định danh duy nhất thật sự - luôn coi là máy mới.
         private static readonly string[] SeriRacKhongDoiChieu = { "to be filled by o.e.m.", "default string", "system serial number", "none", "0" };
+
+        [Authorize(Roles = "All")] // trang /QLKiemKe + ViewDanhSachTatCaMayTinh chỉ quyền All
 
         [HttpPost("/QLKiemKe/DongBoTuChiNhanh")]
         public async Task<IActionResult> DongBoTuChiNhanh()

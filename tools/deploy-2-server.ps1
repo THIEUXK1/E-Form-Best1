@@ -245,14 +245,15 @@ foreach ($m in $May) {
     $loi = GiaTri $ra 'ERR'
     if ($loi) { Dung ".$m báo $loi" }
 
-    # Gọi thử: endpoint đọc DB không cần đăng nhập, phải trả success:true
+    # Gọi thử: /health/ready truy vấn DB và [AllowAnonymous] (FallbackPolicy bắt đăng nhập mọi endpoint khác → 401)
     $dbOk = $false
     for ($i = 0; $i -lt 6 -and -not $dbOk; $i++) {
-        $body = & curl.exe -s -m 60 "http://$($cfg.Ip):8002/QLKiemKe/GetKkViTriDiaLys"
-        $dbOk = "$body" -match '"success":true'
+        $body = & curl.exe -s -m 60 "http://$($cfg.Ip):8002/health/ready"
+        $dbOk = "$body" -match 'Healthy'
         if (-not $dbOk) { Start-Sleep -Seconds 3 }
     }
-    $trangChu = & curl.exe -s -o NUL -w '%{http_code}' -m 60 "http://$($cfg.Ip):8002/"
+    # Gửi Accept text/html như trình duyệt: chưa đăng nhập thì 302 sang trang đăng nhập (AJAX mới nhận 401)
+    $trangChu = & curl.exe -s -o NUL -w '%{http_code}' -m 60 -H 'Accept: text/html' "http://$($cfg.Ip):8002/"
 
     $dong = [pscustomobject]@{
         May = ".$m"; GianDoanGiay = GiaTri $ra 'DOWNTIME_SEC'; FileCopy = GiaTri $ra 'COPIED'; Loi = GiaTri $ra 'FAILED'

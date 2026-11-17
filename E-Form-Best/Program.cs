@@ -152,8 +152,17 @@ builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.QaKeService>();
 builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.MesKhoService>();
 builder.Services.AddHostedService<E_Form_Best.Areas.QAForm.Services.MesDongBoWorker>();
 // Ai vào được /QAForm: quyền All hoặc quyền bộ phận QA_VIEW (trừ MEGA) — logic ở QaQuyen.CoQuyenQa
-builder.Services.AddAuthorization(o => o.AddPolicy(E_Form_Best.Areas.QAForm.Services.QaQuyen.Policy,
-    p => p.RequireAssertion(ctx => E_Form_Best.Areas.QAForm.Services.QaQuyen.CoQuyenQa(ctx.User))));
+builder.Services.AddAuthorization(o =>
+{
+    o.AddPolicy(E_Form_Best.Areas.QAForm.Services.QaQuyen.Policy,
+        p => p.RequireAssertion(ctx => E_Form_Best.Areas.QAForm.Services.QaQuyen.CoQuyenQa(ctx.User)));
+    // MẶC ĐỊNH ĐÓNG: mọi endpoint không gắn [Authorize]/[AllowAnonymous] đều bắt đăng nhập.
+    // Trước đây mỗi action tự kiểm IsAuthenticated, quên một chỗ là lộ dữ liệu (vd /QLKiemKe/GetKkThietBis
+    // ai không đăng nhập cũng đọc được). Endpoint công khai phải gắn [AllowAnonymous] tường minh.
+    // Phân quyền theo vai trò/bộ phận vẫn do từng action kiểm — chốt này chỉ chặn người chưa đăng nhập.
+    o.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser().Build();
+});
 // Bản chụp MAC trên WLC (KK_WlcMac) cho bảng MAC ở đơn Wi-Fi; chỉ quét khi IT bấm "Kiểm tra trên WLC" (bằng tài khoản domain IT nhập)
 builder.Services.AddScoped<WlcMacQuetService>();
 builder.Services.AddHostedService<AccessPointPingWorker>();
@@ -322,6 +331,51 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                     context.RejectPrincipal();
                     await context.HttpContext.SignOutAsync();
                 }
+            },
+
+            // FallbackPolicy chặn người chưa đăng nhập: trình duyệt mở trang thì chuyển sang đăng nhập như cũ,
+            // còn AJAX (fetch/$.ajax, POST) trả 401 JSON — redirect 302 sẽ ra HTML trang đăng nhập làm res.json() vỡ.
+            OnRedirectToLogin = context =>
+            {
+                var req = context.Request;
+                bool laTrangHtml = HttpMethods.IsGet(req.Method)
+                    && req.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(req.Headers.XRequestedWith, "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+                if (laTrangHtml)
+                {
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                }
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return context.Response.WriteAsJsonAsync(new
+                {
+                    success = false,
+                    thanhCong = false,
+                    message = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+                    thongBao = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+                });
+            },
+
+            // [Authorize(Roles=...)] không đủ quyền: AJAX nhận 403 JSON để JS báo lỗi tại chỗ; trang HTML giữ hành vi cũ
+            OnRedirectToAccessDenied = context =>
+            {
+                var req = context.Request;
+                bool laTrangHtml = HttpMethods.IsGet(req.Method)
+                    && req.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(req.Headers.XRequestedWith, "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+                if (laTrangHtml)
+                {
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                }
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return context.Response.WriteAsJsonAsync(new
+                {
+                    success = false,
+                    thanhCong = false,
+                    message = "Bạn không có quyền thực hiện thao tác này.",
+                    thongBao = "Bạn không có quyền thực hiện thao tác này."
+                });
             }
         };
     });
@@ -443,7 +497,7 @@ app.UseSession();
 // /health       : ứng dụng còn sống hay không - trả lời ngay, không chạm database.
 // /health/ready : kiểm tra luôn kết nối SQL Server, dùng cho uptime check để biết
 //                 hệ thống thật sự dùng được, thay vì chỉ biết web server còn chạy.
-app.MapGet("/health", () => Results.Ok("Healthy"));
+app.MapGet("/health", () => Results.Ok("Healthy")).AllowAnonymous();
 
 app.MapGet("/health/ready", async (ITFormContext db) =>
 {
@@ -457,7 +511,7 @@ app.MapGet("/health/ready", async (ITFormContext db) =>
     {
         return Results.Text($"Unhealthy: {ex.Message}", statusCode: 503);
     }
-});
+}).AllowAnonymous();
 
 // ƯU TIÊN 1: Trang chủ "/" được xử lý trực tiếp bởi action MenuA (xem [HttpGet("/")]
 // trong AdminFormController) thay vì trả 302 sang /MenuA, bớt được một vòng round-trip
