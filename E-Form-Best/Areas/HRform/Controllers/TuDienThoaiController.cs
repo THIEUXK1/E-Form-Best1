@@ -1086,7 +1086,8 @@ namespace E_Form_Best.Areas.HRform.Controllers
 
         // Bộ cài để trên file server (máy chủ web đã đọc được share này — đơn HR/IT cũng lưu ở đây);
         // trình duyệt không mở được đường dẫn \\... từ trang http nên máy chủ đọc rồi trả file về.
-        private const string ThuMucAgentMacDinh = @"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\TeminHR";
+        // internal: trang QA Thùng dùng chung kho driver máy in tem (thư mục Driver\ bên trong)
+        internal const string ThuMucAgentMacDinh =@"\\10.0.60.30\BPVN-Fileserver\Public\IT-Information Technology Dept\5.E-Form\TeminHR";
         private const string TenFileAgent = "TemNhanAgent_CaiDat.msi";
 
         private string ThuMucAgent => _configuration["TemInAgent:ThuMuc"] ?? ThuMucAgentMacDinh;

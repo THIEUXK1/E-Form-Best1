@@ -429,6 +429,12 @@ namespace E_Form_Best.Areas.QAForm.Services
             var thungDong = dong.Where(x => x.Thung.TrangThai != QaThung.TrangThaiMo).Select(x => x.Thung.MaThung).Distinct().ToList();
             if (thungDong.Count > 0)
                 return new(false, $"Thùng {string.Join(", ", thungDong)} đã đóng — mở lại ở Danh sách thùng rồi mới bỏ dòng ra được.");
+            // Dòng đang cho mượn: hàng chưa về, bỏ ra thì mất dấu lượt mượn -> bắt nhận trả trước
+            if (await CoBangMuonAsync(ct))
+            {
+                var soMuon = await _db.QaThungDongMuons.CountAsync(x => ds.Contains(x.IdDong) && x.NgayTra == null, ct);
+                if (soMuon > 0) return new(false, $"{soMuon} dòng đang được cho mượn — bấm Trả trước rồi mới bỏ ra khỏi thùng.");
+            }
 
             var bayGio = DateTime.Now;
             foreach (var d in dong) { d.NgayBo = bayGio; d.NguoiBo = nguoi; }
@@ -665,6 +671,129 @@ namespace E_Form_Best.Areas.QAForm.Services
             await _db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
             return (new(true, $"Đã khôi phục thùng {thung.MaThung}" + (ghiChu.Count > 0 ? " (" + string.Join("; ", ghiChu) + ")." : "."), thung.IdThung, thung.MaThung), false);
+        }
+
+        // ===== CHO MƯỢN DÒNG TRONG THÙNG =====
+        public record DangMuon(int IdDong, string MaNhanVien, string? TenNguoiMuon, DateTime NgayMuon, string? NguoiChoMuon);
+        public record NhanVien(string MaNhanVien, string? HoTen, string? PhongBan);
+
+        // Bảng QA_ThungDongMuon tạo bằng script chạy tay -> chưa có thì ẩn chức năng, 5 phút kiểm lại
+        private static bool? _coBangMuon;
+        private static DateTime _lucKiemBangMuon;
+        public async Task<bool> CoBangMuonAsync(CancellationToken ct)
+        {
+            if (_coBangMuon == true) return true;
+            if (_coBangMuon == false && DateTime.Now - _lucKiemBangMuon < TimeSpan.FromMinutes(5)) return false;
+            var id = await _db.Database.SqlQueryRaw<int?>("SELECT OBJECT_ID('dbo.QA_ThungDongMuon', 'U') AS Value").FirstOrDefaultAsync(ct);
+            _coBangMuon = id != null;
+            _lucKiemBangMuon = DateTime.Now;
+            return _coBangMuon.Value;
+        }
+
+        /// <summary>Lượt mượn đang mở của các dòng (theo id QA_ThungDong); thiếu bảng thì trả rỗng.</summary>
+        public async Task<Dictionary<int, DangMuon>> DangMuonAsync(List<int> dsIdDong, CancellationToken ct)
+        {
+            if (dsIdDong.Count == 0 || !await CoBangMuonAsync(ct)) return new();
+            var kq = new Dictionary<int, DangMuon>();
+            foreach (var lo in dsIdDong.Chunk(2000))
+                foreach (var m in await _db.QaThungDongMuons.AsNoTracking()
+                    .Where(x => lo.Contains(x.IdDong) && x.NgayTra == null)
+                    .Select(x => new DangMuon(x.IdDong, x.MaNhanVien, x.TenNguoiMuon, x.NgayMuon, x.NguoiChoMuon))
+                    .ToListAsync(ct))
+                    kq[m.IdDong] = m;
+            return kq;
+        }
+
+        /// <summary>Tìm người mượn theo mã nhân viên (hoặc tài khoản — nhiều người chưa điền ma_nhan_vien), bỏ người đã nghỉ.</summary>
+        public async Task<NhanVien?> TimNhanVienAsync(string? ma, CancellationToken ct)
+        {
+            ma = (ma ?? "").Trim();
+            if (ma.Length == 0 || ma.Length > 50) return null;
+            var ds = await _db.Users.AsNoTracking()
+                .Where(u => (u.MaNhanVien == ma || u.Tk == ma) && (u.TrangThai == null || u.TrangThai != "Đã nghỉ"))
+                .Select(u => new { u.MaNhanVien, u.Tk, u.HoTen, u.PhongBan })
+                .Take(2).ToListAsync(ct);
+            // Ưu tiên khớp đúng mã nhân viên; khớp tài khoản thì dùng mã NV của người đó nếu có
+            var u = ds.FirstOrDefault(x => string.Equals(x.MaNhanVien, ma, StringComparison.OrdinalIgnoreCase)) ?? ds.FirstOrDefault();
+            if (u == null) return null;
+            return new NhanVien(string.IsNullOrWhiteSpace(u.MaNhanVien) ? u.Tk ?? ma : u.MaNhanVien.Trim(), u.HoTen, u.PhongBan);
+        }
+
+        /// <summary>Cho mượn các dòng đang ở thùng (thùng đóng vẫn cho mượn được — hàng không rời thùng).</summary>
+        public async Task<KetQua> ChoMuonAsync(List<int>? dsIdDong, string? maNhanVien, string? nguoi, CancellationToken ct)
+        {
+            if (!await CoBangMuonAsync(ct)) return new(false, "Chưa tạo bảng cho mượn trên máy chủ, liên hệ IT.");
+            var ds = (dsIdDong ?? new()).Where(i => i > 0).Distinct().ToList();
+            if (ds.Count == 0) return new(false, "Chưa chọn dòng nào.");
+            if (ds.Count > TranDongMoiLan) return new(false, $"Mỗi lần chỉ cho mượn tối đa {TranDongMoiLan} dòng.");
+            var nv = await TimNhanVienAsync(maNhanVien, ct);
+            if (nv == null) return new(false, $"Không tìm thấy nhân viên mã \"{(maNhanVien ?? "").Trim()}\" (hoặc đã nghỉ).");
+
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            try
+            {
+                var dong = await _db.QaThungDongs.Include(x => x.Thung)
+                    .Where(x => ds.Contains(x.IdDong) && x.NgayBo == null && x.Thung.NgayXoa == null)
+                    .ToListAsync(ct);
+                if (dong.Count != ds.Count)
+                    return new(false, $"{ds.Count - dong.Count} dòng không còn ở thùng (có thể vừa bị người khác chuyển/bỏ). Tải lại chi tiết thùng rồi chọn lại.");
+                var daMuon = await _db.QaThungDongMuons.Where(x => ds.Contains(x.IdDong) && x.NgayTra == null)
+                    .Select(x => x.MaNhanVien).ToListAsync(ct);
+                if (daMuon.Count > 0)
+                    return new(false, $"{daMuon.Count} dòng đang được mượn ({string.Join(", ", daMuon.Distinct().Take(5))}) — trả trước rồi mới cho mượn lại.");
+
+                var bayGio = DateTime.Now;
+                foreach (var d in dong)
+                    _db.QaThungDongMuons.Add(new QaThungDongMuon
+                    {
+                        IdDong = d.IdDong, MaNhanVien = Cat(nv.MaNhanVien, 50)!, TenNguoiMuon = Cat(nv.HoTen, 200),
+                        NgayMuon = bayGio, NguoiChoMuon = Cat(nguoi, 50)
+                    });
+                foreach (var g in dong.GroupBy(x => x.Thung))
+                    GhiLichSu(g.Key.IdThung, nguoi, "ChoMuon",
+                        $"Cho {nv.HoTen} ({nv.MaNhanVien}) mượn {g.Count()} dòng; tổng {g.Sum(d => d.SlDongGoi ?? 0):0.###} m, {g.Sum(d => d.KlDongGoi ?? 0):0.###} kg",
+                        bayGio);
+                await _db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                return new(true, $"Đã cho {nv.HoTen} ({nv.MaNhanVien}) mượn {dong.Count} dòng.");
+            }
+            catch (DbUpdateException ex)
+            {
+                // Trùng UX_QA_ThungDongMuon_DangMuon: người khác vừa cho mượn cùng dòng
+                _logger.LogWarning(ex, "Lỗi lưu cho mượn dòng thùng QA");
+                return new(false, "Không lưu được (có thể người khác vừa cho mượn cùng dòng), tải lại rồi thử lại.");
+            }
+        }
+
+        /// <summary>Nhận trả các dòng đang mượn (dòng chưa mượn trong danh sách thì bỏ qua).</summary>
+        public async Task<KetQua> TraMuonAsync(List<int>? dsIdDong, string? nguoi, CancellationToken ct)
+        {
+            if (!await CoBangMuonAsync(ct)) return new(false, "Chưa tạo bảng cho mượn trên máy chủ, liên hệ IT.");
+            var ds = (dsIdDong ?? new()).Where(i => i > 0).Distinct().ToList();
+            if (ds.Count == 0) return new(false, "Chưa chọn dòng nào.");
+            if (ds.Count > TranDongMoiLan) return new(false, $"Mỗi lần chỉ trả tối đa {TranDongMoiLan} dòng.");
+
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var muon = await _db.QaThungDongMuons.Where(x => ds.Contains(x.IdDong) && x.NgayTra == null).ToListAsync(ct);
+            if (muon.Count == 0) return new(false, "Các dòng đã chọn không có dòng nào đang được mượn.");
+            var idDongMuon = muon.Select(x => x.IdDong).ToList();
+            var dong = await _db.QaThungDongs.AsNoTracking().Where(x => idDongMuon.Contains(x.IdDong))
+                .Select(x => new { x.IdDong, x.IdThung, x.SlDongGoi, x.KlDongGoi }).ToListAsync(ct);
+            var thungCuaDong = dong.ToDictionary(x => x.IdDong);
+
+            var bayGio = DateTime.Now;
+            foreach (var m in muon) { m.NgayTra = bayGio; m.NguoiNhanTra = Cat(nguoi, 50); }
+            foreach (var g in muon.Where(m => thungCuaDong.ContainsKey(m.IdDong)).GroupBy(m => thungCuaDong[m.IdDong].IdThung))
+            {
+                var nguoiMuon = string.Join(", ", g.Select(m => $"{m.TenNguoiMuon} ({m.MaNhanVien})").Distinct());
+                GhiLichSu(g.Key, nguoi, "TraMuon",
+                    $"Nhận trả {g.Count()} dòng từ {nguoiMuon}; tổng {g.Sum(m => thungCuaDong[m.IdDong].SlDongGoi ?? 0):0.###} m, {g.Sum(m => thungCuaDong[m.IdDong].KlDongGoi ?? 0):0.###} kg",
+                    bayGio);
+            }
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            var boQua = ds.Count - muon.Count;
+            return new(true, $"Đã nhận trả {muon.Count} dòng." + (boQua > 0 ? $" {boQua} dòng không đang mượn được bỏ qua." : ""));
         }
 
         private void GhiLichSu(int idThung, string? nguoi, string hanhDong, string? noiDung, DateTime ngay)

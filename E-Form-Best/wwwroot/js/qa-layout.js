@@ -21,6 +21,17 @@
         }
     });
 
+    // Công tắc "Bôi đen để copy": bật thì gắn lớp qa-che-do-copy lên <html>, các trang (qa-thung, qa-tra-cuu-mes)
+    // bỏ qua kéo-tích dòng để chuột bôi đen chữ như bình thường. Không nhớ: mỗi lần tải trang mặc định bật.
+    var congTacCopy = document.getElementById('qa-che-do-copy');
+    function apCheDoCopy(bat) {
+        document.documentElement.classList.toggle('qa-che-do-copy', bat);
+        if (congTacCopy) congTacCopy.checked = bat;
+    }
+    apCheDoCopy(true);
+    try { localStorage.removeItem('qa-che-do-copy'); } catch (e) { /* dọn giá trị bản trước đã lưu */ }
+    if (congTacCopy) congTacCopy.addEventListener('change', function () { apCheDoCopy(congTacCopy.checked); });
+
     // Bảng QA nhiều cột: mặc định chỉ hiện cột quan trọng (th/td có lớp qa-cot-phu bị ẩn);
     // nút [data-hien-cot="<id bảng>"] bật/tắt, nhớ theo từng bảng trên trình duyệt này
     function apHienCot(nut, hienHet) {

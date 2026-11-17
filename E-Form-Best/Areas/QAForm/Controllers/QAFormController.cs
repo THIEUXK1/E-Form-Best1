@@ -16,13 +16,15 @@ namespace E_Form_Best.Areas.QAForm.Controllers
         private readonly QaThungService _thung;
         private readonly QaKeService _ke;
         private readonly ILogger<QAFormController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public QAFormController(MesKhoService kho, QaThungService thung, QaKeService ke, ILogger<QAFormController> logger)
+        public QAFormController(MesKhoService kho, QaThungService thung, QaKeService ke, ILogger<QAFormController> logger, IConfiguration configuration)
         {
             _kho = kho;
             _thung = thung;
             _ke = ke;
             _logger = logger;
+            _configuration = configuration;
         }
 
         // DsIdDongChuyen: dòng đang ở thùng khác (id QA_ThungDong) cần chuyển sang thùng đích
@@ -146,6 +148,62 @@ namespace E_Form_Best.Areas.QAForm.Controllers
             return View();
         }
 
+        // ===== DRIVER MÁY IN TEM TSC =====
+        // Dùng chung kho driver với trang tủ điện thoại HR (file server, mỗi thư mục con = 1 dòng máy in).
+        // QA chỉ thấy thư mục tên bắt đầu "TSC"; IT chép thêm thư mục "TSC xxx" là trang tự hiện.
+        private string ThuMucDriver => _configuration["TemInAgent:ThuMucDriver"]
+            ?? Path.Combine(_configuration["TemInAgent:ThuMuc"] ?? E_Form_Best.Areas.HRform.Controllers.TuDienThoaiController.ThuMucAgentMacDinh, "Driver");
+
+        private static bool LaThuMucTsc(string ten) => ten.StartsWith("TSC", StringComparison.OrdinalIgnoreCase);
+
+        [HttpGet("/QAForm/DriverTsc/DanhSach")]
+        public IActionResult DriverTscDanhSach()
+        {
+            try
+            {
+                var goc = new DirectoryInfo(ThuMucDriver);
+                if (!goc.Exists)
+                    return Json(new { thanhCong = false, thongBao = "Chưa có driver nào trên file server, liên hệ IT." });
+
+                var ds = goc.GetDirectories()
+                    .Where(d => LaThuMucTsc(d.Name))
+                    .OrderBy(d => d.Name)
+                    .Select(d => new
+                    {
+                        may = d.Name,
+                        files = d.GetFiles()
+                            .Where(f => (f.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == 0)
+                            .OrderBy(f => f.Name)
+                            .Select(f => new { ten = f.Name, kichThuocMb = Math.Round(f.Length / 1048576.0, 1), ngayCapNhat = f.LastWriteTime })
+                            .ToList()
+                    })
+                    .Where(m => m.files.Count > 0)
+                    .ToList();
+                return Json(new { thanhCong = true, thongBao = "", duLieu = ds });
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Không trả đường dẫn share / ex.Message (có \\máy\thư mục) về trình duyệt
+                _logger.LogError(ex, "Không đọc được thư mục driver máy in TSC");
+                return Json(new { thanhCong = false, thongBao = "Máy chủ không đọc được file server, liên hệ IT." });
+            }
+        }
+
+        [HttpGet("/QAForm/DriverTsc/Tai")]
+        public IActionResult DriverTscTai(string may, string file)
+        {
+            // Chỉ nhận đúng tên thư mục TSC / tên file — chặn ..\ hay đường dẫn tuyệt đối đọc file ngoài kho driver
+            if (string.IsNullOrWhiteSpace(may) || string.IsNullOrWhiteSpace(file)
+                || may.Contains("..") || file.Contains("..")
+                || Path.GetFileName(may) != may || Path.GetFileName(file) != file
+                || !LaThuMucTsc(may))
+                return BadRequest("Tên driver không hợp lệ.");
+
+            var duongDan = Path.Combine(ThuMucDriver, may, file);
+            if (!System.IO.File.Exists(duongDan)) return NotFound("Không tìm thấy driver này, liên hệ IT.");
+            return PhysicalFile(duongDan, "application/octet-stream", file, enableRangeProcessing: true);
+        }
+
         // chiThungMo=true: danh sách cho hộp chọn "Thêm vào thùng"
         // tuKhoa: tìm theo mã thùng hoặc hàng trong thùng (mã phối màu, mã hàng, mã màu, số phiếu)
         [HttpGet("/QAForm/Thung/DanhSach")]
@@ -168,6 +226,8 @@ namespace E_Form_Best.Areas.QAForm.Controllers
         {
             var (thung, dong, lichSu) = await _thung.ChiTietAsync(id, ct);
             if (thung == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy thùng (có thể đã bị xoá)." });
+            var coBangMuon = await _thung.CoBangMuonAsync(ct);
+            var dangMuon = await _thung.DangMuonAsync(dong.Select(d => d.IdDong).ToList(), ct);
             return Json(new
             {
                 thanhCong = true,
@@ -180,11 +240,57 @@ namespace E_Form_Best.Areas.QAForm.Controllers
                     {
                         d.IdDong, d.MaPhoiMau, d.MaKhachCuoi, d.MaKhachHang, d.MaHang, d.MaMau, d.SlDonHang, d.SlDongGoi, d.KlDongGoi,
                         d.SoHop, d.SoBan, d.Loai, d.MoTaBatThuong, d.YKienQc, d.CongDoan, d.SoPhieuNhuom, d.NgayNhanHang, d.NgayDongGoi,
-                        d.SoPhieuDongGoi, d.MaNvDongGoi, d.GhiChuMes, d.NgayThem, d.NguoiThem
+                        d.SoPhieuDongGoi, d.MaNvDongGoi, d.GhiChuMes, d.NgayThem, d.NguoiThem,
+                        Muon = dangMuon.TryGetValue(d.IdDong, out var m) ? new { m.MaNhanVien, m.TenNguoiMuon, m.NgayMuon, m.NguoiChoMuon } : null
                     }),
-                    lichSu = lichSu.Select(l => new { l.Ngay, l.Nguoi, l.HanhDong, l.NoiDung })
+                    lichSu = lichSu.Select(l => new { l.Ngay, l.Nguoi, l.HanhDong, l.NoiDung }),
+                    coBangMuon
                 }
             });
+        }
+
+        // ===== CHO MƯỢN DÒNG TRONG THÙNG =====
+        public record MuonVao(List<int>? DsIdDong, string? MaNhanVien);
+
+        // Tra tên người mượn trước khi xác nhận (mã NV hoặc tài khoản, bỏ người đã nghỉ)
+        [HttpGet("/QAForm/NhanVien")]
+        public async Task<IActionResult> TimNhanVien(string? ma, CancellationToken ct = default)
+        {
+            var nv = await _thung.TimNhanVienAsync(ma, ct);
+            if (nv == null) return Json(new { thanhCong = false, thongBao = $"Không tìm thấy nhân viên mã \"{(ma ?? "").Trim()}\" (hoặc đã nghỉ)." });
+            return Json(new { thanhCong = true, thongBao = "", duLieu = nv });
+        }
+
+        [HttpPost("/QAForm/Thung/ChoMuon")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThungChoMuon([FromBody] MuonVao vao, CancellationToken ct = default)
+        {
+            try
+            {
+                var kq = await _thung.ChoMuonAsync(vao.DsIdDong, vao.MaNhanVien, NguoiDung, ct);
+                return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi cho mượn dòng thùng QA");
+                return Json(new { thanhCong = false, thongBao = "Lỗi lưu cho mượn: " + ex.Message });
+            }
+        }
+
+        [HttpPost("/QAForm/Thung/TraMuon")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThungTraMuon([FromBody] MuonVao vao, CancellationToken ct = default)
+        {
+            try
+            {
+                var kq = await _thung.TraMuonAsync(vao.DsIdDong, NguoiDung, ct);
+                return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi nhận trả dòng thùng QA");
+                return Json(new { thanhCong = false, thongBao = "Lỗi lưu nhận trả: " + ex.Message });
+            }
         }
 
         // idThung null = tạo thùng mới; server tự gọi lại MES lấy dữ liệu gốc theo dấu vân tay

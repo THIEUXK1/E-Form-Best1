@@ -411,6 +411,7 @@
     // Lọc cột kiểu Excel (qa-loc-cot.js): bỏ tích dòng vừa bị ẩn để không lỡ bỏ vào thùng, ghi số dòng đang hiện
     document.addEventListener('qa-loc-cot:doi', function (e) {
         if (e.target.id !== 'qa-mes-bang') return;
+        chiSoNeo = null; // dòng đang hiện đã đổi: mốc Shift + bấm cũ chỉ sai khoảng
         document.querySelectorAll('#qa-mes-tbody tr[hidden] .qa-mes-chon-dong:checked').forEach(function (cb) { cb.checked = false; });
         if (e.detail.hien !== soDongLocTruoc) trang = 1;
         soDongLocTruoc = e.detail.hien;
@@ -703,6 +704,7 @@
 
     document.addEventListener('mousedown', function (e) {
         if (e.button !== 0) return;
+        if (document.documentElement.classList.contains('qa-che-do-copy')) return; // đang bật "Bôi đen để copy"
         if (e.target.closest('.qa-ct-soban-o')) return; // bấm vào ô số paiban để gõ, không tích dòng
         var tr = e.target.closest('#qa-mes-tbody tr');
         var cb = oTich(tr);

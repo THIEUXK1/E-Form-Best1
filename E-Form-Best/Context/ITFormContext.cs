@@ -133,6 +133,8 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<QaMesSoBan> QaMesSoBans { get; set; }
 
+    public virtual DbSet<QaThungDongMuon> QaThungDongMuons { get; set; }
+
     public virtual DbSet<HrNhaThauQuaCong6> HrNhaThauQuaCong6s { get; set; }
 
     public virtual DbSet<HrQuanLyDuyetB2> HrQuanLyDuyetB2s { get; set; }

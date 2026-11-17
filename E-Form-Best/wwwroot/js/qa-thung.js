@@ -5,12 +5,13 @@
     var dsThung = [];
     var idDangXem = null;
     var thungDangXem = null;
+    var coBangMuon = false;   // máy chủ đã có bảng QA_ThungDongMuon (chưa chạy script thì ẩn nút Cho mượn / Trả)
     var daChon = new Set();   // id thùng đang tích ở danh sách (giữ qua lọc / nạp lại)
     // Từ khoá tìm (mã thùng / mã phối màu...): lọc ở server vì phải dò hàng bên trong thùng; ?tim= trên URL để gửi link
     var tuKhoa = (new URLSearchParams(location.search).get('tim') || '').trim();
     var lanNap = 0, henTim = null;
     var TEN_TRANG_THAI = { Mo: 'Đang mở', DaDong: 'Đã đóng' };
-    var TEN_HANH_DONG = { TaoThung: 'Tạo thùng', ThemDong: 'Thêm dòng', DongThung: 'Đóng thùng', MoLai: 'Mở lại', XoaThung: 'Xoá thùng', ChuyenDi: 'Chuyển dòng đi', ChuyenDen: 'Nhận dòng chuyển đến', BoDong: 'Bỏ dòng ra', SuaSoBan: 'Sửa số paiban', XepKe: 'Xếp kệ', GoKe: 'Gỡ khỏi kệ', DoiTen: 'Đổi tên', SuaGhiChu: 'Sửa ghi chú', KhoiPhuc: 'Khôi phục thùng' };
+    var TEN_HANH_DONG = { TaoThung: 'Tạo thùng', ThemDong: 'Thêm dòng', DongThung: 'Đóng thùng', MoLai: 'Mở lại', XoaThung: 'Xoá thùng', ChuyenDi: 'Chuyển dòng đi', ChuyenDen: 'Nhận dòng chuyển đến', BoDong: 'Bỏ dòng ra', SuaSoBan: 'Sửa số paiban', XepKe: 'Xếp kệ', GoKe: 'Gỡ khỏi kệ', DoiTen: 'Đổi tên', SuaGhiChu: 'Sửa ghi chú', KhoiPhuc: 'Khôi phục thùng', ChoMuon: 'Cho mượn', TraMuon: 'Nhận trả' };
     function token() {
         var o = document.querySelector('input[name="__RequestVerificationToken"]');
         return o ? o.value : '';
@@ -170,7 +171,21 @@
         }
     }
 
+    function hienNhatKy(hien) {
+        $('qa-ct-lichsu').hidden = !hien;
+        var nut = $('qa-ct-lichsu-nut');
+        nut.setAttribute('aria-expanded', hien ? 'true' : 'false');
+        nut.querySelector('i').className = hien ? 'fa fa-eye-slash' : 'fa fa-eye';
+        nut.querySelector('span').textContent = hien ? 'Ẩn' : 'Hiện';
+    }
+
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('#qa-ct-lichsu-nut')) hienNhatKy($('qa-ct-lichsu').hidden);
+    });
+
     async function xemChiTiet(id, khongCuon) {
+        // Mở thùng khác thì bỏ lọc cột của bảng chi tiết (giá trị lọc của thùng cũ không còn nghĩa)
+        var doiThung = id !== idDangXem;
         idDangXem = id;
         veDanhSach();
         var khung = $('qa-thung-chitiet');
@@ -192,12 +207,16 @@
             var frag = document.createDocumentFragment();
             if (dong.length === 0) {
                 var trTrong = document.createElement('tr');
-                o(trTrong, 'Thùng chưa có dòng nào.', 'qa-mes-trong').colSpan = 19;
+                o(trTrong, 'Thùng chưa có dòng nào.', 'qa-mes-trong').colSpan = 22;
                 frag.appendChild(trTrong);
             }
+            // Thùng đã đóng vẫn tích được để cho mượn / nhận trả (hàng không rời thùng); chuyển / bỏ ra thì ẩn nút
+            coBangMuon = !!kq.duLieu.coBangMuon;
+            var khoaTich = t.trangThai !== 'Mo' && !coBangMuon;
             dong.forEach(function (d, i) {
                 var tr = document.createElement('tr');
                 if (d.loai && d.loai !== 'A') tr.classList.add('qa-mes-bat-thuong');
+                if (d.muon) tr.classList.add('qa-ct-dang-muon');
                 tr.dataset.idDong = d.idDong;
                 var tdChon = document.createElement('td');
                 tdChon.className = 'qa-mes-chon';
@@ -205,12 +224,24 @@
                 cb.type = 'checkbox';
                 cb.className = 'form-check-input qa-ct-chon';
                 cb.dataset.idDong = d.idDong;
-                // Thùng đã đóng: không bỏ dòng ra được (server cũng chặn), phải mở lại trước
-                cb.disabled = t.trangThai !== 'Mo';
+                if (d.muon) cb.dataset.muon = '1';
+                // Thùng đã đóng (và chưa có chức năng cho mượn): không thao tác được, phải mở lại trước
+                cb.disabled = khoaTich;
                 if (cb.disabled) cb.title = 'Thùng đã đóng — bấm Mở lại ở danh sách thùng để bỏ dòng ra';
                 tdChon.appendChild(cb);
                 tr.appendChild(tdChon);
                 o(tr, i + 1, 'so');
+                var tdMuon = o(tr, '', 'qa-ct-muon');
+                if (d.muon) {
+                    var ten = (d.muon.tenNguoiMuon || '') + ' (' + d.muon.maNhanVien + ')';
+                    tdMuon.appendChild(nhan(ten, 'qa-muon-nhan', 'fa-handshake-o'));
+                    // Giờ cho mượn hiện ngay dưới tên (không phải rê chuột mới thấy)
+                    var tg = document.createElement('div');
+                    tg.className = 'qa-muon-tg';
+                    tg.textContent = ngayGio(d.muon.ngayMuon);
+                    tdMuon.appendChild(tg);
+                    tdMuon.title = 'Mượn lúc ' + ngayGio(d.muon.ngayMuon) + (d.muon.nguoiChoMuon ? ' · người cho mượn: ' + d.muon.nguoiChoMuon : '');
+                }
                 o(tr, d.maPhoiMau);
                 o(tr, d.maKhachCuoi, 'qa-cot-phu');
                 o(tr, d.maKhachHang);
@@ -246,11 +277,12 @@
                 frag.appendChild(tr);
             });
             $('qa-ct-tbody').replaceChildren(frag);
+            if (doiThung && window.qaLocCot) window.qaLocCot.xoa($('qa-ct-bang'));
             capNhatTongBan();
             var het = $('qa-ct-chon-het');
             het.checked = false;
-            het.disabled = t.trangThai !== 'Mo' || dong.length === 0;
-            het.title = t.trangThai !== 'Mo' ? 'Thùng đã đóng — mở lại để bỏ dòng ra' : 'Chọn tất cả dòng';
+            het.disabled = khoaTich || dong.length === 0;
+            het.title = khoaTich ? 'Thùng đã đóng — mở lại để bỏ dòng ra' : 'Chọn tất cả dòng';
             veThanhBo();
 
             var ul = document.createDocumentFragment();
@@ -260,6 +292,9 @@
                 ul.appendChild(li);
             });
             $('qa-ct-lichsu').replaceChildren(ul);
+            $('qa-ct-lichsu-dem').textContent = '(' + lichSu.length + ')';
+            // Mở thùng mới thì nhật ký ẩn mặc định; tải lại cùng thùng (khongCuon) giữ nguyên trạng thái đang xem
+            if (!khongCuon) hienNhatKy(false);
             khung.hidden = false;
             if (!khongCuon) khung.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (e) {
@@ -273,7 +308,7 @@
 
     function veThanhBo() {
         var tich = dsDongTich();
-        var tat = document.querySelectorAll('#qa-ct-tbody .qa-ct-chon:not(:disabled)');
+        var tat = document.querySelectorAll('#qa-ct-tbody tr:not([hidden]) .qa-ct-chon:not(:disabled)');
         $('qa-ct-bo-thanh').hidden = tich.length === 0;
         $('qa-ct-bo-so').textContent = tich.length;
         var het = $('qa-ct-chon-het');
@@ -283,6 +318,124 @@
             var c = tr.querySelector('.qa-ct-chon');
             tr.classList.toggle('qa-ct-dong-tich', !!(c && c.checked));
         });
+        // Chuyển / bỏ ra chỉ khi thùng đang mở; Cho mượn khi có dòng chưa mượn, Trả khi có dòng đang mượn
+        var dangMo = !!(thungDangXem && thungDangXem.trangThai === 'Mo');
+        var soMuon = tich.filter(function (c) { return c.dataset.muon === '1'; }).length;
+        $('qa-ct-thanh-dong').hidden = !dangMo;
+        $('qa-ct-cho-muon').hidden = !coBangMuon || soMuon === tich.length;
+        $('qa-ct-tra-muon').hidden = !coBangMuon || soMuon === 0;
+        if (tich.length > 0 && dangMo) veChonThungDich();
+    }
+
+    // Cho mượn: nhập mã NV -> tra tên -> xác nhận có tên người mượn -> lưu. Dòng đang mượn trong số đã tích thì bỏ qua.
+    async function choMuon(nutBam) {
+        var ds = dsDongTich().filter(function (c) { return c.dataset.muon !== '1'; })
+            .map(function (c) { return parseInt(c.dataset.idDong, 10); });
+        if (ds.length === 0 || !idDangXem) return;
+        // Gõ / quét mã -> hiện tên ngay dưới ô; mã đúng mới bấm được "Cho mượn"
+        var n = await qaNhapKiem('Nhập (hoặc quét) mã nhân viên mượn ' + ds.length + ' dòng:', {
+            nutDongY: 'Cho mượn',
+            maxLength: 50,
+            kiem: async function (ma) {
+                var nv = await layJson('/QAForm/NhanVien?ma=' + encodeURIComponent(ma));
+                if (!nv.thanhCong) return { ok: false, text: nv.thongBao };
+                var x = nv.duLieu;
+                return { ok: true, duLieu: x, text: (x.hoTen || '(chưa có họ tên)') + ' · ' + x.maNhanVien + (x.phongBan ? ' · ' + x.phongBan : '') };
+            }
+        });
+        if (!n) return;
+        var id = idDangXem;
+        nutBam.disabled = true;
+        try {
+            var kq = await layJson('/QAForm/Thung/ChoMuon', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'RequestVerificationToken': token() },
+                body: JSON.stringify({ dsIdDong: ds, maNhanVien: n.maNhanVien })
+            });
+            thongBao(kq.thongBao, kq.thanhCong ? 'ok' : 'loi');
+            if (kq.thanhCong && idDangXem === id) await xemChiTiet(id, true);
+        } catch (e) {
+            thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
+        } finally {
+            nutBam.disabled = false;
+        }
+    }
+
+    async function traMuon(nutBam) {
+        var ds = dsDongTich().filter(function (c) { return c.dataset.muon === '1'; })
+            .map(function (c) { return parseInt(c.dataset.idDong, 10); });
+        if (ds.length === 0 || !idDangXem) return;
+        if (!(await qaXacNhan('Nhận trả ' + ds.length + ' dòng đang được mượn?'))) return;
+        var id = idDangXem;
+        nutBam.disabled = true;
+        try {
+            var kq = await layJson('/QAForm/Thung/TraMuon', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'RequestVerificationToken': token() },
+                body: JSON.stringify({ dsIdDong: ds })
+            });
+            thongBao(kq.thongBao, kq.thanhCong ? 'ok' : 'loi');
+            if (kq.thanhCong && idDangXem === id) await xemChiTiet(id, true);
+        } catch (e) {
+            thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
+        } finally {
+            nutBam.disabled = false;
+        }
+    }
+
+    // Ô chọn thùng đích: thùng đang mở khác thùng đang xem (server cũng chặn thùng đã đóng) + tạo thùng mới
+    function veChonThungDich() {
+        var sel = $('qa-ct-chuyen-dich');
+        var cu = sel.value;
+        var frag = document.createDocumentFragment();
+        luaChon(frag, '', '— Chọn thùng đích —');
+        luaChon(frag, 'moi', '+ Thùng mới…');
+        dsThung.filter(function (t) { return t.trangThai === 'Mo' && t.idThung !== idDangXem; })
+            .forEach(function (t) { luaChon(frag, t.idThung, t.maThung + (t.tenThung ? ' — ' + t.tenThung : '') + (t.viTri ? ' (' + t.viTri + ')' : '')); });
+        sel.replaceChildren(frag);
+        sel.value = cu;
+        if (sel.value !== cu) sel.value = '';
+    }
+
+    // Chuyển dòng đã tích sang thùng khác: dùng chung API BoVao (dsIdDongChuyen), server đổi id_thung + ghi lịch sử 2 thùng
+    async function chuyenDong(nutBam) {
+        var ds = dsDongTich().map(function (c) { return parseInt(c.dataset.idDong, 10); });
+        if (ds.length === 0 || !idDangXem) return;
+        var dich = $('qa-ct-chuyen-dich').value;
+        if (!dich) { thongBao('Chọn thùng đích trước khi chuyển.', 'loi'); $('qa-ct-chuyen-dich').focus(); return; }
+        var ma = thungDangXem ? thungDangXem.maThung : '';
+        var tenMoi = null, idDich = null;
+        if (dich === 'moi') {
+            tenMoi = await qaNhap('Tên thùng mới để chuyển ' + ds.length + ' dòng từ thùng ' + ma + ' sang:', '', 100);
+            if (tenMoi === null) return;
+            tenMoi = tenMoi.trim();
+            if (!tenMoi) { thongBao('Nhập tên thùng trước khi tạo thùng mới.', 'loi'); return; }
+        } else {
+            idDich = parseInt(dich, 10);
+            var t = dsThung.find(function (x) { return x.idThung === idDich; });
+            var tenDich = t ? t.maThung + (t.tenThung ? ' "' + t.tenThung + '"' : '') : '';
+            if (!(await qaXacNhan('Chuyển ' + ds.length + ' dòng từ thùng ' + ma + ' sang thùng ' + tenDich + '?'))) return;
+        }
+        var id = idDangXem;
+        nutBam.disabled = true;
+        try {
+            var kq = await layJson('/QAForm/Thung/BoVao', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'RequestVerificationToken': token() },
+                body: JSON.stringify({ dsIdDongChuyen: ds, idThung: idDich, tenThung: tenMoi })
+            });
+            thongBao(kq.thongBao, kq.thanhCong ? 'ok' : 'loi');
+            if (kq.thanhCong) {
+                $('qa-ct-chuyen-dich').value = '';
+                await napDanhSach();
+                if (idDangXem === id) await xemChiTiet(id, true);
+                if (window.qaKe) window.qaKe.napLai();
+            }
+        } catch (e) {
+            thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
+        } finally {
+            nutBam.disabled = false;
+        }
     }
 
     async function boDongRa(nutBam) {
@@ -482,6 +635,12 @@
         }
         var nutBoRa = e.target.closest('#qa-ct-bo-ra');
         if (nutBoRa) { boDongRa(nutBoRa); return; }
+        var nutChuyen = e.target.closest('#qa-ct-chuyen');
+        if (nutChuyen) { chuyenDong(nutChuyen); return; }
+        var nutMuon = e.target.closest('#qa-ct-cho-muon');
+        if (nutMuon) { choMuon(nutMuon); return; }
+        var nutTra = e.target.closest('#qa-ct-tra-muon');
+        if (nutTra) { traMuon(nutTra); return; }
         if (e.target.closest('#qa-ct-bo-huy')) {
             document.querySelectorAll('#qa-ct-tbody .qa-ct-chon').forEach(function (c) { c.checked = false; });
             veThanhBo();
@@ -499,7 +658,8 @@
         var nutGo = e.target.closest('#qa-ct-go');
         if (nutGo) { xepKe(nutGo, true); return; }
         var tr = e.target.closest('#qa-thung-tbody tr[data-id]');
-        if (tr) xemChiTiet(parseInt(tr.dataset.id, 10));
+        // Vừa bôi đen chữ để copy thì thả chuột không mở chi tiết thùng
+        if (tr && String(window.getSelection() || '').length === 0) xemChiTiet(parseInt(tr.dataset.id, 10));
     });
 
     // Ô tìm: chờ ngừng gõ 350 ms mới gọi server
@@ -520,7 +680,7 @@
         if (e.target.classList.contains('qa-ct-chon')) veThanhBo();
         if (e.target.id === 'qa-ct-chon-het') {
             var chon = e.target.checked;
-            document.querySelectorAll('#qa-ct-tbody .qa-ct-chon:not(:disabled)').forEach(function (c) { c.checked = chon; });
+            document.querySelectorAll('#qa-ct-tbody tr:not([hidden]) .qa-ct-chon:not(:disabled)').forEach(function (c) { c.checked = chon; });
             veThanhBo();
         }
         if (e.target.id === 'qa-ct-ke') veTangO(parseInt(e.target.value, 10), null, null);
@@ -570,7 +730,11 @@
 
     function dsDangHien() {
         var loc = $('qa-thung-loc').value, locKe = $('qa-thung-loc-ke').value;
+        // Thùng bị ẩn do lọc cột (qa-loc-cot.js) không tính là đang hiện
+        var anLocCot = new Set(Array.from(document.querySelectorAll('#qa-thung-tbody tr[data-id][hidden]'))
+            .map(function (tr) { return parseInt(tr.dataset.id, 10); }));
         return dsThung.filter(function (t) {
+            if (anLocCot.has(t.idThung)) return false;
             if (loc && t.trangThai !== loc) return false;
             if (locKe === '0') return !t.idKe;
             return !locKe || t.idKe === parseInt(locKe, 10);
@@ -750,7 +914,24 @@
     var boQuaClick = false;    // mousedown đã tự tích -> chặn click ngay sau đó khỏi đảo/mở chi tiết lần nữa
     var choKeo = null;         // { bang, chiSo } nhấn giữ ở dòng danh sách thùng, chưa rê sang dòng khác
 
-    function dsDongBang(bang) { return Array.prototype.slice.call($(bang.tbody).querySelectorAll('tr')); }
+    // Bỏ dòng đang bị lọc cột ẩn: kéo chọn một khoảng không tích lây sang dòng không nhìn thấy
+    function dsDongBang(bang) { return Array.prototype.slice.call($(bang.tbody).querySelectorAll('tr:not([hidden])')); }
+
+    // Lọc cột kiểu Excel: bỏ tích dòng/thùng vừa bị ẩn để không lỡ chuyển, bỏ ra hay xếp kệ thứ không nhìn thấy
+    document.addEventListener('qa-loc-cot:doi', function (e) {
+        // Thứ tự dòng đang hiện đã đổi: mốc Shift + bấm cũ chỉ sai khoảng -> bỏ
+        neo = null;
+        if (e.target.id === 'qa-ct-bang') {
+            document.querySelectorAll('#qa-ct-tbody tr[hidden] .qa-ct-chon:checked').forEach(function (c) { c.checked = false; });
+            veThanhBo();
+        } else if (e.target.id === 'qa-thung-ds-bang') {
+            document.querySelectorAll('#qa-thung-tbody tr[data-id][hidden]').forEach(function (tr) {
+                var id = parseInt(tr.dataset.id, 10);
+                if (daChon.has(id)) { tr.querySelector('.qa-thung-chon').checked = false; tichThung(id, false); }
+            });
+            veThanhXep(dsDangHien());
+        }
+    });
 
     function apKhoangBang(bang, a, b, trangThai, banDau) {
         var ds = dsDongBang(bang);
@@ -774,6 +955,7 @@
         boQuaClick = false;
         choKeo = null;
         if (e.button !== 0) return;
+        if (document.documentElement.classList.contains('qa-che-do-copy')) return; // đang bật "Bôi đen để copy"
         var bang = null, tr = null;
         for (var k = 0; k < bangKeo.length; k++) {
             tr = e.target.closest('#' + bangKeo[k].tbody + ' tr');

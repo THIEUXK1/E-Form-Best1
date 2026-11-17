@@ -85,6 +85,18 @@ body {
 .qa-nav-item:hover { background: rgba(255, 255, 255, .08); color: #fff; }
 .qa-nav-item.active { background: rgba(52, 211, 153, .18); color: #fff; box-shadow: inset 3px 0 0 var(--qa-accent); }
 
+/* ===== CÔNG TẮC "BÔI ĐEN ĐỂ COPY" ===== */
+.qa-che-do-copy-nut { display: flex; align-items: center; gap: 10px; margin: 16px 0 0; padding: 10px 14px; border-radius: 14px; background: rgba(0, 0, 0, .15); color: rgba(255, 255, 255, .85); font-size: .85rem; cursor: pointer; user-select: none; }
+.qa-che-do-copy-nut input { position: absolute; opacity: 0; pointer-events: none; }
+.qa-che-do-copy-ray { position: relative; flex: 0 0 34px; height: 18px; border-radius: 9px; background: rgba(255, 255, 255, .25); transition: background .15s; }
+.qa-che-do-copy-ray::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.qa-che-do-copy-nut input:checked + .qa-che-do-copy-ray { background: var(--qa-accent); }
+.qa-che-do-copy-nut input:checked + .qa-che-do-copy-ray::after { transform: translateX(16px); }
+.qa-che-do-copy-nut input:focus-visible + .qa-che-do-copy-ray { outline: 2px solid #fff; outline-offset: 2px; }
+.qa-che-do-copy-nut + .qa-user { margin-top: 10px; }
+/* Bật chế độ copy: hàng bảng hiện con trỏ chữ cho dễ hiểu là đang bôi đen được */
+:root.qa-che-do-copy .qa-main td { cursor: text; }
+
 /* ===== USER WIDGET ===== */
 .qa-user { position: relative; margin-top: 16px; padding: 14px; background: rgba(0, 0, 0, .2); border-radius: 18px; }
 .qa-user-btn { display: flex; align-items: center; gap: 12px; cursor: pointer; }
@@ -164,7 +176,9 @@ body { top: 0 !important; }
     :root[data-menu-gon] .qa-nav-item span,
     :root[data-menu-gon] .qa-nav-group,
     :root[data-menu-gon] .qa-user-info,
-    :root[data-menu-gon] .qa-user-arrow { display: none; }
+    :root[data-menu-gon] .qa-user-arrow,
+    :root[data-menu-gon] .qa-che-do-copy-chu { display: none; }
+    :root[data-menu-gon] .qa-che-do-copy-nut { justify-content: center; padding: 10px 0; }
     :root[data-menu-gon] .qa-nav-item { justify-content: center; padding: 12px 0; }
     :root[data-menu-gon] .qa-user { padding: 8px; }
     :root[data-menu-gon] .qa-user-btn { justify-content: center; }
@@ -379,6 +393,11 @@ body.qa-dang-keo, body.qa-dang-keo * { user-select: none; cursor: cell !importan
 .qa-ht-ok .qa-ht-icon { color: #10b981; }
 .qa-ht-noidung { white-space: pre-line; text-align: left; font-size: .95rem; line-height: 1.5; max-height: 55vh; overflow: auto; }
 .qa-ht-onhap { margin-top: 12px; }
+.qa-ht-kiem { min-height: 1.5em; margin-top: 8px; font-size: .95rem; text-align: left; }
+.qa-ht-kiem.dang { color: #64748b; }
+.qa-ht-kiem.ok { color: #047857; font-weight: 600; }
+.qa-ht-kiem.ok::before { content: "\2714\00a0"; }
+.qa-ht-kiem.loi { color: #b91c1c; }
 .qa-ht-tich { display: flex; align-items: flex-start; gap: 8px; margin: 14px 0 0; padding: 10px 12px; border: 1px solid #fecaca; background: #fef2f2; color: #991b1b; border-radius: 10px; text-align: left; font-size: .9rem; font-weight: 600; cursor: pointer; }
 .qa-ht-tich input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
 .qa-ht-nut .btn:disabled { cursor: not-allowed; }
@@ -536,6 +555,7 @@ tr.qa-ls-khoiphuc td { color: #047857; }
 .qa-ct-vitri { background: linear-gradient(180deg, #faf5ff, #f3e8ff); border: 1px solid #e9d5ff; border-radius: 14px; }
 .qa-ct-vitri .form-select { border-radius: 10px; }
 .qa-ct-bo-thanh { border-style: solid; border-radius: 14px; }
+.qa-ct-bo-thanh .qa-ct-chuyen-dich { width: auto; min-width: 220px; max-width: 100%; }
 
 /* ===== Trang Tra cứu MES: cùng kiểu trang Kệ / Thùng ===== */
 .qa-ke-tk.do { background: #fff1f2; border-color: #fecdd3; }
@@ -560,3 +580,10 @@ tr.qa-ls-khoiphuc td { color: #047857; }
 .qa-mes-form .form-control { border-radius: 10px; border-color: #cbd5e1; }
 .qa-mes-form .btn { border-radius: 10px; }
 .qa-mes-ketqua .qa-thung-thanh .btn { border-radius: 9px; }
+
+/* ===== Cho mượn dòng trong thùng (chi tiết thùng) ===== */
+.qa-ct-thanh-nhom:not([hidden]) { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.qa-muon-nhan { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; font-size: .8rem; white-space: nowrap; }
+.qa-mes-bang tr.qa-ct-dang-muon td { background: #fffbeb; }
+.qa-mes-bang tr.qa-ct-dang-muon.qa-ct-dong-tich td { background: #fee2e2; }
+.qa-muon-tg { margin-top: 2px; font-size: .75rem; color: #92400e; white-space: nowrap; }

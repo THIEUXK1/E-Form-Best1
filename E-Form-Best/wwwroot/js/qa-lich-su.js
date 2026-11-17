@@ -3,7 +3,7 @@
 // Tab "Thùng đã xoá": xem dòng + nhật ký thùng đã xoá mềm, khôi phục khi xoá nhầm. Không reload.
 (function () {
     var $ = function (id) { return document.getElementById(id); };
-    var TEN_HANH_DONG = { TaoThung: 'Tạo thùng', ThemDong: 'Thêm dòng', DongThung: 'Đóng thùng', MoLai: 'Mở lại', XoaThung: 'Xoá thùng', ChuyenDi: 'Chuyển dòng đi', ChuyenDen: 'Nhận dòng chuyển đến', BoDong: 'Bỏ dòng ra', SuaSoBan: 'Sửa số paiban', XepKe: 'Xếp kệ', GoKe: 'Gỡ khỏi kệ', DoiTen: 'Đổi tên', SuaGhiChu: 'Sửa ghi chú', KhoiPhuc: 'Khôi phục thùng' };
+    var TEN_HANH_DONG = { TaoThung: 'Tạo thùng', ThemDong: 'Thêm dòng', DongThung: 'Đóng thùng', MoLai: 'Mở lại', XoaThung: 'Xoá thùng', ChuyenDi: 'Chuyển dòng đi', ChuyenDen: 'Nhận dòng chuyển đến', BoDong: 'Bỏ dòng ra', SuaSoBan: 'Sửa số paiban', XepKe: 'Xếp kệ', GoKe: 'Gỡ khỏi kệ', DoiTen: 'Đổi tên', SuaGhiChu: 'Sửa ghi chú', KhoiPhuc: 'Khôi phục thùng', ChoMuon: 'Cho mượn', TraMuon: 'Nhận trả' };
     var TEN_TRANG_THAI = { Mo: 'Đang mở', DaDong: 'Đã đóng' };
     var dsDaXoa = [];
     var lanNapNk = 0, lanNapDx = 0, henNk = null, henDx = null, daNapDx = false;

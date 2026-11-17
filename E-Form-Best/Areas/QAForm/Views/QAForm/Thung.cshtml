@@ -26,6 +26,7 @@
             <select id="qa-thung-tem-mau" class="form-select form-select-sm" title="Mẫu tem dùng khi bấm In tem"></select>
             <button type="button" class="btn btn-sm btn-outline-primary" id="qa-thung-tem-tuychinh" title="Chọn khổ, nội dung, cỡ chữ của tem"><i class="fa fa-sliders"></i> Tùy chỉnh tem</button>
             <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-thung-ds-bang" data-ten-file="danh-sach-thung" title="Xuất danh sách thùng đang hiển thị"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-driver-mo" title="Tải driver cài máy in tem TSC"><i class="fa fa-download"></i> Driver máy in TSC</button>
             <a href="/QAForm/TraCuuMes" class="btn btn-sm qa-btn"><i class="fa fa-plus"></i> Tạo thùng từ tra cứu</a>
         </div>
     </div>
@@ -42,21 +43,21 @@
         <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-xep-bo">Bỏ chọn</button>
     </div>
     <div class="qa-mes-bang-wrap qa-thung-ds-wrap">
-        <table class="qa-mes-bang" id="qa-thung-ds-bang">
+        <table class="qa-mes-bang" id="qa-thung-ds-bang" data-loc-cot>
             <thead>
                 <tr>
                     <th class="qa-mes-chon"><input type="checkbox" class="form-check-input" id="qa-thung-chon-het" title="Chọn tất cả thùng đang hiện"></th>
-                    <th>Mã thùng</th>
-                    <th>Tên thùng</th>
-                    <th>Trạng thái</th>
-                    <th>Vị trí</th>
-                    <th>Số dòng</th>
-                    <th>Tổng (m)</th>
-                    <th>Tổng (kg)</th>
-                    <th>Số hộp</th>
-                    <th>Ngày tạo</th>
-                    <th>Người tạo</th>
-                    <th>Ghi chú</th>
+                    <th data-loc>Mã thùng</th>
+                    <th data-loc>Tên thùng</th>
+                    <th data-loc>Trạng thái</th>
+                    <th data-loc>Vị trí</th>
+                    <th data-loc>Số dòng</th>
+                    <th data-loc>Tổng (m)</th>
+                    <th data-loc>Tổng (kg)</th>
+                    <th data-loc>Số hộp</th>
+                    <th data-loc>Ngày tạo</th>
+                    <th data-loc>Người tạo</th>
+                    <th data-loc>Ghi chú</th>
                     <th></th>
                 </tr>
             </thead>
@@ -81,7 +82,13 @@
     </div>
     <div id="qa-ct-bo-thanh" class="qa-ct-bo-thanh" hidden>
         <span>Đã chọn <b id="qa-ct-bo-so">0</b> dòng</span>
-        <button type="button" class="btn btn-sm btn-danger" id="qa-ct-bo-ra"><i class="fa fa-sign-out"></i> Bỏ ra khỏi thùng</button>
+        <span id="qa-ct-thanh-dong" class="qa-ct-thanh-nhom">
+            <select id="qa-ct-chuyen-dich" class="form-select form-select-sm qa-ct-chuyen-dich" title="Thùng đích (chỉ thùng đang mở)"></select>
+            <button type="button" class="btn btn-sm btn-primary" id="qa-ct-chuyen"><i class="fa fa-exchange"></i> Chuyển sang thùng</button>
+            <button type="button" class="btn btn-sm btn-danger" id="qa-ct-bo-ra"><i class="fa fa-sign-out"></i> Bỏ ra khỏi thùng</button>
+        </span>
+        <button type="button" class="btn btn-sm btn-warning" id="qa-ct-cho-muon" title="Nhập mã nhân viên mượn các dòng đã chọn"><i class="fa fa-handshake-o"></i> Cho mượn</button>
+        <button type="button" class="btn btn-sm btn-success" id="qa-ct-tra-muon" title="Nhận trả các dòng đã chọn đang được mượn"><i class="fa fa-undo"></i> Trả</button>
         <button type="button" class="btn btn-sm btn-outline-secondary" id="qa-ct-bo-huy">Bỏ chọn</button>
     </div>
     <div class="qa-ct-vitri">
@@ -93,37 +100,41 @@
         <button type="button" class="btn btn-sm btn-outline-danger" id="qa-ct-go" hidden><i class="fa fa-sign-out"></i> Gỡ khỏi kệ</button>
     </div>
     <div class="qa-mes-bang-wrap">
-        <table class="qa-mes-bang" id="qa-ct-bang">
+        <table class="qa-mes-bang" id="qa-ct-bang" data-loc-cot>
             <thead>
                 <tr>
                     <th class="qa-mes-chon"><input type="checkbox" class="form-check-input" id="qa-ct-chon-het" title="Chọn tất cả dòng"></th>
                     <th>#</th>
-                    <th>Mã phối màu</th>
-                    <th class="qa-cot-phu">Mã khách cuối</th>
-                    <th>Mã khách hàng</th>
-                    <th>Mã hàng</th>
-                    <th>Mã màu</th>
-                    <th>SL đơn hàng</th>
-                    <th>SL đóng gói (m)</th>
-                    <th class="qa-cot-phu">KL đóng gói (kg)</th>
-                    <th>Số hộp</th>
-                    <th title="Nhập tay; Enter để lưu và xuống dòng dưới">Số paiban</th>
-                    <th>Loại</th>
-                    <th class="qa-cot-phu">Mô tả bất thường</th>
-                    <th class="qa-cot-phu">Số phiếu nhuộm</th>
-                    <th>Ngày đóng gói</th>
-                    <th class="qa-cot-phu">Số phiếu đóng gói</th>
-                    <th>Mã NV đóng gói</th>
-                    <th>Bỏ vào lúc</th>
-                    <th>Người bỏ vào</th>
+                    <th data-loc>Đang mượn</th>
+                    <th data-loc>Mã phối màu</th>
+                    <th class="qa-cot-phu" data-loc>Mã khách cuối</th>
+                    <th data-loc>Mã khách hàng</th>
+                    <th data-loc>Mã hàng</th>
+                    <th data-loc>Mã màu</th>
+                    <th data-loc>SL đơn hàng</th>
+                    <th data-loc>SL đóng gói (m)</th>
+                    <th class="qa-cot-phu" data-loc>KL đóng gói (kg)</th>
+                    <th data-loc>Số hộp</th>
+                    <th data-loc title="Nhập tay; Enter để lưu và xuống dòng dưới">Số paiban</th>
+                    <th data-loc>Loại</th>
+                    <th class="qa-cot-phu" data-loc>Mô tả bất thường</th>
+                    <th class="qa-cot-phu" data-loc>Số phiếu nhuộm</th>
+                    <th data-loc>Ngày đóng gói</th>
+                    <th class="qa-cot-phu" data-loc>Số phiếu đóng gói</th>
+                    <th data-loc>Mã NV đóng gói</th>
+                    <th data-loc>Bỏ vào lúc</th>
+                    <th data-loc>Người bỏ vào</th>
                 </tr>
             </thead>
             <tbody id="qa-ct-tbody"></tbody>
         </table>
     </div>
     <div id="qa-ct-tongban" class="qa-ct-tongban"></div>
-    <h6 class="qa-ct-lichsu-tieude">Nhật ký thùng</h6>
-    <ul id="qa-ct-lichsu" class="qa-ct-lichsu"></ul>
+    <h6 class="qa-ct-lichsu-tieude">
+        Nhật ký thùng <span id="qa-ct-lichsu-dem" class="text-muted fw-normal small"></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary ms-2 py-0" id="qa-ct-lichsu-nut" aria-controls="qa-ct-lichsu" aria-expanded="false"><i class="fa fa-eye"></i> <span>Hiện</span></button>
+    </h6>
+    <ul id="qa-ct-lichsu" class="qa-ct-lichsu" hidden></ul>
 </div>
 </div>
 
@@ -227,12 +238,30 @@
     </div>
 </div>
 
+<div class="modal fade" id="qa-driver-modal" tabindex="-1" aria-labelledby="qa-driver-tieude" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qa-driver-tieude"><i class="fa fa-download"></i> Driver máy in tem TSC</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2">Tải file về, chạy cài đặt rồi cắm máy in TSC (USB) hoặc chọn cổng mạng của máy in.</p>
+                <div id="qa-driver-ds"></div>
+                <div id="qa-driver-ghichu" class="small text-danger mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <script src="~/js/qa-loc-cot.js?v=2"></script>
     <script src="~/js/qa-thung-tem.js?v=7"></script>
     <script src="~/js/qa-the-so-lieu.js?v=1"></script>
     <script src="~/js/qa-ke.js?v=9"></script>
-    <script src="~/js/qa-thung.js?v=21"></script>
+    <script src="~/js/qa-thung.js?v=29"></script>
     <script src="~/js/qa-xuat-excel.js?v=4"></script>
+    <script src="~/js/qa-driver-may-in.js?v=1"></script>
 }
