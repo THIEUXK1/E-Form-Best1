@@ -378,9 +378,59 @@ body.qa-dang-keo, body.qa-dang-keo * { user-select: none; cursor: cell !importan
 .qa-ht-loi .qa-ht-icon { color: #ef4444; }
 .qa-ht-ok .qa-ht-icon { color: #10b981; }
 .qa-ht-noidung { white-space: pre-line; text-align: left; font-size: .95rem; line-height: 1.5; max-height: 55vh; overflow: auto; }
+.qa-ht-onhap { margin-top: 12px; }
 .qa-ht-nut { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
 .qa-ht-nut .btn { min-width: 100px; }
 .qa-ht-nhanh { position: fixed; z-index: 2001; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #065f46; color: #fff; padding: 14px 22px; border-radius: 14px; box-shadow: 0 12px 30px rgba(0, 0, 0, .3); display: flex; align-items: center; gap: 10px; font-weight: 600; max-width: calc(100% - 32px); pointer-events: none; transition: opacity .4s; animation: qa-ht-hien .15s ease-out; }
 .qa-ht-nhanh i { font-size: 1.4rem; color: #6ee7b7; }
 .qa-ht-nhanh.an { opacity: 0; }
 @keyframes qa-ht-hien { from { opacity: 0; } to { opacity: 1; } }
+/* Ô ghi chú sửa trực tiếp trên danh sách thùng */
+.qa-thung-ghichu-o { cursor: text; min-width: 140px; }
+.qa-thung-ghichu-o:hover { background: #f0fdf4; outline: 1px dashed #a7f3d0; }
+
+/* ===== Làm mới màu trang Tra cứu MES (17/11/2026): đồng bộ tông xanh ngọc, bỏ xanh dương lạc tông, bảng dễ đọc hơn ===== */
+.qa-card { border-color: #d1fae5; box-shadow: 0 1px 2px rgba(6, 78, 59, .04), 0 8px 24px -12px rgba(6, 78, 59, .18); }
+.qa-mes-form .form-control,
+.qa-thung-thanh .form-control,
+.qa-thung-thanh .form-select { border-color: #cbd5e1; border-radius: 10px; }
+.qa-mes-form .form-control:focus,
+.qa-thung-thanh .form-control:focus,
+.qa-thung-thanh .form-select:focus { border-color: #10b981; box-shadow: 0 0 0 .2rem rgba(16, 185, 129, .18); }
+.qa-btn { border-radius: 10px; box-shadow: 0 4px 12px -4px rgba(6, 95, 70, .5); }
+.qa-btn:hover { background: var(--qa-primary); transform: translateY(-1px); }
+.qa-btn:disabled { opacity: .55; box-shadow: none; transform: none; }
+/* Nút Đồng bộ MES: xanh ngọc cùng tông thay xanh dương Bootstrap */
+#qa-mes-capnhat { color: #0f766e; border-color: #5eead4; background: #f0fdfa; border-radius: 10px; }
+#qa-mes-capnhat:hover { color: #fff; background: #0d9488; border-color: #0d9488; }
+#qa-mes-lammoi { border-radius: 10px; }
+
+.qa-mes-tom { color: #065f46; }
+.qa-mes-dachon { background: #d1fae5; color: #065f46; padding: 3px 12px; border-radius: 999px; font-size: .85rem; }
+.qa-mes-dachon:empty { display: none; }
+.qa-mes-dachon.canh-bao { background: #fef3c7; color: #92400e; }
+
+/* Thanh thao tác thùng: nền liền, nhẹ */
+.qa-thung-thanh { background: linear-gradient(180deg, #f0fdf4, #ecfdf5); border: 1px solid #a7f3d0; border-radius: 14px; }
+
+/* Bảng */
+.qa-mes-bang-wrap { border-color: #d1fae5; border-radius: 12px; background: #fff; }
+.qa-mes-bang th { background: #065f46; color: #ecfdf5; font-weight: 600; letter-spacing: .01em; border-bottom: 0; }
+.qa-mes-bang th .qa-loc-nut { color: #a7f3d0; }
+.qa-mes-bang th .qa-loc-nut:hover { background: rgba(255, 255, 255, .15); color: #fff; }
+.qa-mes-bang th .qa-loc-nut.dang-loc { background: #fbbf24; color: #78350f; }
+.qa-mes-bang td { border-bottom-color: #eef2f7; color: #1e293b; }
+.qa-mes-bang tbody tr:hover { background: #f0fdf9; }
+.qa-mes-bang tr.qa-mes-dang-chon, .qa-mes-bang tr.qa-mes-dang-chon:hover { background: #ccfbf1; box-shadow: inset 3px 0 0 #0d9488; }
+/* Dòng đã vào thùng: nền xám nhạt để tách khỏi dòng còn trống */
+.qa-mes-bang tr.qa-mes-da-vao-thung { background: #f8fafc; }
+.qa-mes-bang tr.qa-mes-da-vao-thung td { color: #94a3b8; }
+.qa-mes-bang td.qa-mes-o-thung { color: #0f766e !important; }
+.qa-mes-bang tr.qa-mes-bat-thuong { background: #fff1f2; }
+.qa-mes-bang tr.qa-mes-bat-thuong td { color: #be123c; }
+.qa-mes-bang tr.qa-mes-chon-trong-thung, .qa-mes-bang tr.qa-mes-chon-trong-thung:hover { background: #fef3c7; box-shadow: inset 3px 0 0 #f59e0b; }
+
+/* Phân trang: nút trang đang xem cùng tông xanh ngọc */
+.qa-mes-trang-nut button { border-color: #d1d5db; border-radius: 8px; color: #334155; }
+.qa-mes-trang-nut button:hover:not(:disabled) { border-color: #10b981; color: #065f46; }
+.qa-mes-trang-nut button.dang-xem { background: #059669; border-color: #059669; color: #fff; }

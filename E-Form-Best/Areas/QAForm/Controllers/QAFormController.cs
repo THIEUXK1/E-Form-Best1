@@ -26,7 +26,7 @@ namespace E_Form_Best.Areas.QAForm.Controllers
         }
 
         // DsIdDongChuyen: dòng đang ở thùng khác (id QA_ThungDong) cần chuyển sang thùng đích
-        public record BoVaoThungVao(string? MaPhoiMau, List<string>? DsDauVanTay, List<int>? DsIdDongChuyen, int? IdThung, string? GhiChu, List<int>? DsThuTu = null);
+        public record BoVaoThungVao(string? MaPhoiMau, List<string>? DsDauVanTay, List<int>? DsIdDongChuyen, int? IdThung, string? GhiChu, List<int>? DsThuTu = null, string? TenThung = null);
         // Số paiban cho dòng MES chưa vào thùng; SoBan null = xoá số
         public record MesSoBanVao(string? DauVanTay, int? ThuTu, int? SoBan);
         public record BoRaThungVao(List<int>? DsIdDong);
@@ -174,7 +174,7 @@ namespace E_Form_Best.Areas.QAForm.Controllers
                 thongBao = "",
                 duLieu = new
                 {
-                    thung = new { thung.IdThung, thung.MaThung, thung.TrangThai, thung.GhiChu, thung.NgayTao, thung.NguoiTao, thung.NgayDong, thung.NguoiDong,
+                    thung = new { thung.IdThung, thung.MaThung, thung.TenThung, thung.TrangThai, thung.GhiChu, thung.NgayTao, thung.NguoiTao, thung.NgayDong, thung.NguoiDong,
                         thung.IdKe, thung.Tang, thung.O, ViTri = QaKeService.MaViTri(thung.Ke?.MaKe, thung.Tang, thung.O, thung.Ke?.SoTang ?? 0) },
                     dong = dong.Select(d => new
                     {
@@ -194,7 +194,7 @@ namespace E_Form_Best.Areas.QAForm.Controllers
         {
             try
             {
-                var kq = await _thung.BoVaoThungAsync(vao.MaPhoiMau ?? "", vao.DsDauVanTay ?? new(), vao.DsIdDongChuyen, vao.IdThung, vao.GhiChu, NguoiDung, ct, vao.DsThuTu);
+                var kq = await _thung.BoVaoThungAsync(vao.MaPhoiMau ?? "", vao.DsDauVanTay ?? new(), vao.DsIdDongChuyen, vao.IdThung, vao.GhiChu, NguoiDung, ct, vao.DsThuTu, vao.TenThung);
                 return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao, duLieu = new { kq.IdThung, kq.MaThung } });
             }
             catch (Exception ex)
@@ -260,6 +260,22 @@ namespace E_Form_Best.Areas.QAForm.Controllers
         public async Task<IActionResult> ThungTrangThai(int id, bool dong, CancellationToken ct = default)
         {
             var kq = await _thung.DoiTrangThaiAsync(id, dong, NguoiDung, ct);
+            return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao });
+        }
+
+        [HttpPost("/QAForm/Thung/{id:int}/DoiTen")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThungDoiTen(int id, string? ten, CancellationToken ct = default)
+        {
+            var kq = await _thung.DoiTenThungAsync(id, ten, NguoiDung, ct);
+            return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao });
+        }
+
+        [HttpPost("/QAForm/Thung/{id:int}/GhiChu")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThungGhiChu(int id, [FromForm] string? ghiChu, CancellationToken ct = default)
+        {
+            var kq = await _thung.SuaGhiChuAsync(id, ghiChu, NguoiDung, ct);
             return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao });
         }
 

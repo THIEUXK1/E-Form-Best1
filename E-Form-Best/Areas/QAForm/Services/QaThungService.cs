@@ -18,7 +18,7 @@ namespace E_Form_Best.Areas.QAForm.Services
     {
         public record KetQua(bool ThanhCong, string ThongBao, int? IdThung = null, string? MaThung = null);
 
-        public record ThungTomTat(int IdThung, string MaThung, string TrangThai, string? GhiChu, DateTime NgayTao,
+        public record ThungTomTat(int IdThung, string MaThung, string? TenThung, string TrangThai, string? GhiChu, DateTime NgayTao,
             string? NguoiTao, int SoDong, decimal TongMet, decimal TongKg, decimal TongHop, int? IdKe, string? ViTri,
             string? Khop, int SoDongKhop);
 
@@ -145,13 +145,13 @@ namespace E_Form_Best.Areas.QAForm.Services
             if (k?.Length > 100) k = k[..100];
             var coTim = !string.IsNullOrEmpty(k);
             if (coTim)
-                q = q.Where(t => t.MaThung.Contains(k!) || t.Dongs.Any(d => d.NgayBo == null &&
+                q = q.Where(t => t.MaThung.Contains(k!) || t.TenThung!.Contains(k!) || t.Dongs.Any(d => d.NgayBo == null &&
                     (d.MaPhoiMau!.Contains(k!) || d.MaHang!.Contains(k!) || d.MaMau!.Contains(k!)
                      || d.SoPhieuDongGoi!.Contains(k!) || d.SoPhieuNhuom!.Contains(k!))));
 
             var ds = await q.OrderByDescending(t => t.NgayTao)
                 .Take(500)
-                .Select(t => new ThungTomTat(t.IdThung, t.MaThung, t.TrangThai, t.GhiChu, t.NgayTao, t.NguoiTao,
+                .Select(t => new ThungTomTat(t.IdThung, t.MaThung, t.TenThung, t.TrangThai, t.GhiChu, t.NgayTao, t.NguoiTao,
                     t.Dongs.Count(d => d.NgayBo == null),
                     t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.SlDongGoi) ?? 0,
                     t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.KlDongGoi) ?? 0,
@@ -195,7 +195,7 @@ namespace E_Form_Best.Areas.QAForm.Services
         /// idThung null = tạo thùng mới mã QA-yyMMdd-NNN.
         /// dsIdDongChuyen: các dòng ĐANG ở thùng khác (id QA_ThungDong) cần chuyển sang thùng đích — làm cùng transaction.
         /// </summary>
-        public async Task<KetQua> BoVaoThungAsync(string maPhoiMau, List<string> dsVanTay, List<int>? dsIdDongChuyen, int? idThung, string? ghiChu, string? nguoi, CancellationToken ct, List<int>? dsThuTu = null)
+        public async Task<KetQua> BoVaoThungAsync(string maPhoiMau, List<string> dsVanTay, List<int>? dsIdDongChuyen, int? idThung, string? ghiChu, string? nguoi, CancellationToken ct, List<int>? dsThuTu = null, string? tenThung = null)
         {
             maPhoiMau = (maPhoiMau ?? "").Trim();
             // dsThuTu song song dsVanTay: thứ tự dòng chưa vào thùng đã tích -> mang số paiban đang chờ của đúng dòng đó sang thùng
@@ -213,6 +213,10 @@ namespace E_Form_Best.Areas.QAForm.Services
             if (dsVanTay.Count + dsChuyen.Count > TranDongMoiLan) return new(false, $"Mỗi lần chỉ bỏ tối đa {TranDongMoiLan} dòng.");
             ghiChu = string.IsNullOrWhiteSpace(ghiChu) ? null : ghiChu.Trim();
             if (ghiChu?.Length > 500) ghiChu = ghiChu[..500];
+            // Tên thùng người nhập (ten_thung) bắt buộc khi tạo thùng mới; mã thùng vẫn tự sinh QA-yyMMdd-NNN
+            tenThung = string.IsNullOrWhiteSpace(tenThung) ? null : tenThung.Trim();
+            if (idThung == null && tenThung == null) return new(false, "Nhập tên thùng trước khi tạo thùng mới.");
+            if (idThung == null && tenThung!.Length > 100) return new(false, "Tên thùng tối đa 100 ký tự.");
 
             // 1) Lấy lại dữ liệu gốc từ MES (ngoài transaction vì gọi mạng chậm) — chỉ cần khi có dòng mới
             var theoVanTay = new Dictionary<string, List<MesApiService.DongDongGoi>>();
@@ -281,13 +285,18 @@ namespace E_Form_Best.Areas.QAForm.Services
                 var bayGio = DateTime.Now;
                 if (idThung == null)
                 {
+                    // Tên không trùng thùng đang dùng (thùng đã xoá thì tên được dùng lại)
+                    if (await _db.QaThungs.AnyAsync(t => t.TenThung == tenThung && t.NgayXoa == null, ct))
+                        return new(false, $"Đã có thùng tên \"{tenThung}\", đặt tên khác.");
+                    // Lấy số lớn nhất parse được trong ngày (mã cấp lại bởi script cũng theo dạng này)
                     var tienTo = $"QA-{bayGio:yyMMdd}-";
-                    var maCuoi = await _db.QaThungs.Where(t => t.MaThung.StartsWith(tienTo))
-                        .OrderByDescending(t => t.MaThung).Select(t => t.MaThung).FirstOrDefaultAsync(ct);
-                    int so = maCuoi != null && int.TryParse(maCuoi[tienTo.Length..], out var n) ? n + 1 : 1;
+                    var dsMa = await _db.QaThungs.Where(t => t.MaThung.StartsWith(tienTo))
+                        .Select(t => t.MaThung).ToListAsync(ct);
+                    int so = dsMa.Select(m => int.TryParse(m[tienTo.Length..], out var n) ? n : 0).DefaultIfEmpty(0).Max() + 1;
                     thung = new QaThung
                     {
                         MaThung = tienTo + so.ToString("000"),
+                        TenThung = tenThung,
                         TrangThai = QaThung.TrangThaiMo,
                         GhiChu = ghiChu,
                         NgayTao = bayGio,
@@ -390,7 +399,7 @@ namespace E_Form_Best.Areas.QAForm.Services
                 var phan = new List<string>();
                 if (dongBoVao.Count > 0) phan.Add($"thêm {dongBoVao.Count} dòng");
                 if (dongChuyen.Count > 0) phan.Add($"chuyển {dongChuyen.Count} dòng từ thùng khác");
-                return new(true, (idThung == null ? $"Đã tạo thùng {thung.MaThung}: " : $"Thùng {thung.MaThung}: ") + string.Join(", ", phan) + ".",
+                return new(true, (idThung == null ? $"Đã tạo thùng {thung.MaThung} \"{thung.TenThung}\": " : $"Thùng {thung.MaThung}: ") + string.Join(", ", phan) + ".",
                     thung.IdThung, thung.MaThung);
             }
             catch (DbUpdateException ex)
@@ -485,6 +494,41 @@ namespace E_Form_Best.Areas.QAForm.Services
             GhiLichSu(thung.IdThung, nguoi, dong ? "DongThung" : "MoLai", null, bayGio);
             await _db.SaveChangesAsync(ct);
             return new(true, dong ? $"Đã đóng thùng {thung.MaThung}." : $"Đã mở lại thùng {thung.MaThung}.", thung.IdThung, thung.MaThung);
+        }
+
+        /// <summary>Đổi tên thùng (ten_thung; mã thùng giữ nguyên); ghi lịch sử tên cũ → mới.</summary>
+        public async Task<KetQua> DoiTenThungAsync(int idThung, string? tenMoi, string? nguoi, CancellationToken ct)
+        {
+            tenMoi = tenMoi?.Trim();
+            if (string.IsNullOrEmpty(tenMoi)) return new(false, "Nhập tên thùng.");
+            if (tenMoi.Length > 100) return new(false, "Tên thùng tối đa 100 ký tự.");
+            var thung = await _db.QaThungs.FirstOrDefaultAsync(t => t.IdThung == idThung && t.NgayXoa == null, ct);
+            if (thung == null) return new(false, "Không tìm thấy thùng.");
+            if (thung.TenThung == tenMoi) return new(true, "Không có gì thay đổi.", thung.IdThung, thung.MaThung);
+            if (await _db.QaThungs.AnyAsync(t => t.TenThung == tenMoi && t.IdThung != idThung && t.NgayXoa == null, ct))
+                return new(false, $"Đã có thùng tên \"{tenMoi}\", đặt tên khác.");
+
+            var tenCu = thung.TenThung;
+            thung.TenThung = tenMoi;
+            GhiLichSu(thung.IdThung, nguoi, "DoiTen", $"Đổi tên: {tenCu ?? "(trống)"} → {tenMoi}", DateTime.Now);
+            await _db.SaveChangesAsync(ct);
+            return new(true, $"Đã đổi tên thùng {thung.MaThung} thành \"{tenMoi}\".", thung.IdThung, thung.MaThung);
+        }
+
+        /// <summary>Sửa ghi chú thùng (rỗng = xoá ghi chú); ghi lịch sử nội dung cũ → mới.</summary>
+        public async Task<KetQua> SuaGhiChuAsync(int idThung, string? ghiChu, string? nguoi, CancellationToken ct)
+        {
+            ghiChu = string.IsNullOrWhiteSpace(ghiChu) ? null : ghiChu.Trim();
+            if (ghiChu?.Length > 500) return new(false, "Ghi chú tối đa 500 ký tự.");
+            var thung = await _db.QaThungs.FirstOrDefaultAsync(t => t.IdThung == idThung && t.NgayXoa == null, ct);
+            if (thung == null) return new(false, "Không tìm thấy thùng.");
+            if (thung.GhiChu == ghiChu) return new(true, "Không có gì thay đổi.", thung.IdThung, thung.MaThung);
+
+            var cu = thung.GhiChu;
+            thung.GhiChu = ghiChu;
+            GhiLichSu(thung.IdThung, nguoi, "SuaGhiChu", Cat($"Ghi chú: {cu ?? "(trống)"} → {ghiChu ?? "(trống)"}", 1000), DateTime.Now);
+            await _db.SaveChangesAsync(ct);
+            return new(true, $"Đã lưu ghi chú thùng {thung.MaThung}.", thung.IdThung, thung.MaThung);
         }
 
         /// <summary>Xoá mềm: các dòng trong thùng được "trả lại" (không còn tính là đã vào thùng).</summary>

@@ -12,7 +12,7 @@
         <span id="qa-thung-tom">Đang tải...</span>
         <div class="qa-thung-loc">
             <input type="search" id="qa-thung-tim" class="form-control form-control-sm qa-thung-tim" maxlength="100" autocomplete="off"
-                   placeholder="Tìm mã thùng, mã phối màu..." title="Tìm theo mã thùng hoặc hàng trong thùng: mã phối màu, mã hàng, mã màu, số phiếu đóng gói / nhuộm">
+                   placeholder="Tìm mã/tên thùng, mã phối màu..." title="Tìm theo mã/tên thùng hoặc hàng trong thùng: mã phối màu, mã hàng, mã màu, số phiếu đóng gói / nhuộm">
             <select id="qa-thung-loc" class="form-select form-select-sm">
                 <option value="">Tất cả</option>
                 <option value="Mo">Đang mở</option>
@@ -45,6 +45,7 @@
                 <tr>
                     <th class="qa-mes-chon"><input type="checkbox" class="form-check-input" id="qa-thung-chon-het" title="Chọn tất cả thùng đang hiện"></th>
                     <th>Mã thùng</th>
+                    <th>Tên thùng</th>
                     <th>Trạng thái</th>
                     <th>Vị trí</th>
                     <th>Số dòng</th>
@@ -58,7 +59,7 @@
                 </tr>
             </thead>
             <tbody id="qa-thung-tbody">
-                <tr><td colspan="12" class="qa-mes-trong">Đang tải...</td></tr>
+                <tr><td colspan="13" class="qa-mes-trong">Đang tải...</td></tr>
             </tbody>
         </table>
     </div>
@@ -143,6 +144,7 @@
                             <h6>Khổ tem (mm)</h6>
                             <select id="qa-tem-kho" class="form-select form-select-sm">
                                 <option value="">Tự nhập</option>
+                                <option value="65x95">65 × 95</option>
                                 <option value="100x150">100 × 150</option>
                                 <option value="100x100">100 × 100</option>
                                 <option value="100x75">100 × 75</option>
@@ -165,7 +167,7 @@
                             <div class="qa-tem-tich">
                                 <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="tieuDe"> Dòng tiêu đề</label>
                                 <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="ngayTao"> Ngày tạo</label>
-                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="maThung"> Mã thùng (chữ to)</label>
+                                <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="maThung"> Tên thùng (chữ to)</label>
                                 <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="maVach"> Mã vạch</label>
                                 <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="qr"> Mã QR</label>
                                 <label class="form-check"><input type="checkbox" class="form-check-input" data-hien="tong"> Ô tổng dòng/m/kg/hộp</label>
@@ -181,7 +183,7 @@
                         <div class="qa-tem-nhom">
                             <h6>Cỡ (mm)</h6>
                             <div class="qa-tem-hang">
-                                <label class="qa-tem-o"><span>Chữ mã thùng</span><input type="number" class="form-control form-control-sm" data-k="coMa" min="3" max="30" step="0.5"></label>
+                                <label class="qa-tem-o"><span>Chữ tên thùng</span><input type="number" class="form-control form-control-sm" data-k="coMa" min="3" max="30" step="0.5"></label>
                                 <label class="qa-tem-o"><span>Cao mã vạch</span><input type="number" class="form-control form-control-sm" data-k="caoVach" min="5" max="60" step="1"></label>
                                 <label class="qa-tem-o"><span>Cạnh QR</span><input type="number" class="form-control form-control-sm" data-k="coQr" min="8" max="80" step="1"></label>
                                 <label class="qa-tem-o"><span>Chữ nội dung</span><input type="number" class="form-control form-control-sm" data-k="coChu" min="1.5" max="8" step="0.1"></label>
@@ -226,8 +228,8 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-    <script src="~/js/qa-thung-tem.js?v=3"></script>
+    <script src="~/js/qa-thung-tem.js?v=7"></script>
     <script src="~/js/qa-ke.js?v=6"></script>
-    <script src="~/js/qa-thung.js?v=16"></script>
+    <script src="~/js/qa-thung.js?v=19"></script>
     <script src="~/js/qa-xuat-excel.js?v=4"></script>
 }

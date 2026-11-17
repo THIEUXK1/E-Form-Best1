@@ -366,7 +366,7 @@
             (kq.duLieu || []).forEach(function (t) {
                 var op = document.createElement('option');
                 op.value = t.idThung;
-                op.textContent = t.maThung + ' · ' + t.soDong + ' dòng' + (t.ghiChu ? ' · ' + t.ghiChu : '');
+                op.textContent = (t.tenThung ? t.tenThung + ' · ' : '') + t.maThung + ' · ' + t.soDong + ' dòng' + (t.ghiChu ? ' · ' + t.ghiChu : '');
                 sel.appendChild(op);
             });
             sel.value = giu && sel.querySelector('option[value="' + giu + '"]') ? giu : '';
@@ -391,13 +391,27 @@
             ? ' · Đang lọc cột: hiện ' + d.hien.toLocaleString('vi-VN') + '/' + d.tong.toLocaleString('vi-VN') + ' dòng' : '');
     });
 
+    // Chống tra trùng: máy quét gõ đủ mã (tự tra) rồi gửi thêm Enter -> bỏ lần lặp cùng bộ lọc trong 1,5 giây
+    var lanTra = 0, khoaTraCuoi = '', lucTraCuoi = 0;
+    function traNhanh(loc) {
+        var khoa = khoaLoc(loc);
+        if (khoa === khoaTraCuoi && Date.now() - lucTraCuoi < 1500) return;
+        tra(loc, khoa === khoaLoc(locDangXem));
+    }
+    // Mã phối màu MES đầy đủ: P + 13 số
+    var MA_DU = /^P\d{13}$/i;
+
     async function tra(loc, giuTich, lamMoi) {
+        var lan = ++lanTra;
+        khoaTraCuoi = khoaLoc(loc);
+        lucTraCuoi = Date.now();
         var tichLai = giuTich ? docTich(loc) : [];
         var nut = $(lamMoi ? 'qa-mes-capnhat' : 'qa-mes-nut');
         var nutKhac = $(lamMoi ? 'qa-mes-nut' : 'qa-mes-capnhat');
         nut.disabled = true;
         nutKhac.disabled = true;
-        var nhanCu = nut.innerHTML;
+        // Nhãn gốc giữ ở data-*: tra chồng nhau (quét liên tiếp) thì innerHTML lúc này đang là spinner của lần trước
+        if (!nut.dataset.nhanGoc) nut.dataset.nhanGoc = nut.innerHTML;
         nut.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + (lamMoi ? (loc.ma ? 'Đang lấy từ MES...' : 'Đang đồng bộ 7 ngày...') : 'Đang tra...');
         thongBao('');
         try {
@@ -405,6 +419,8 @@
             var kq = lamMoi
                 ? await layJson(url, { method: 'POST', headers: { 'Accept': 'application/json', 'RequestVerificationToken': token() } })
                 : await layJson(url);
+            // Đã có lần tra mới hơn (quét mã liên tiếp): bỏ kết quả cũ để không đè kết quả mới
+            if (lan !== lanTra) return;
             if (!kq.thanhCong) { thongBao(kq.thongBao || 'Tra cứu thất bại.', 'loi'); return; }
             var dl = kq.duLieu;
             if (kq.thongBao) thongBao(kq.thongBao, 'loi');
@@ -432,12 +448,19 @@
                 text += ' · Đang lọc cột: hiện ' + hien.toLocaleString('vi-VN') + '/' + dl.dong.length.toLocaleString('vi-VN') + ' dòng';
             }
             $('qa-mes-tong').textContent = text;
+            // Tra xong: bôi đen ô mã để quét/gõ mã tiếp là ghi đè luôn (trừ khi người dùng đang ở ô khác)
+            var oMa = $('qa-mes-ma');
+            if (loc.ma && (document.activeElement === oMa || document.activeElement === document.body)) { oMa.focus(); oMa.select(); }
         } catch (e) {
-            thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
+            if (lan === lanTra) thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
         } finally {
-            nut.disabled = false;
-            nutKhac.disabled = false;
-            nut.innerHTML = nhanCu;
+            // Chỉ lần tra mới nhất mới trả nút về trạng thái thường
+            if (lan === lanTra) {
+                [$('qa-mes-nut'), $('qa-mes-capnhat')].forEach(function (b) {
+                    b.disabled = false;
+                    if (b.dataset.nhanGoc) { b.innerHTML = b.dataset.nhanGoc; delete b.dataset.nhanGoc; }
+                });
+            }
         }
     }
 
@@ -471,6 +494,12 @@
     async function boVaoThung(idThung, nut) {
         var chon = dsDaChon();
         if (chon.length === 0) return;
+        // Tạo thùng mới bắt buộc có tên (server cũng chặn)
+        if (!idThung && !$('qa-thung-ten').value.trim()) {
+            thongBao('Nhập tên thùng trước khi tạo thùng mới.', 'loi');
+            $('qa-thung-ten').focus();
+            return;
+        }
         var tuDo = chon.filter(function (cb) { return !laTrongThung(cb); });
         var trongThung = chon.filter(laTrongThung);
 
@@ -496,11 +525,13 @@
                 dsThuTu: tuDo.map(function (cb) { var t = dongHienTai[cb.dataset.chiSo].thuTu; return t === null || t === undefined ? 0 : t; }),
                 dsIdDongChuyen: trongThung.map(function (cb) { return dongHienTai[cb.dataset.chiSo].idDongThung; }),
                 idThung: idThung,
-                ghiChu: idThung ? null : $('qa-thung-ghichu').value
+                ghiChu: idThung ? null : $('qa-thung-ghichu').value,
+                tenThung: idThung ? null : $('qa-thung-ten').value
             });
             if (!kq.thanhCong) { thongBao(kq.thongBao || 'Không lưu được.', 'loi'); return; }
             thongBao(kq.thongBao, 'ok');
             $('qa-thung-ghichu').value = '';
+            $('qa-thung-ten').value = '';
             // Tải lại kết quả để cột "Thùng" cập nhật + khoá các dòng vừa bỏ vào
             await napThungMo(kq.duLieu && kq.duLieu.idThung);
             await tra(locDangXem || docLoc(), false);
@@ -551,7 +582,24 @@
         // Để trống cả 3 ô = xem tất cả (bản đồng bộ trong DB, mới nhất trước)
         if (loc.ma.length > 0 && loc.ma.length < 4) { thongBao('Mã phối màu cần ít nhất 4 ký tự (hoặc để trống).', 'loi'); return; }
         // Tra lại đúng bộ lọc đang xem thì giữ dòng đã tích, khác thì chọn lại từ đầu
-        tra(loc, khoaLoc(loc) === khoaLoc(locDangXem));
+        traNhanh(loc);
+    });
+
+    // Tự tra không cần bấm nút: gõ/quét đủ mã P + 13 số, hoặc chọn 1 gợi ý trong danh sách thả xuống
+    document.addEventListener('input', function (e) {
+        var o = e.target;
+        if (!o.matches || !o.matches('#qa-mes-form [data-goi-y]')) return;
+        var v = o.value.trim();
+        // Chọn gợi ý datalist: Chrome báo inputType 'insertReplacementText' (hoặc không có inputType)
+        var chonGoiY = !e.inputType || e.inputType === 'insertReplacementText';
+        var duMa = o.id === 'qa-mes-ma' && MA_DU.test(v);
+        if ((chonGoiY && v) || duMa) traNhanh(docLoc());
+    });
+
+    // Vào trang là gõ/quét được ngay; bấm vào ô mã thì bôi đen để quét đè
+    if (!document.activeElement || document.activeElement === document.body) $('qa-mes-ma').focus();
+    document.addEventListener('focusin', function (e) {
+        if (e.target.id === 'qa-mes-ma' && e.target.value) setTimeout(function () { e.target.select(); }, 0);
     });
 
     // Nút "Làm mới": xoá kết quả, mã trên địa chỉ và các dòng đã tích

@@ -1,6 +1,7 @@
 // Hộp xác nhận / thông báo hiện GIỮA màn hình cho phân hệ QA, thay confirm()/alert() của trình duyệt
 // (hộp gốc của Chrome nằm sát mép trên, dễ bị bỏ qua).
 //   qaXacNhan(text[, { nutDongY, nguyHiem }]) -> Promise<boolean>
+//   qaNhap(text, giaTri[, maxLength]) -> Promise<string | null>
 //   qaThongBao(text, 'ok' | 'loi')  : ok = hiện giữa màn hình rồi tự tắt; loi = hộp có nút Đóng
 (function () {
     function taoHop(text, loai, coHuy, tuyChon) {
@@ -20,6 +21,16 @@
             noiDung.textContent = text || '';
             hop.appendChild(icon);
             hop.appendChild(noiDung);
+            // Hộp nhập (qaNhap): thêm ô nhập dưới nội dung, Đồng ý trả về chuỗi đã gõ
+            var oNhap = null;
+            if (tuyChon.oNhap) {
+                oNhap = document.createElement('input');
+                oNhap.type = 'text';
+                oNhap.className = 'form-control qa-ht-onhap';
+                oNhap.value = tuyChon.oNhap.giaTri || '';
+                if (tuyChon.oNhap.maxLength) oNhap.maxLength = tuyChon.oNhap.maxLength;
+                hop.appendChild(oNhap);
+            }
 
             var thanhNut = document.createElement('div');
             thanhNut.className = 'qa-ht-nut';
@@ -44,7 +55,7 @@
                 document.removeEventListener('keydown', phim, true);
                 nen.remove();
                 if (focusCu && focusCu.focus) try { focusCu.focus(); } catch (e) { /* bỏ qua */ }
-                xong(kq);
+                xong(oNhap ? (kq ? oNhap.value : null) : kq);
             }
             function phim(e) {
                 if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); dong(false); }
@@ -56,11 +67,15 @@
             nen.addEventListener('click', function (e) { if (e.target === nen && !coHuy) dong(true); });
             document.addEventListener('keydown', phim, true);
             document.body.appendChild(nen);
-            nutOk.focus();
+            if (oNhap) { oNhap.focus(); oNhap.select(); } else nutOk.focus();
         });
     }
 
     window.qaXacNhan = function (text, tuyChon) { return taoHop(text, 'hoi', true, tuyChon); };
+    // qaNhap(text, giaTri[, maxLength]) -> Promise<string | null> (null = Huỷ)
+    window.qaNhap = function (text, giaTri, maxLength) {
+        return taoHop(text, 'hoi', true, { nutDongY: 'Lưu', oNhap: { giaTri: giaTri, maxLength: maxLength } });
+    };
 
     window.qaThongBao = function (text, loai) {
         if (!text) return;

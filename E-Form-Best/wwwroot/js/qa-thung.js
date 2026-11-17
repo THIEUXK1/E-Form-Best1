@@ -73,7 +73,7 @@
             var tr = document.createElement('tr');
             var td = o(tr, tuKhoa && dsThung.length === 0 ? 'Không có thùng nào chứa "' + tuKhoa + '".'
                 : dsThung.length === 0 ? 'Chưa có thùng nào. Vào Tra cứu mã phối màu, tích dòng rồi bấm Tạo thùng mới.' : 'Không có thùng khớp bộ lọc.', 'qa-mes-trong');
-            td.colSpan = 12;
+            td.colSpan = 13;
             tbody.replaceChildren(tr);
         } else {
             var frag = document.createDocumentFragment();
@@ -98,6 +98,7 @@
                     khop.textContent = 'Có: ' + t.khop + ' (' + t.soDongKhop + ' dòng)';
                     tdMa.appendChild(khop);
                 }
+                o(tr, t.tenThung || '', 'qa-thung-ten');
                 var tdTt = o(tr, TEN_TRANG_THAI[t.trangThai] || t.trangThai);
                 tdTt.className = t.trangThai === 'Mo' ? 'qa-tt-mo' : 'qa-tt-dong';
                 o(tr, t.viTri || '—', t.viTri ? 'qa-thung-vitri' : 'qa-thung-vitri trong');
@@ -107,10 +108,13 @@
                 o(tr, so(t.tongHop, 0), 'so');
                 o(tr, ngayGio(t.ngayTao));
                 o(tr, t.nguoiTao);
-                o(tr, t.ghiChu);
+                var tdGc = o(tr, t.ghiChu, 'qa-thung-ghichu-o');
+                tdGc.dataset.id = t.idThung;
+                tdGc.title = 'Bấm để sửa ghi chú';
                 var tdNut = document.createElement('td');
                 tdNut.className = 'qa-thung-nut';
                 tdNut.appendChild(nut('In tem', 'btn-outline-primary', 'in', t.idThung, 'fa-print'));
+                tdNut.appendChild(nut('Sửa tên', 'btn-outline-info', 'doiten', t.idThung, 'fa-pencil'));
                 tdNut.appendChild(t.trangThai === 'Mo'
                     ? nut('Đóng', 'btn-outline-secondary', 'dong', t.idThung, 'fa-lock')
                     : nut('Mở lại', 'btn-outline-success', 'mo', t.idThung, 'fa-unlock'));
@@ -155,7 +159,7 @@
             veViTri();
             var tongM = 0, tongKg = 0;
             dong.forEach(function (d) { tongM += Number(d.slDongGoi) || 0; tongKg += Number(d.klDongGoi) || 0; });
-            $('qa-ct-tieude').textContent = 'Thùng ' + t.maThung + ' · ' + (TEN_TRANG_THAI[t.trangThai] || t.trangThai)
+            $('qa-ct-tieude').textContent = 'Thùng ' + t.maThung + (t.tenThung ? ' — ' + t.tenThung : '') + ' · ' + (TEN_TRANG_THAI[t.trangThai] || t.trangThai)
                 + (t.viTri ? ' · Kệ ' + t.viTri : '')
                 + ' · ' + dong.length + ' dòng · ' + so(tongM) + ' m · ' + so(tongKg) + ' kg'
                 + (t.ghiChu ? ' · ' + t.ghiChu : '');
@@ -350,15 +354,25 @@
         var hd = nutBam.dataset.hanhDong;
         if (hd === 'in') { inTem(id, nutBam); return; }
         var t = dsThung.find(function (x) { return x.idThung === id; });
+        var url;
+        if (hd === 'doiten') {
+            var ten = await qaNhap('Tên mới cho thùng ' + (t ? t.maThung : '') + ':', t ? (t.tenThung || '') : '', 100);
+            if (ten === null) return;
+            ten = ten.trim();
+            if (!ten) { thongBao('Nhập tên thùng.', 'loi'); return; }
+            if (t && ten === t.tenThung) return;
+            url = '/QAForm/Thung/' + id + '/DoiTen?ten=' + encodeURIComponent(ten);
+        }
         if (hd === 'xoa' && !(await qaXacNhan('Xoá thùng ' + (t ? t.maThung : '') + '? Các dòng trong thùng sẽ được trả lại để bỏ vào thùng khác.'))) return;
-        var url = hd === 'xoa' ? '/QAForm/Thung/' + id + '/Xoa' : '/QAForm/Thung/' + id + '/TrangThai?dong=' + (hd === 'dong');
+        if (!url) url = hd === 'xoa' ? '/QAForm/Thung/' + id + '/Xoa' : '/QAForm/Thung/' + id + '/TrangThai?dong=' + (hd === 'dong');
         nutBam.disabled = true;
         try {
             var kq = await layJson(url, { method: 'POST', headers: { 'Accept': 'application/json', 'RequestVerificationToken': token() } });
             thongBao(kq.thongBao, kq.thanhCong ? 'ok' : 'loi');
             if (kq.thanhCong) {
                 if (hd === 'xoa' && idDangXem === id) { idDangXem = null; thungDangXem = null; $('qa-thung-chitiet').hidden = true; }
-                if (hd === 'xoa' && window.qaKe) window.qaKe.napLai();
+                // Sơ đồ kệ hiện tên thùng -> nạp lại khi xoá hoặc đổi tên
+                if ((hd === 'xoa' || hd === 'doiten') && window.qaKe) window.qaKe.napLai();
                 await napDanhSach();
                 if (idDangXem === id) await xemChiTiet(id);
             }
@@ -369,7 +383,61 @@
         }
     }
 
+    // ===== Sửa ghi chú trực tiếp trên dòng: bấm ô -> ô nhập; Enter/rời ô = lưu, Esc = huỷ =====
+    function moSuaGhiChu(td) {
+        if (td.querySelector('input')) return;
+        var id = parseInt(td.dataset.id, 10);
+        var t = dsThung.find(function (x) { return x.idThung === id; });
+        var cu = t ? (t.ghiChu || '') : td.textContent;
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.maxLength = 500;
+        inp.className = 'form-control form-control-sm';
+        inp.value = cu;
+        td.textContent = '';
+        td.appendChild(inp);
+        inp.focus();
+        inp.select();
+
+        var daXong = false;
+        async function ket(luu) {
+            if (daXong) return;
+            daXong = true;
+            var moi = inp.value.trim();
+            if (!luu || moi === cu.trim()) { td.textContent = cu; return; }
+            inp.disabled = true;
+            try {
+                var body = new URLSearchParams();
+                body.append('ghiChu', moi);
+                var kq = await layJson('/QAForm/Thung/' + id + '/GhiChu', {
+                    method: 'POST', body: body,
+                    headers: { 'Accept': 'application/json', 'RequestVerificationToken': token() }
+                });
+                if (!kq.thanhCong) {
+                    // Lỗi: giữ ô nhập + nội dung đã gõ để sửa tiếp
+                    thongBao(kq.thongBao || 'Không lưu được.', 'loi');
+                    daXong = false; inp.disabled = false; inp.focus();
+                    return;
+                }
+                if (t) t.ghiChu = moi || null;
+                td.textContent = moi;
+                thongBao(kq.thongBao, 'ok');
+                if (idDangXem === id) await xemChiTiet(id);
+            } catch (e) {
+                thongBao('Không gọi được máy chủ: ' + e.message, 'loi');
+                daXong = false; inp.disabled = false; inp.focus();
+            }
+        }
+        inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); ket(true); }
+            else if (e.key === 'Escape') { e.preventDefault(); ket(false); }
+        });
+        inp.addEventListener('blur', function () { if (!inp.disabled) ket(true); });
+    }
+
     document.addEventListener('click', function (e) {
+        var oGc = e.target.closest('#qa-thung-tbody td.qa-thung-ghichu-o');
+        if (oGc) { e.stopPropagation(); moSuaGhiChu(oGc); return; }
         var nutBam = e.target.closest('#qa-thung-tbody button[data-hanh-dong]');
         if (nutBam) { thaoTac(nutBam); return; }
         var nutIn = e.target.closest('#qa-ct-in');

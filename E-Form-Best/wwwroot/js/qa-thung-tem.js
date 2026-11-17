@@ -25,6 +25,9 @@
 
     function mauMacDinh() {
         return [
+            // Khổ tem đang dùng thực tế ở QA -> đứng đầu, là mẫu mặc định
+            { id: 'm5', ten: 'Đầy đủ 65×95', rong: 65, cao: 95, le: 2.5, tieuDe: 'THÙNG QA', chuThem: '', hien: Object.assign({}, HIEN_DAY_DU, { nguoiTao: false }),
+              coMa: 8, caoVach: 12, coQr: 18, coChu: 2.4, gop: true, cot: ['maPhoiMau', 'maMau', 'm', 'kg', 'hop'] },
             { id: 'm1', ten: 'Đầy đủ 100×100', rong: 100, cao: 100, le: 3, tieuDe: 'THÙNG QA', chuThem: '', hien: Object.assign({}, HIEN_DAY_DU),
               coMa: 10, caoVach: 14, coQr: 20, coChu: 2.7, gop: true, cot: ['maPhoiMau', 'maHang', 'maMau', 'm', 'kg', 'hop'] },
             { id: 'm2', ten: 'Đầy đủ 100×150', rong: 100, cao: 150, le: 3, tieuDe: 'THÙNG QA', chuThem: '', hien: Object.assign({}, HIEN_DAY_DU, { qr: true }),
@@ -42,7 +45,16 @@
     var kho = null;
     function napKho() {
         try { kho = JSON.parse(localStorage.getItem(KHOA) || 'null'); } catch (e) { kho = null; }
-        if (!kho || !Array.isArray(kho.ds) || kho.ds.length === 0) kho = { chon: 'm1', ds: mauMacDinh() };
+        if (!kho || !Array.isArray(kho.ds) || kho.ds.length === 0) kho = { chon: 'm5', ds: mauMacDinh(), macDinhDaCo: ['m1', 'm2', 'm3', 'm4', 'm5'] };
+        // Máy đã lưu mẫu từ trước: bổ sung mẫu mặc định mới ra đời sau (chỉ 1 lần, xoá đi thì không tự thêm lại)
+        var daCo = kho.macDinhDaCo || ['m1', 'm2', 'm3', 'm4'];
+        var them = mauMacDinh().filter(function (m) { return daCo.indexOf(m.id) < 0 && !kho.ds.some(function (x) { return x.id === m.id; }); });
+        if (them.length > 0 || !kho.macDinhDaCo) {
+            them.forEach(function (m) { kho.ds.unshift(m); daCo.push(m.id); });
+            if (them.some(function (m) { return m.id === 'm5'; })) kho.chon = 'm5';
+            kho.macDinhDaCo = daCo;
+            luuKho();
+        }
         if (!kho.ds.some(function (m) { return m.id === kho.chon; })) kho.chon = kho.ds[0].id;
     }
     function luuKho() { try { localStorage.setItem(KHOA, JSON.stringify(kho)); } catch (e) { /* storage bị chặn: chỉ dùng trong phiên */ } }
@@ -115,8 +127,21 @@
             p.push('<div class="dau"><b>' + (h.tieuDe ? esc(mau.tieuDe) : '') + '</b><span>' + (h.ngayTao ? 'Ngày tạo: ' + esc(ngay(thung.ngayTao)) : '') + '</span></div>');
         }
         var trai = '';
-        if (h.maThung) trai += '<div class="ma">' + esc(thung.maThung) + '</div>';
-        if (h.maVach) trai += '<div class="vach">' + maVachSvg(thung.maThung) + '</div>';
+        // Có tên thùng: 2 mã vạch — tên (chữ to) + mã vạch tên, rồi mã thùng (chữ nhỏ) + mã vạch mã. QR vẫn mã hoá mã thùng.
+        if (thung.tenThung) {
+            if (h.maThung) trai += '<div class="ma">' + esc(thung.tenThung) + '</div>';
+            if (h.maVach) {
+                var vachTen = maVachSvg(thung.tenThung);
+                // CODE128 chỉ nhận ký tự ASCII: tên có dấu tiếng Việt thì không tạo được mã vạch tên
+                trai += vachTen ? '<div class="vach">' + vachTen + '</div>'
+                    : '<div class="dong1" style="text-align:center;font-style:italic">(tên có dấu — không tạo được mã vạch tên)</div>';
+            }
+            if (h.maThung) trai += '<div class="ma2">' + esc(thung.maThung) + '</div>';
+            if (h.maVach) trai += '<div class="vach">' + maVachSvg(thung.maThung) + '</div>';
+        } else {
+            if (h.maThung) trai += '<div class="ma">' + esc(thung.maThung) + '</div>';
+            if (h.maVach) trai += '<div class="vach">' + maVachSvg(thung.maThung) + '</div>';
+        }
         if (trai || h.qr) {
             p.push('<div class="khoima">' + (trai ? '<div class="trai">' + trai + '</div>' : '')
                 + (h.qr ? '<div class="qr">' + qrSvg(thung.maThung) + '</div>' : '') + '</div>');
@@ -157,6 +182,8 @@
             + '.dau b{font-size:' + (cc * 1.35) + 'mm;letter-spacing:.3mm}'
             + '.khoima{display:flex;align-items:center;gap:2mm}.trai{flex:1;min-width:0}'
             + '.ma{font-size:' + mau.coMa + 'mm;font-weight:800;text-align:center;line-height:1.05;white-space:nowrap;overflow:hidden}'
+            // Mã thùng khi tem có tên: nhỏ hơn tên nhưng vẫn đọc được từ xa
+            + '.ma2{font-size:' + (mau.coMa * 0.65).toFixed(2) + 'mm;font-weight:700;text-align:center;line-height:1.1;white-space:nowrap;overflow:hidden;margin-top:1.2mm}'
             + '.vach{height:' + mau.caoVach + 'mm;margin:1mm 2mm 0}'
             + '.qr{width:' + mau.coQr + 'mm;height:' + mau.coQr + 'mm;flex:none' + (trai ? '' : ';margin:0 auto') + '}'
             + '.tong{display:flex;justify-content:space-between;gap:1mm;font-size:' + (cc * 1.25) + 'mm;font-weight:700;border:.4mm solid #000;padding:.8mm 1.5mm}'
@@ -218,7 +245,7 @@
     var nhap = null; // bản nháp mẫu đang sửa trong hộp
 
     var DU_LIEU_MAU = {
-        thung: { maThung: 'QA-261112-001', ngayTao: new Date().toISOString(), nguoiTao: 'V000000', ghiChu: 'Ví dụ ghi chú' },
+        thung: { maThung: 'QA-261112-001', tenThung: 'A1', ngayTao: new Date().toISOString(), nguoiTao: 'V000000', ghiChu: 'Ví dụ ghi chú' },
         dong: [
             { maPhoiMau: 'PM-0001', maHang: 'H100', maMau: 'M01', maKhachHang: 'KH01', maKhachCuoi: 'NIKE', slDongGoi: 120.5, klDongGoi: 18.2, soHop: 2, loai: 'A', soPhieuNhuom: 'N-001', soPhieuDongGoi: 'DG-01' },
             { maPhoiMau: 'PM-0002', maHang: 'H101', maMau: 'M02', maKhachHang: 'KH01', maKhachCuoi: 'NIKE', slDongGoi: 80, klDongGoi: 11.4, soHop: 1, loai: 'A', soPhieuNhuom: 'N-002', soPhieuDongGoi: 'DG-02' }
@@ -346,7 +373,7 @@
                 bao('Đã xoá mẫu.', 'ok');
             } else if (lenh === 'macdinh') {
                 if (!(await qaXacNhan('Khôi phục 4 mẫu mặc định? Các mẫu tự tạo trên máy này sẽ mất.'))) return;
-                kho = { chon: 'm1', ds: mauMacDinh() };
+                kho = { chon: 'm5', ds: mauMacDinh(), macDinhDaCo: ['m1', 'm2', 'm3', 'm4', 'm5'] };
                 luuKho(); veDsMau(); chonMauSua(kho.chon);
                 bao('Đã khôi phục mẫu mặc định.', 'ok');
             } else if (lenh === 'inthu') {

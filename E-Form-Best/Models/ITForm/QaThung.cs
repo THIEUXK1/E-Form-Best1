@@ -21,6 +21,11 @@ public partial class QaThung
     [StringLength(30)]
     public string MaThung { get; set; } = null!;
 
+    // Tên người dùng tự đặt (bắt buộc khi tạo, sửa được); mã thùng tự sinh và không đổi. Thùng trước 17/11 có thể NULL.
+    [Column("ten_thung")]
+    [StringLength(100)]
+    public string? TenThung { get; set; }
+
     // Mo | DaDong
     [Column("trang_thai")]
     [StringLength(20)]

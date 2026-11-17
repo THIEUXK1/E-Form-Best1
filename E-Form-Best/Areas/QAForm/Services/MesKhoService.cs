@@ -57,7 +57,7 @@ namespace E_Form_Best.Areas.QAForm.Services
                 var tuDb = await DocDbAsync(loc, ct);
                 if (tuDb != null) return tuDb;
                 // Mã phối màu đã có trong DB, chỉ là lọc phụ không khớp -> trả rỗng, không gọi MES vô ích
-                if (loc.CoLocPhu && await _db.QaMesDongGois.AnyAsync(x => x.NgayMat == null && x.MaPhoiMau!.Contains(loc.Ma), ct))
+                if (loc.CoLocPhu && await LocMa(_db.QaMesDongGois.Where(x => x.NgayMat == null), loc.Ma).AnyAsync(ct))
                     return rong;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -70,6 +70,16 @@ namespace E_Form_Best.Areas.QAForm.Services
             return await LamMoiTheoPhoiMauAsync(loc, ct);
         }
 
+        /// <summary>
+        /// Lọc mã phối màu. Mã MES luôn dạng "P" + 13 số (chữ P chỉ đứng đầu) nên chuỗi gõ bắt đầu bằng P mà nằm trong mã
+        /// thì chắc chắn ở đầu mã -> dùng LIKE 'x%' (seek index IX_QA_MesDongGoi_PhoiMau, ~0 ms) thay LIKE '%x%' (quét ~500 ms),
+        /// kết quả y hệt. Gõ đoạn giữa/cuối (vd "0294022") vẫn dò "chứa" như cũ.
+        /// </summary>
+        private static IQueryable<QaMesDongGoi> LocMa(IQueryable<QaMesDongGoi> q, string ma)
+            => ma.StartsWith('P') || ma.StartsWith('p')
+                ? q.Where(x => x.MaPhoiMau!.StartsWith(ma))
+                : q.Where(x => x.MaPhoiMau!.Contains(ma));
+
         private static MesApiService.KetQuaTraCuu LocPhu(MesApiService.KetQuaTraCuu kq, LocTraCuu loc)
         {
             if (!kq.ThanhCong || !loc.CoLocPhu) return kq;
@@ -77,22 +87,28 @@ namespace E_Form_Best.Areas.QAForm.Services
             return kq with { Tong = dong.Count, Dong = dong };
         }
 
+        // Số gợi ý tối đa mỗi lần (datalist): gõ thêm ký tự thì danh sách thu hẹp dần nên vẫn tới được mọi mã
+        private const int SoGoiY = 200;
+
         // Cột được gợi ý khi gõ: ma = mã phối màu, kh = mã khách hàng, hang = mã hàng
         public async Task<List<string>> GoiYAsync(string truong, string q, LocTraCuu loc, CancellationToken ct)
         {
             var nguon = _db.QaMesDongGois.AsNoTracking().Where(x => x.NgayMat == null);
             // Gợi ý theo các ô còn lại đang nhập (vd chọn khách hàng rồi thì chỉ gợi ý mã hàng của khách đó)
-            if (truong != "ma" && loc.Ma.Length > 0) nguon = nguon.Where(x => x.MaPhoiMau!.Contains(loc.Ma));
+            if (truong != "ma" && loc.Ma.Length > 0) nguon = LocMa(nguon, loc.Ma);
             if (truong != "kh" && loc.Kh.Length > 0) nguon = nguon.Where(x => x.MaKhachHang!.Contains(loc.Kh));
             if (truong != "hang" && loc.Hang.Length > 0) nguon = nguon.Where(x => x.MaHang!.Contains(loc.Hang));
-            IQueryable<string?> cot = truong switch
+            if (truong == "ma")
             {
-                "kh" => nguon.Select(x => x.MaKhachHang),
-                "hang" => nguon.Select(x => x.MaHang),
-                _ => nguon.Select(x => x.MaPhoiMau)
-            };
+                // Mã phối màu chứa ngày (P + yyMMdd...) -> mới nhất trước; gõ từ chữ P (hoặc chưa gõ) thì seek/quét ngược index
+                var ma = nguon.Where(x => x.MaPhoiMau != null && x.MaPhoiMau != "");
+                ma = q.Length == 0 ? ma : LocMa(ma, q);
+                return (await ma.Select(x => x.MaPhoiMau).Distinct()
+                    .OrderByDescending(v => v).Take(SoGoiY).ToListAsync(ct))!;
+            }
+            IQueryable<string?> cot = truong == "kh" ? nguon.Select(x => x.MaKhachHang) : nguon.Select(x => x.MaHang);
             return (await cot.Where(v => v != null && v != "" && v.Contains(q))
-                .Distinct().OrderBy(v => v).Take(30).ToListAsync(ct))!;
+                .Distinct().OrderBy(v => v).Take(SoGoiY).ToListAsync(ct))!;
         }
 
         /// <summary>Dòng còn hiệu lực trong DB theo dấu vân tay (bỏ vào thùng khi đang xem kết quả tra trống / nhiều mã).</summary>
@@ -199,7 +215,7 @@ namespace E_Form_Best.Areas.QAForm.Services
         private async Task<KetQuaKho?> DocDbAsync(LocTraCuu loc, CancellationToken ct)
         {
             var q = _db.QaMesDongGois.AsNoTracking().Where(x => x.NgayMat == null);
-            if (loc.Ma.Length > 0) q = q.Where(x => x.MaPhoiMau!.Contains(loc.Ma));
+            if (loc.Ma.Length > 0) q = LocMa(q, loc.Ma);
             if (loc.Kh.Length > 0) q = q.Where(x => x.MaKhachHang!.Contains(loc.Kh));
             if (loc.Hang.Length > 0) q = q.Where(x => x.MaHang!.Contains(loc.Hang));
             // Không lọc mã phối màu: mới nhất trước để trần 10.000 dòng rơi vào hàng đang làm

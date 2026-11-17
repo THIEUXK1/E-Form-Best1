@@ -40,6 +40,7 @@
 
     @* Thanh thao tác thùng: chỉ bật khi đã tích ít nhất 1 dòng *@
     <div class="qa-thung-thanh" id="qa-thung-thanh">
+        <input type="text" id="qa-thung-ten" class="form-control form-control-sm" maxlength="100" placeholder="Tên thùng mới (bắt buộc, mã tự sinh)" />
         <input type="text" id="qa-thung-ghichu" class="form-control form-control-sm" maxlength="500" placeholder="Ghi chú thùng mới (không bắt buộc)" />
         <button type="button" class="btn btn-sm qa-btn" id="qa-thung-tao" disabled><i class="fa fa-cube"></i> Tạo thùng mới</button>
         <span class="qa-thung-hoac">hoặc</span>
@@ -106,6 +107,6 @@
 
 @section Scripts {
     <script src="~/js/qa-loc-cot.js?v=2"></script>
-    <script src="~/js/qa-tra-cuu-mes.js?v=22"></script>
+    <script src="~/js/qa-tra-cuu-mes.js?v=26"></script>
     <script src="~/js/qa-xuat-excel.js?v=4"></script>
 }
