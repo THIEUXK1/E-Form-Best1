@@ -69,7 +69,7 @@
         var tbody = $('qa-ke-tbody');
         if (dsKe.length === 0) {
             var trTrong = document.createElement('tr');
-            o(trTrong, 'Chưa có kệ nào. Bấm Thêm kệ hoặc Tạo dãy kệ (A–Z) để tạo.', 'qa-mes-trong').colSpan = 7;
+            o(trTrong, 'Chưa có kệ nào. Bấm Thêm kệ hoặc Tạo dãy kệ (A–Z) để tạo.', 'qa-mes-trong').colSpan = 8;
             tbody.replaceChildren(trTrong);
         } else {
             var frag = document.createDocumentFragment();
@@ -77,11 +77,17 @@
                 var tr = document.createElement('tr');
                 tr.dataset.keId = k.idKe;
                 if (k.idKe === idKeSoDo) tr.classList.add('qa-mes-dang-chon');
-                o(tr, k.maKe, 'qa-mes-o-thung').title = 'Bấm để xem sơ đồ ô';
+                var tdMa = o(tr, '', 'qa-mes-o-thung');
+                tdMa.title = 'Bấm để xem sơ đồ ô';
+                var huy = document.createElement('span');
+                huy.className = 'qa-ke-ma';
+                huy.textContent = k.maKe;
+                tdMa.appendChild(huy);
                 o(tr, k.tenKe);
                 o(tr, k.khuVuc);
                 o(tr, k.soTang === 1 ? k.soO + ' ô (' + maO(k, 1, 1) + '–' + maO(k, 1, k.soO) + ')' : k.soTang + ' × ' + k.soO);
-                o(tr, k.soThung, 'so');
+                o(tr, k.soThung, 'so' + (k.soThung ? '' : ' qa-ke-so-0'));
+                tr.appendChild(thanhMuc(k.soThung, k.soTang * k.soO));
                 o(tr, k.ghiChu);
                 var td = document.createElement('td');
                 td.className = 'qa-thung-nut';
@@ -93,7 +99,36 @@
             tbody.replaceChildren(frag);
         }
         var tongThung = dsKe.reduce(function (s, k) { return s + k.soThung; }, 0);
-        $('qa-ke-tom').textContent = 'Kệ chứa thùng · ' + dsKe.length + ' kệ · ' + tongThung + ' thùng đang trên kệ';
+        var tongO = dsKe.reduce(function (s, k) { return s + k.soTang * k.soO; }, 0);
+        var keTrong = dsKe.filter(function (k) { return !k.soThung; }).length;
+        $('qa-ke-tom').textContent = 'Kệ chứa thùng';
+        veThongKe([
+            ['fa-th', 'Kệ', dsKe.length, ''],
+            ['fa-square-o', 'Tổng ô', tongO, ''],
+            ['fa-cube', 'Thùng trên kệ', tongThung, 'xanh'],
+            ['fa-inbox', 'Kệ còn trống', keTrong, 'cam']
+        ]);
+    }
+
+    // Ô số liệu tổng đầu trang: [biểu tượng, nhãn, giá trị, màu]
+    function veThongKe(ds, idKhung) {
+        if (window.qaTheSoLieu) window.qaTheSoLieu(idKhung || 'qa-ke-thongke', ds);
+    }
+
+    // Thanh mức dùng: số thùng so với số ô (1 ô có thể chứa nhiều thùng nên chặn ở 100%)
+    function thanhMuc(soThung, soO) {
+        var td = document.createElement('td');
+        td.className = 'qa-ke-muc-o';
+        var pt = soO ? Math.min(100, Math.round(soThung * 100 / soO)) : 0;
+        var thanh = document.createElement('span');
+        thanh.className = 'qa-ke-muc' + (pt >= 100 ? ' day' : pt >= 70 ? ' gan-day' : '');
+        var dau = document.createElement('i');
+        dau.style.width = pt + '%';
+        thanh.appendChild(dau);
+        var chu = document.createElement('small');
+        chu.textContent = pt + '%';
+        td.append(thanh, chu);
+        return td;
     }
 
     async function napLai() {
@@ -122,9 +157,10 @@
             thung.forEach(function (t) { (theoO[t.tang + '-' + t.o] = theoO[t.tang + '-' + t.o] || []).push(t); });
 
             $('qa-ke-sodo-tieude').textContent = 'Sơ đồ kệ ' + ke.maKe + (ke.tenKe ? ' · ' + ke.tenKe : '')
-                + (ke.khuVuc ? ' · ' + ke.khuVuc : '') + ' · ' + thung.length + ' thùng';
+                + (ke.khuVuc ? ' · ' + ke.khuVuc : '') + ' · ' + thung.length + ' thùng · '
+                + Object.keys(theoO).length + '/' + (ke.soTang * ke.soO) + ' ô có thùng';
             var luoi = $('qa-ke-sodo');
-            luoi.style.gridTemplateColumns = 'auto repeat(' + ke.soO + ', minmax(110px, 1fr))';
+            luoi.style.gridTemplateColumns = 'auto repeat(' + ke.soO + ', minmax(130px, 1fr))';
             var frag = document.createDocumentFragment();
             for (var tang = ke.soTang; tang >= 1; tang--) {
                 var nhan = document.createElement('div');
@@ -141,13 +177,28 @@
                     var ma = document.createElement('div');
                     ma.className = 'qa-ke-o-ma';
                     ma.textContent = ke.soTang === 1 ? maO(ke, 1, so) : maViTri(ke, tang, so);
+                    if (dsThung.length > 1) {
+                        var dem = document.createElement('span');
+                        dem.className = 'qa-ke-o-dem';
+                        dem.textContent = dsThung.length;
+                        ma.appendChild(dem);
+                    }
                     oKe.appendChild(ma);
+                    if (!dsThung.length) {
+                        var trong = document.createElement('div');
+                        trong.className = 'qa-ke-o-trong';
+                        trong.textContent = 'Trống';
+                        oKe.appendChild(trong);
+                    }
                     dsThung.forEach(function (t) {
                         var chip = document.createElement('button');
                         chip.type = 'button';
                         chip.className = 'qa-ke-chip' + (t.trangThai === 'Mo' ? '' : ' da-dong');
                         chip.dataset.idThung = t.idThung;
-                        chip.textContent = t.maThung;
+                        chip.dataset.maThung = t.maThung;
+                        var icThung = document.createElement('i');
+                        icThung.className = 'fa ' + (t.trangThai === 'Mo' ? 'fa-cube' : 'fa-lock');
+                        chip.append(icThung, document.createTextNode(' ' + t.maThung));
                         chip.title = t.soDong + ' dòng · ' + (t.trangThai === 'Mo' ? 'đang mở' : 'đã đóng');
                         oKe.appendChild(chip);
                     });
@@ -266,7 +317,7 @@
         var chip = e.target.closest('#qa-ke-sodo .qa-ke-chip');
         if (chip) {
             // Trang /QAForm/Ke đứng riêng: mở thùng ở trang Danh sách thùng (tìm theo mã thùng)
-            if ($('qa-ke-khung').dataset.docLap) { window.location.href = '/QAForm/Thung?tim=' + encodeURIComponent(chip.textContent); return; }
+            if ($('qa-ke-khung').dataset.docLap) { window.location.href = '/QAForm/Thung?tim=' + encodeURIComponent(chip.dataset.maThung); return; }
             phat('qa-ke:xem-thung', { idThung: parseInt(chip.dataset.idThung, 10) });
             return;
         }
@@ -288,6 +339,7 @@
         ds: function () { return dsKe; },
         maViTri: maViTri,
         maO: maO,
+        veThongKe: veThongKe,
         napLai: napLai,
         moSoDo: function (idKe) { $('qa-ke-khung').hidden = false; return xemSoDo(idKe); }
     };

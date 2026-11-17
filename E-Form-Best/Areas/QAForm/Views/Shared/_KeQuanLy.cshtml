@@ -3,8 +3,8 @@
     var docLap = ViewData["KeDocLap"] as bool? == true;
 }
 <div class="qa-card" id="qa-ke-khung" hidden="@(!docLap)" data-doc-lap="@(docLap ? "1" : null)">
-    <div class="qa-mes-tom">
-        <span id="qa-ke-tom">Kệ chứa thùng</span>
+    <div class="qa-mes-tom qa-ke-dau">
+        <span class="qa-ke-dau-tieude"><span class="qa-ke-dau-ic"><i class="fa fa-th"></i></span><span id="qa-ke-tom">Kệ chứa thùng</span></span>
         <span class="qa-thung-nut">
             <button type="button" class="btn btn-sm qa-btn" id="qa-ke-them"><i class="fa fa-plus"></i> Thêm kệ</button>
             <button type="button" class="btn btn-sm btn-outline-success" id="qa-ke-day-mo" title="Tạo một lần nhiều kệ A, B, C… cùng số ô"><i class="fa fa-th-large"></i> Tạo dãy kệ</button>
@@ -40,6 +40,8 @@
         </span>
         <span class="qa-ke-day-ghichu">Kệ 1 tầng: kệ cha A, ô con A1…A6, vị trí ghi A-A1. Kệ đã có sẽ được bỏ qua.</span>
     </form>
+    @* Ô số liệu tổng do qa-ke.js điền sau khi nạp danh sách *@
+    <div class="qa-ke-thongke" id="qa-ke-thongke"></div>
     <div id="qa-ke-thongbao" class="qa-mes-thongbao" role="status"></div>
     <div class="qa-mes-bang-wrap qa-ke-ds-wrap">
         <table class="qa-mes-bang">
@@ -50,17 +52,25 @@
                     <th>Khu vực</th>
                     <th>Tầng × ô</th>
                     <th>Số thùng</th>
+                    <th>Mức dùng ô</th>
                     <th>Ghi chú</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody id="qa-ke-tbody">
-                <tr><td colspan="7" class="qa-mes-trong">Đang tải...</td></tr>
+                <tr><td colspan="8" class="qa-mes-trong">Đang tải...</td></tr>
             </tbody>
         </table>
     </div>
     <div id="qa-ke-sodo-khung" hidden>
-        <h6 class="qa-ct-lichsu-tieude" id="qa-ke-sodo-tieude"></h6>
+        <div class="qa-ke-sodo-dau">
+            <h6 class="qa-ct-lichsu-tieude" id="qa-ke-sodo-tieude"></h6>
+            <span class="qa-ke-chu-giai">
+                <span><i class="qa-ke-mau mo"></i> Thùng đang mở</span>
+                <span><i class="qa-ke-mau dong"></i> Thùng đã đóng</span>
+                <span><i class="qa-ke-mau trong"></i> Ô trống</span>
+            </span>
+        </div>
         <div class="qa-ke-sodo-ghichu">@(docLap
             ? "Tầng 1 sát sàn. Bấm mã thùng để mở thùng đó ở trang Danh sách thùng; xếp thùng vào ô làm ở trang Danh sách thùng."
             : "Tầng 1 sát sàn. Bấm mã thùng để xem chi tiết; đã tích thùng ở danh sách (hoặc đang xem chi tiết một thùng) thì bấm ô để chọn vị trí cho thùng đó.")</div>

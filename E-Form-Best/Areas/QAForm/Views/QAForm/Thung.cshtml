@@ -8,8 +8,8 @@
 @* Trang khoá cuộn (màn hình rộng): các thẻ chia nhau chiều cao màn hình, chỉ vùng bảng cuộn — xem .qa-trang-co-dinh trong qa-layout.css *@
 <div class="qa-trang-co-dinh">
 <div class="qa-card">
-    <div class="qa-mes-tom">
-        <span id="qa-thung-tom">Đang tải...</span>
+    <div class="qa-mes-tom qa-ke-dau">
+        <span class="qa-ke-dau-tieude"><span class="qa-ke-dau-ic qa-thung-ic"><i class="fa fa-archive"></i></span><span id="qa-thung-tom">Đang tải...</span></span>
         <div class="qa-thung-loc">
             <input type="search" id="qa-thung-tim" class="form-control form-control-sm qa-thung-tim" maxlength="100" autocomplete="off"
                    placeholder="Tìm mã/tên thùng, mã phối màu..." title="Tìm theo mã/tên thùng hoặc hàng trong thùng: mã phối màu, mã hàng, mã màu, số phiếu đóng gói / nhuộm">
@@ -29,6 +29,8 @@
             <a href="/QAForm/TraCuuMes" class="btn btn-sm qa-btn"><i class="fa fa-plus"></i> Tạo thùng từ tra cứu</a>
         </div>
     </div>
+    @* Ô số liệu tổng do qa-thung.js điền (dùng chung kiểu ô của trang Kệ) *@
+    <div class="qa-ke-thongke" id="qa-thung-thongke"></div>
     <div id="qa-thung-thongbao" class="qa-mes-thongbao" role="status"></div>
     <div id="qa-xep-thanh" class="qa-ct-vitri qa-xep-thanh" hidden>
         <span class="qa-ct-vitri-nhan"><i class="fa fa-check-square-o"></i> Đã chọn <b id="qa-xep-so">0</b> thùng → </span>
@@ -69,7 +71,7 @@
 
 <div class="qa-card" id="qa-thung-chitiet" hidden>
     <div class="qa-mes-tom">
-        <span id="qa-ct-tieude"></span>
+        <span class="qa-ke-dau-tieude qa-ct-dau"><span class="qa-ke-dau-ic qa-ct-ic"><i class="fa fa-cube"></i></span><span id="qa-ct-tieude"></span></span>
         <span class="qa-thung-nut">
             <button type="button" class="btn btn-sm btn-outline-secondary" data-hien-cot="qa-ct-bang" title="Chỉ cột quan trọng (tô vàng trong file đóng gói) hiện mặc định"><i class="fa fa-columns"></i> <span>Hiện tất cả cột</span></button>
             <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-ct-bang" data-ten-file="thung" data-ten-file-tu="qa-ct-tieude" title="Xuất các dòng trong thùng (cột đang hiện)"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
@@ -229,7 +231,8 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
     <script src="~/js/qa-thung-tem.js?v=7"></script>
-    <script src="~/js/qa-ke.js?v=6"></script>
-    <script src="~/js/qa-thung.js?v=19"></script>
+    <script src="~/js/qa-the-so-lieu.js?v=1"></script>
+    <script src="~/js/qa-ke.js?v=9"></script>
+    <script src="~/js/qa-thung.js?v=21"></script>
     <script src="~/js/qa-xuat-excel.js?v=4"></script>
 }

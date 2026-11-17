@@ -22,7 +22,7 @@
     <script src="~/js/menu-thu-gon.js?v=11"></script>
     <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=202611021659" />
     <script src="~/js/hieu-ung-mua.js?v=202611121" ></script>
-    <link rel="stylesheet" href="~/css/qa-layout.css?v=27" />
+    <link rel="stylesheet" href="~/css/qa-layout.css?v=32" />
     @* Mức % kích thước: áp ngay trong head để trang không vẽ 100% rồi mới co lại *@
     <script src="~/js/zoom-som.js?v=1"></script>
     <script src="~/js/google-translate-init.js?v=2"></script>
@@ -57,6 +57,12 @@
             <a href="/QAForm/Ke" class="qa-nav-item @(currentAction == "Ke" ? "active" : "")" title="Quản lý kệ">
                 <i class="fa fa-th qa-ic-ke"></i> <span>Quản lý kệ</span>
             </a>
+            @if (User.IsInRole("All"))
+            {
+                <a href="/QAForm/LichSu" class="qa-nav-item @(currentAction == "LichSu" ? "active" : "")" title="Nhật ký thao tác, thùng đã xoá (quyền All)">
+                    <i class="fa fa-history"></i> <span>Nhật ký thao tác</span>
+                </a>
+            }
         </nav>
 
         <div class="qa-user">
@@ -128,7 +134,7 @@
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/qa-hop-thoai.js?v=2"></script>
+    <script src="~/js/qa-hop-thoai.js?v=3"></script>
     <script src="~/js/qa-layout.js?v=2"></script>
     <script src="~/js/form-layout-chung.js?v=2"></script>
     <script src="~/js/cai-dat-giao-dien.js?v=15"></script>

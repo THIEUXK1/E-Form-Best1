@@ -534,15 +534,137 @@ namespace E_Form_Best.Areas.QAForm.Services
         /// <summary>Xoá mềm: các dòng trong thùng được "trả lại" (không còn tính là đã vào thùng).</summary>
         public async Task<KetQua> XoaThungAsync(int idThung, string? nguoi, CancellationToken ct)
         {
-            var thung = await _db.QaThungs.FirstOrDefaultAsync(t => t.IdThung == idThung && t.NgayXoa == null, ct);
+            var thung = await _db.QaThungs.Include(t => t.Ke).FirstOrDefaultAsync(t => t.IdThung == idThung && t.NgayXoa == null, ct);
             if (thung == null) return new(false, "Không tìm thấy thùng.");
             var bayGio = DateTime.Now;
             thung.NgayXoa = bayGio;
             thung.NguoiXoa = nguoi;
             int soDong = await _db.QaThungDongs.CountAsync(d => d.IdThung == idThung && d.NgayBo == null, ct);
-            GhiLichSu(thung.IdThung, nguoi, "XoaThung", $"Xoá thùng {thung.MaThung} ({soDong} dòng)", bayGio);
+            // Ghi đủ tên/trạng thái/vị trí lúc xoá để người khôi phục (All) đối chiếu được
+            var viTri = QaKeService.MaViTri(thung.Ke?.MaKe, thung.Tang, thung.O, thung.Ke?.SoTang ?? 0);
+            GhiLichSu(thung.IdThung, nguoi, "XoaThung", Cat($"Xoá thùng {thung.MaThung}" + (thung.TenThung != null ? $" \"{thung.TenThung}\"" : "")
+                + $" ({soDong} dòng, {(thung.TrangThai == QaThung.TrangThaiMo ? "đang mở" : "đã đóng")}" + (viTri != null ? $", vị trí {viTri}" : "") + ")", 1000), bayGio);
             await _db.SaveChangesAsync(ct);
             return new(true, $"Đã xoá thùng {thung.MaThung}.", thung.IdThung, thung.MaThung);
+        }
+
+        public record DongNhatKy(int IdLichSu, DateTime Ngay, string? Nguoi, string HanhDong, string? NoiDung,
+            int IdThung, string MaThung, string? TenThung, bool ThungDaXoa);
+
+        /// <summary>
+        /// Nhật ký thao tác mọi thùng (mới nhất trước, tối đa 1000) cho trang theo dõi của All.
+        /// Lọc: khoảng ngày (theo ngày, gồm cả ngày cuối), người, hành động, từ khoá mã/tên thùng hoặc nội dung.
+        /// </summary>
+        public async Task<List<DongNhatKy>> NhatKyAsync(DateTime? tuNgay, DateTime? denNgay, string? nguoi, string? hanhDong, string? tuKhoa, CancellationToken ct)
+        {
+            var q = _db.QaThungLichSus.AsQueryable();
+            if (tuNgay != null) q = q.Where(l => l.Ngay >= tuNgay.Value.Date);
+            if (denNgay != null) { var den = denNgay.Value.Date.AddDays(1); q = q.Where(l => l.Ngay < den); }
+            nguoi = nguoi?.Trim();
+            if (!string.IsNullOrEmpty(nguoi)) q = q.Where(l => l.Nguoi!.Contains(nguoi));
+            hanhDong = hanhDong?.Trim();
+            if (!string.IsNullOrEmpty(hanhDong)) q = q.Where(l => l.HanhDong == hanhDong);
+            var k = tuKhoa?.Trim();
+            if (k?.Length > 100) k = k[..100];
+            if (!string.IsNullOrEmpty(k))
+                q = q.Where(l => l.NoiDung!.Contains(k) || _db.QaThungs.Any(t => t.IdThung == l.IdThung && (t.MaThung.Contains(k) || t.TenThung!.Contains(k))));
+
+            return await q.OrderByDescending(l => l.Ngay).ThenByDescending(l => l.IdLichSu).Take(1000)
+                .Join(_db.QaThungs, l => l.IdThung, t => t.IdThung, (l, t) => new DongNhatKy(l.IdLichSu, l.Ngay, l.Nguoi, l.HanhDong, l.NoiDung,
+                    t.IdThung, t.MaThung, t.TenThung, t.NgayXoa != null))
+                .ToListAsync(ct);
+        }
+
+        public record ThungDaXoa(int IdThung, string MaThung, string? TenThung, string TrangThai, DateTime NgayTao, string? NguoiTao,
+            DateTime? NgayXoa, string? NguoiXoa, int SoDong, decimal TongMet, string? ViTri);
+
+        /// <summary>Thùng đã xoá mềm (mới xoá trước, tối đa 500) — chỉ All xem để khôi phục khi xoá nhầm.</summary>
+        public Task<List<ThungDaXoa>> DsThungDaXoaAsync(string? tuKhoa, CancellationToken ct)
+        {
+            var q = _db.QaThungs.Where(t => t.NgayXoa != null);
+            var k = tuKhoa?.Trim();
+            if (k?.Length > 100) k = k[..100];
+            if (!string.IsNullOrEmpty(k))
+                q = q.Where(t => t.MaThung.Contains(k) || t.TenThung!.Contains(k) || t.NguoiXoa!.Contains(k)
+                    || t.Dongs.Any(d => d.NgayBo == null && d.MaPhoiMau!.Contains(k)));
+            return q.OrderByDescending(t => t.NgayXoa).Take(500)
+                .Select(t => new ThungDaXoa(t.IdThung, t.MaThung, t.TenThung, t.TrangThai, t.NgayTao, t.NguoiTao, t.NgayXoa, t.NguoiXoa,
+                    t.Dongs.Count(d => d.NgayBo == null),
+                    t.Dongs.Where(d => d.NgayBo == null).Sum(d => d.SlDongGoi) ?? 0,
+                    QaKeService.MaViTri(t.Ke != null ? t.Ke.MaKe : null, t.Tang, t.O, t.Ke != null ? t.Ke.SoTang : 0)))
+                .ToListAsync(ct);
+        }
+
+        /// <summary>Chi tiết thùng đã xoá: các dòng còn trong thùng lúc xoá + toàn bộ nhật ký.</summary>
+        public async Task<(QaThung? thung, List<QaThungDong> dong, List<QaThungLichSu> lichSu)> ChiTietDaXoaAsync(int idThung, CancellationToken ct)
+        {
+            var thung = await _db.QaThungs.AsNoTracking().FirstOrDefaultAsync(t => t.IdThung == idThung && t.NgayXoa != null, ct);
+            if (thung == null) return (null, new(), new());
+            var dong = await _db.QaThungDongs.AsNoTracking().Where(d => d.IdThung == idThung && d.NgayBo == null).OrderBy(d => d.IdDong).ToListAsync(ct);
+            var lichSu = await _db.QaThungLichSus.AsNoTracking().Where(l => l.IdThung == idThung).OrderByDescending(l => l.Ngay).ThenByDescending(l => l.IdLichSu).ToListAsync(ct);
+            return (thung, dong, lichSu);
+        }
+
+        /// <summary>
+        /// Khôi phục thùng đã xoá mềm. Trong lúc thùng bị xoá, các dòng của nó được coi là "trả lại" nên có thể đã được
+        /// bỏ vào thùng khác → khôi phục nguyên trạng sẽ làm 1 dòng MES nằm ở 2 thùng. Có dòng trùng như vậy thì:
+        ///   boDongTrung=false: từ chối, liệt kê dòng trùng để người dùng quyết;
+        ///   boDongTrung=true : khôi phục và bỏ các dòng trùng ra (xoá mềm NgayBo, có nhật ký).
+        /// Kệ cũ đã xoá thì bỏ vị trí; tên trùng thùng đang dùng thì thêm hậu tố.
+        /// </summary>
+        public async Task<(KetQua Kq, bool CoDongTrung)> KhoiPhucThungAsync(int idThung, bool boDongTrung, string? nguoi, CancellationToken ct)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var thung = await _db.QaThungs.Include(t => t.Ke).FirstOrDefaultAsync(t => t.IdThung == idThung && t.NgayXoa != null, ct);
+            if (thung == null) return (new(false, "Không tìm thấy thùng đã xoá (có thể vừa được khôi phục)."), false);
+
+            var dong = await _db.QaThungDongs.Where(d => d.IdThung == idThung && d.NgayBo == null).ToListAsync(ct);
+            var dsVanTay = dong.Select(d => d.DauVanTay).Distinct().ToList();
+            var trungVanTay = new HashSet<string>();
+            foreach (var lo in dsVanTay.Chunk(2000))
+                trungVanTay.UnionWith(await _db.QaThungDongs
+                    .Where(x => lo.Contains(x.DauVanTay) && x.NgayBo == null && x.Thung.NgayXoa == null && x.IdThung != idThung)
+                    .Select(x => x.DauVanTay).Distinct().ToListAsync(ct));
+            var dongTrung = dong.Where(d => trungVanTay.Contains(d.DauVanTay)).ToList();
+            if (dongTrung.Count > 0 && !boDongTrung)
+            {
+                var maTrung = dongTrung.Select(d => d.MaPhoiMau).Where(m => m != null).Distinct().ToList();
+                return (new(false, $"Có {dongTrung.Count}/{dong.Count} dòng của thùng này đã được bỏ vào thùng khác sau khi xoá"
+                    + (maTrung.Count > 0 ? $" (mã phối màu: {string.Join(", ", maTrung.Take(5))}{(maTrung.Count > 5 ? $" +{maTrung.Count - 5}" : "")})" : "")
+                    + "."), true);
+            }
+
+            var bayGio = DateTime.Now;
+            var ghiChu = new List<string>();
+            foreach (var d in dongTrung)
+            {
+                d.NgayBo = bayGio;
+                d.NguoiBo = nguoi;
+            }
+            if (dongTrung.Count > 0) ghiChu.Add($"bỏ {dongTrung.Count} dòng đã nằm ở thùng khác");
+
+            if (thung.IdKe != null && (thung.Ke == null || thung.Ke.NgayXoa != null))
+            {
+                ghiChu.Add($"kệ {thung.Ke?.MaKe} đã xoá nên bỏ vị trí");
+                thung.IdKe = null; thung.Tang = null; thung.O = null; thung.Ke = null;
+            }
+            if (thung.TenThung != null && await _db.QaThungs.AnyAsync(t => t.TenThung == thung.TenThung && t.NgayXoa == null && t.IdThung != idThung, ct))
+            {
+                var tenCu = thung.TenThung;
+                var hauTo = " (khôi phục)";
+                thung.TenThung = (tenCu.Length + hauTo.Length > 100 ? tenCu[..(100 - hauTo.Length)] : tenCu) + hauTo;
+                ghiChu.Add($"tên \"{tenCu}\" đã có thùng khác dùng → đổi thành \"{thung.TenThung}\"");
+            }
+
+            var xoaLuc = thung.NgayXoa;
+            var xoaBoi = thung.NguoiXoa;
+            thung.NgayXoa = null;
+            thung.NguoiXoa = null;
+            GhiLichSu(thung.IdThung, nguoi, "KhoiPhuc", Cat($"Khôi phục thùng (đã xoá lúc {xoaLuc:dd/MM/yyyy HH:mm} bởi {xoaBoi ?? "?"}; còn {dong.Count - dongTrung.Count} dòng)"
+                + (ghiChu.Count > 0 ? "; " + string.Join("; ", ghiChu) : ""), 1000), bayGio);
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return (new(true, $"Đã khôi phục thùng {thung.MaThung}" + (ghiChu.Count > 0 ? " (" + string.Join("; ", ghiChu) + ")." : "."), thung.IdThung, thung.MaThung), false);
         }
 
         private void GhiLichSu(int idThung, string? nguoi, string hanhDong, string? noiDung, DateTime ngay)

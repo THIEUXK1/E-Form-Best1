@@ -1,0 +1,97 @@
+@{
+    ViewData["Title"] = "Nhật ký thao tác QA";
+    Layout = "~/Areas/QAForm/Views/Shared/_Layout.cshtml";
+}
+
+@Html.AntiForgeryToken()
+
+@* Chỉ quyền All (controller chặn). Tab 1: nhật ký mọi thao tác trên thùng; tab 2: thùng đã xoá + khôi phục. JS: qa-lich-su.js *@
+<div class="qa-trang-co-dinh">
+<div class="qa-card">
+    <div class="qa-ls-tab" role="tablist">
+        <button type="button" class="qa-ls-tab-nut active" data-ls-tab="nhatky" role="tab"><i class="fa fa-list"></i> Nhật ký thao tác</button>
+        <button type="button" class="qa-ls-tab-nut" data-ls-tab="daxoa" role="tab"><i class="fa fa-trash"></i> Thùng đã xoá <span id="qa-daxoa-dem" class="qa-ls-dem" hidden></span></button>
+    </div>
+    <div id="qa-ls-thongbao" class="qa-mes-thongbao" role="status"></div>
+
+    <section id="qa-ls-nhatky" class="qa-ls-pane">
+        <div class="qa-ls-loc">
+            <label>Từ ngày <input type="date" id="qa-nk-tu" class="form-control form-control-sm"></label>
+            <label>Đến ngày <input type="date" id="qa-nk-den" class="form-control form-control-sm"></label>
+            <select id="qa-nk-hd" class="form-select form-select-sm" title="Hành động">
+                <option value="">Mọi thao tác</option>
+                <option value="XoaThung">Xoá thùng</option>
+                <option value="KhoiPhuc">Khôi phục thùng</option>
+                <option value="TaoThung">Tạo thùng</option>
+                <option value="ThemDong">Thêm dòng</option>
+                <option value="BoDong">Bỏ dòng ra</option>
+                <option value="ChuyenDi">Chuyển dòng đi</option>
+                <option value="ChuyenDen">Nhận dòng chuyển đến</option>
+                <option value="DongThung">Đóng thùng</option>
+                <option value="MoLai">Mở lại</option>
+                <option value="DoiTen">Đổi tên</option>
+                <option value="SuaGhiChu">Sửa ghi chú</option>
+                <option value="SuaSoBan">Sửa số paiban</option>
+                <option value="XepKe">Xếp kệ</option>
+                <option value="GoKe">Gỡ khỏi kệ</option>
+            </select>
+            <input type="search" id="qa-nk-nguoi" class="form-control form-control-sm" maxlength="50" placeholder="Người thao tác">
+            <input type="search" id="qa-nk-tim" class="form-control form-control-sm" maxlength="100" placeholder="Mã/tên thùng, nội dung...">
+            <span id="qa-nk-tom" class="qa-ls-tom"></span>
+            <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-nk-bang" data-ten-file="nhat-ky-thao-tac-qa"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
+        </div>
+        <div class="qa-mes-bang-wrap">
+            <table class="qa-mes-bang" id="qa-nk-bang">
+                <thead>
+                    <tr>
+                        <th>Thời gian</th>
+                        <th>Người</th>
+                        <th>Thao tác</th>
+                        <th>Mã thùng</th>
+                        <th>Tên thùng</th>
+                        <th>Nội dung</th>
+                    </tr>
+                </thead>
+                <tbody id="qa-nk-tbody">
+                    <tr><td colspan="6" class="qa-mes-trong">Đang tải...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="qa-ls-daxoa" class="qa-ls-pane" hidden>
+        <div class="qa-ls-loc">
+            <input type="search" id="qa-daxoa-tim" class="form-control form-control-sm" maxlength="100" autocomplete="off"
+                   placeholder="Tìm mã/tên thùng, người xoá, mã phối màu...">
+            <span id="qa-daxoa-tom" class="qa-ls-tom"></span>
+        </div>
+        <div class="qa-mes-bang-wrap">
+            <table class="qa-mes-bang">
+                <thead>
+                    <tr>
+                        <th>Mã thùng</th>
+                        <th>Tên thùng</th>
+                        <th>Trạng thái</th>
+                        <th>Vị trí cũ</th>
+                        <th>Số dòng</th>
+                        <th>Tổng (m)</th>
+                        <th>Ngày tạo</th>
+                        <th>Người tạo</th>
+                        <th>Ngày xoá</th>
+                        <th>Người xoá</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="qa-daxoa-tbody">
+                    <tr><td colspan="11" class="qa-mes-trong">Đang tải...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+</div>
+
+@section Scripts {
+    <script src="~/js/qa-lich-su.js?v=1"></script>
+    <script src="~/js/qa-xuat-excel.js?v=4"></script>
+}

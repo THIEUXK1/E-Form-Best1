@@ -7,7 +7,8 @@
 
 @* Trang khoá cuộn (màn hình rộng): chỉ vùng bảng cuộn — xem .qa-trang-co-dinh trong qa-layout.css *@
 <div class="qa-trang-co-dinh">
-<div class="qa-card">
+<div class="qa-card qa-mes-tim-card">
+    <div class="qa-ke-dau-tieude qa-mes-dau"><span class="qa-ke-dau-ic qa-mes-ic"><i class="fa fa-search"></i></span>Tra cứu mã phối màu <small>NH-MES</small></div>
     <form id="qa-mes-form" class="qa-mes-form" autocomplete="off">
         @* Gợi ý lấy từ dữ liệu đã đồng bộ (datalist do qa-tra-cuu-mes.js nạp khi gõ); ô nào trống = không lọc *@
         <div class="qa-mes-o">
@@ -34,9 +35,12 @@
 
 <div class="qa-card qa-mes-ketqua">
     <div class="qa-mes-tom">
-        <span id="qa-mes-tong">Nhập mã phối màu / mã khách hàng / mã hàng rồi bấm Tra cứu (để trống cả 3 = xem tất cả).</span>
+        <span class="qa-ke-dau-tieude qa-mes-tong-dau"><span class="qa-ke-dau-ic qa-thung-ic"><i class="fa fa-list-ul"></i></span><span id="qa-mes-tong">Nhập mã phối màu / mã khách hàng / mã hàng rồi bấm Tra cứu (để trống cả 3 = xem tất cả).</span></span>
         <span id="qa-mes-dachon" class="qa-mes-dachon"></span>
     </div>
+
+    @* Ô số liệu kết quả tra (qa-tra-cuu-mes.js điền, dùng kiểu ô của trang Kệ) *@
+    <div class="qa-ke-thongke gon" id="qa-mes-thongke"></div>
 
     @* Thanh thao tác thùng: chỉ bật khi đã tích ít nhất 1 dòng *@
     <div class="qa-thung-thanh" id="qa-thung-thanh">
@@ -107,6 +111,7 @@
 
 @section Scripts {
     <script src="~/js/qa-loc-cot.js?v=2"></script>
-    <script src="~/js/qa-tra-cuu-mes.js?v=26"></script>
+    <script src="~/js/qa-the-so-lieu.js?v=1"></script>
+    <script src="~/js/qa-tra-cuu-mes.js?v=27"></script>
     <script src="~/js/qa-xuat-excel.js?v=4"></script>
 }

@@ -10,8 +10,7 @@
     var tuKhoa = (new URLSearchParams(location.search).get('tim') || '').trim();
     var lanNap = 0, henTim = null;
     var TEN_TRANG_THAI = { Mo: 'Đang mở', DaDong: 'Đã đóng' };
-    var TEN_HANH_DONG = { TaoThung: 'Tạo thùng', ThemDong: 'Thêm dòng', DongThung: 'Đóng thùng', MoLai: 'Mở lại', XoaThung: 'Xoá thùng', ChuyenDi: 'Chuyển dòng đi', ChuyenDen: 'Nhận dòng chuyển đến', BoDong: 'Bỏ dòng ra', SuaSoBan: 'Sửa số paiban', XepKe: 'Xếp kệ', GoKe: 'Gỡ khỏi kệ' };
-
+    var TEN_HANH_DONG = { TaoThung: 'Tạo thùng', ThemDong: 'Thêm dòng', DongThung: 'Đóng thùng', MoLai: 'Mở lại', XoaThung: 'Xoá thùng', ChuyenDi: 'Chuyển dòng đi', ChuyenDen: 'Nhận dòng chuyển đến', BoDong: 'Bỏ dòng ra', SuaSoBan: 'Sửa số paiban', XepKe: 'Xếp kệ', GoKe: 'Gỡ khỏi kệ', DoiTen: 'Đổi tên', SuaGhiChu: 'Sửa ghi chú', KhoiPhuc: 'Khôi phục thùng' };
     function token() {
         var o = document.querySelector('input[name="__RequestVerificationToken"]');
         return o ? o.value : '';
@@ -60,6 +59,16 @@
         return res.json();
     }
 
+    // Nhãn bo tròn có biểu tượng (trạng thái, vị trí); chữ để trong text node nên xuất Excel vẫn lấy đúng
+    function nhan(chu, lop, bieuTuong) {
+        var s = document.createElement('span');
+        s.className = lop;
+        var i = document.createElement('i');
+        i.className = 'fa ' + bieuTuong;
+        s.append(i, document.createTextNode(' ' + chu));
+        return s;
+    }
+
     function veDanhSach() {
         var loc = $('qa-thung-loc').value;
         var locKe = $('qa-thung-loc-ke').value;
@@ -90,7 +99,11 @@
                 cb.checked = daChon.has(t.idThung);
                 tdChon.appendChild(cb);
                 tr.appendChild(tdChon);
-                var tdMa = o(tr, t.maThung, 'qa-mes-o-thung');
+                var tdMa = o(tr, '', 'qa-mes-o-thung');
+                var ma = document.createElement('span');
+                ma.className = 'qa-thung-ma';
+                ma.textContent = t.maThung;
+                tdMa.appendChild(ma);
                 tdMa.title = 'Bấm để xem chi tiết';
                 if (t.khop) {
                     var khop = document.createElement('div');
@@ -99,9 +112,10 @@
                     tdMa.appendChild(khop);
                 }
                 o(tr, t.tenThung || '', 'qa-thung-ten');
-                var tdTt = o(tr, TEN_TRANG_THAI[t.trangThai] || t.trangThai);
-                tdTt.className = t.trangThai === 'Mo' ? 'qa-tt-mo' : 'qa-tt-dong';
-                o(tr, t.viTri || '—', t.viTri ? 'qa-thung-vitri' : 'qa-thung-vitri trong');
+                var tdTt = o(tr, '', t.trangThai === 'Mo' ? 'qa-tt-mo' : 'qa-tt-dong');
+                tdTt.appendChild(nhan(TEN_TRANG_THAI[t.trangThai] || t.trangThai, 'qa-tt-nhan', t.trangThai === 'Mo' ? 'fa-folder-open-o' : 'fa-lock'));
+                var tdVt = o(tr, t.viTri ? '' : '—', t.viTri ? 'qa-thung-vitri' : 'qa-thung-vitri trong');
+                if (t.viTri) tdVt.appendChild(nhan(t.viTri, 'qa-vitri-nhan', 'fa-map-marker'));
                 o(tr, so(t.soDong, 0), 'so');
                 o(tr, so(t.tongMet), 'so');
                 o(tr, so(t.tongKg), 'so');
@@ -125,7 +139,16 @@
             tbody.replaceChildren(frag);
         }
         var mo = dsThung.filter(function (t) { return t.trangThai === 'Mo'; }).length;
-        $('qa-thung-tom').textContent = (tuKhoa ? dsThung.length + ' thùng chứa "' + tuKhoa + '"' : dsThung.length + ' thùng') + ' (' + mo + ' đang mở)';
+        var chuaXep = dsThung.filter(function (t) { return !t.idKe; }).length;
+        $('qa-thung-tom').textContent = tuKhoa ? 'Thùng chứa "' + tuKhoa + '"' : 'Danh sách thùng';
+        if (window.qaKe && window.qaKe.veThongKe) {
+            window.qaKe.veThongKe([
+                ['fa-archive', tuKhoa ? 'Thùng khớp' : 'Tổng thùng', dsThung.length, ''],
+                ['fa-folder-open-o', 'Đang mở', mo, 'xanh'],
+                ['fa-lock', 'Đã đóng', dsThung.length - mo, ''],
+                ['fa-map-marker', 'Chưa xếp kệ', chuaXep, chuaXep ? 'cam' : '']
+            ], 'qa-thung-thongke');
+        }
         veThanhXep(ds);
     }
 
@@ -363,7 +386,10 @@
             if (t && ten === t.tenThung) return;
             url = '/QAForm/Thung/' + id + '/DoiTen?ten=' + encodeURIComponent(ten);
         }
-        if (hd === 'xoa' && !(await qaXacNhan('Xoá thùng ' + (t ? t.maThung : '') + '? Các dòng trong thùng sẽ được trả lại để bỏ vào thùng khác.'))) return;
+        if (hd === 'xoa' && !(await qaXacNhan(
+            '⚠ CẢNH BÁO: Xoá thùng ' + (t ? t.maThung : '') + (t && t.tenThung ? ' (' + t.tenThung + ')' : '') + '.\n' +
+            'Thùng sẽ bị xoá khỏi danh sách và gỡ khỏi kệ; các dòng trong thùng được trả lại để bỏ vào thùng khác.',
+            { nutDongY: 'Xoá thùng', nguyHiem: true, tichXacNhan: 'Tôi đã kiểm tra và xác nhận muốn xoá thùng này' }))) return;
         if (!url) url = hd === 'xoa' ? '/QAForm/Thung/' + id + '/Xoa' : '/QAForm/Thung/' + id + '/TrangThai?dong=' + (hd === 'dong');
         nutBam.disabled = true;
         try {

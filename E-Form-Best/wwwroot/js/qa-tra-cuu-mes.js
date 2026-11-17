@@ -92,6 +92,34 @@
         return td;
     }
 
+    // Nhãn bo tròn trong ô; chữ là text node nên lọc cột / xuất Excel (textContent) vẫn đúng
+    function nhan(chu, lop, bieuTuong) {
+        var s = document.createElement('span');
+        s.className = lop;
+        if (bieuTuong) {
+            var i = document.createElement('i');
+            i.className = 'fa ' + bieuTuong;
+            s.append(i, document.createTextNode(' '));
+        }
+        s.appendChild(document.createTextNode(chu));
+        return s;
+    }
+
+    // Ô số liệu: tổng dòng / đã vào thùng / chưa vào thùng / bất thường (PB lv khác A); ds = null thì ẩn
+    function veThongKe(ds, tong) {
+        if (!window.qaTheSoLieu) return;
+        if (!ds) { window.qaTheSoLieu('qa-mes-thongke', []); return; }
+        var vao = 0, batThuong = 0;
+        ds.forEach(function (d) { if (d.maThung) vao++; if (d.pbLv && d.pbLv !== 'A') batThuong++; });
+        var f = function (n) { return n.toLocaleString('vi-VN'); };
+        window.qaTheSoLieu('qa-mes-thongke', [
+            ['fa-list-ul', tong > ds.length ? 'Đang hiện / tổng ' + f(tong) : 'Tổng dòng', f(ds.length), ''],
+            ['fa-cube', 'Đã vào thùng', f(vao), 'xanh'],
+            ['fa-inbox', 'Chưa vào thùng', f(ds.length - vao), ds.length - vao ? 'cam' : ''],
+            ['fa-exclamation-triangle', 'Bất thường', f(batThuong), batThuong ? 'do' : '']
+        ]);
+    }
+
     function ngay(s) { return s ? String(s).substring(0, 10) : ''; }
 
     function dongTrong(text) {
@@ -188,8 +216,10 @@
             tr.appendChild(tdChon);
 
             o(tr, i + 1, 'so');
-            o(tr, d.maThung || '', d.maThung ? 'qa-mes-o-thung' : '');
-            o(tr, d.viTri || '');
+            var tdThung = o(tr, '', d.maThung ? 'qa-mes-o-thung' : '');
+            if (d.maThung) tdThung.appendChild(nhan(d.maThung, 'qa-thung-ma'));
+            var tdViTri = o(tr, '');
+            if (d.viTri) tdViTri.appendChild(nhan(d.viTri, 'qa-vitri-nhan', 'fa-map-marker'));
             // Dòng đã vào thùng lưu ở QA_ThungDong; dòng chưa vào thùng lưu chờ theo vân tay + thứ tự (QA_MesSoBan)
             if (d.idDongThung || d.thuTu !== null && d.thuTu !== undefined) {
                 var tdBan = document.createElement('td');
@@ -435,6 +465,7 @@
             datCanhBaoXuat(loc);
             datMaLenDiaChi(loc);
             veBang(dl.dong, tichLai);
+            veThongKe(dl.dong, dl.tong);
             var soVaoThung = dl.dong.filter(function (d) { return d.maThung; }).length;
             var moTa = [loc.ma && 'phối màu "' + loc.ma + '"', loc.kh && 'khách "' + loc.kh + '"', loc.hang && 'mã hàng "' + loc.hang + '"'].filter(Boolean).join(', ');
             var text = 'Tổng ' + dl.tong.toLocaleString('vi-VN') + ' dòng' + (moTa ? ' cho ' + moTa : ' (tất cả mã)');
@@ -616,6 +647,7 @@
         ganLoc({});
         $('qa-thung-ghichu').value = '';
         $('qa-mes-tbody').replaceChildren(dongTrong('Chưa có dữ liệu.'));
+        veThongKe(null);
         trang = 1;
         phanTrang();
         $('qa-mes-tong').textContent = 'Nhập mã phối màu / mã khách hàng / mã hàng rồi bấm Tra cứu (để trống cả 3 = xem tất cả).';

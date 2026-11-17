@@ -287,6 +287,85 @@ namespace E_Form_Best.Areas.QAForm.Controllers
             return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao });
         }
 
+        // ===== THÙNG ĐÃ XOÁ (chỉ All): xem nhật ký + khôi phục khi xoá nhầm =====
+        private bool LaAll => User.IsInRole("All");
+        private JsonResult KhongCoQuyenAll() => Json(new { thanhCong = false, thongBao = "Chỉ tài khoản quyền All được xem/khôi phục thùng đã xoá." });
+
+        // Trang theo dõi thao tác (menu "Nhật ký thao tác"): nhật ký mọi thùng + thùng đã xoá để khôi phục
+        [HttpGet("/QAForm/LichSu")]
+        public IActionResult LichSu()
+        {
+            if (!LaAll) return Forbid();
+            return View();
+        }
+
+        [HttpGet("/QAForm/LichSu/DuLieu")]
+        public async Task<IActionResult> LichSuDuLieu(DateTime? tuNgay, DateTime? denNgay, string? nguoi, string? hanhDong, string? tuKhoa, CancellationToken ct = default)
+        {
+            if (!LaAll) return KhongCoQuyenAll();
+            try
+            {
+                var ds = await _thung.NhatKyAsync(tuNgay, denNgay, nguoi, hanhDong, tuKhoa, ct);
+                return Json(new { thanhCong = true, thongBao = "", duLieu = ds });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi đọc nhật ký thao tác QA");
+                return Json(new { thanhCong = false, thongBao = "Không đọc được nhật ký: " + ex.Message });
+            }
+        }
+
+        [HttpGet("/QAForm/Thung/DaXoa")]
+        public async Task<IActionResult> ThungDaXoa(string? tuKhoa = null, CancellationToken ct = default)
+        {
+            if (!LaAll) return KhongCoQuyenAll();
+            try
+            {
+                var ds = await _thung.DsThungDaXoaAsync(tuKhoa, ct);
+                return Json(new { thanhCong = true, thongBao = "", duLieu = ds });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi đọc danh sách thùng đã xoá");
+                return Json(new { thanhCong = false, thongBao = "Không đọc được thùng đã xoá: " + ex.Message });
+            }
+        }
+
+        [HttpGet("/QAForm/Thung/DaXoa/{id:int}")]
+        public async Task<IActionResult> ThungDaXoaChiTiet(int id, CancellationToken ct = default)
+        {
+            if (!LaAll) return KhongCoQuyenAll();
+            var (thung, dong, lichSu) = await _thung.ChiTietDaXoaAsync(id, ct);
+            if (thung == null) return Json(new { thanhCong = false, thongBao = "Không tìm thấy thùng đã xoá (có thể vừa được khôi phục)." });
+            return Json(new
+            {
+                thanhCong = true,
+                thongBao = "",
+                duLieu = new
+                {
+                    dong = dong.Select(d => new { d.MaPhoiMau, d.MaHang, d.MaMau, d.SlDongGoi, d.SoHop, d.SoBan, d.SoPhieuDongGoi, d.NgayThem, d.NguoiThem }),
+                    lichSu = lichSu.Select(l => new { l.Ngay, l.Nguoi, l.HanhDong, l.NoiDung })
+                }
+            });
+        }
+
+        [HttpPost("/QAForm/Thung/{id:int}/KhoiPhuc")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ThungKhoiPhuc(int id, bool boDongTrung = false, CancellationToken ct = default)
+        {
+            if (!LaAll) return KhongCoQuyenAll();
+            try
+            {
+                var (kq, coDongTrung) = await _thung.KhoiPhucThungAsync(id, boDongTrung, NguoiDung, ct);
+                return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao, duLieu = new { coDongTrung } });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khôi phục thùng QA {Id}", id);
+                return Json(new { thanhCong = false, thongBao = "Lỗi khôi phục thùng: " + ex.Message });
+            }
+        }
+
         // ===== KỆ =====
 
         // Trang quản lý kệ riêng (menu "Quản lý kệ"); cùng khung với nút "Kệ" ở trang Danh sách thùng

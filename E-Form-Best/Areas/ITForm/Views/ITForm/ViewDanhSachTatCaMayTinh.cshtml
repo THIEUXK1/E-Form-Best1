@@ -269,6 +269,51 @@
     body.an-cot-banquyen .cot-banquyen {
         display: none !important;
     }
+
+    /* Dải thống kê tổng + từng loại thiết bị (bấm để lọc nhanh) */
+    .tscn-thong-ke {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .tscn-o-thong-ke {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        background: #fff;
+        border: 1px solid var(--tscn-border);
+        border-radius: 8px;
+        font-size: 0.8rem;
+        color: #475569;
+        cursor: pointer;
+    }
+
+        .tscn-o-thong-ke .so {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--tscn-navy);
+        }
+
+        .tscn-o-thong-ke:hover {
+            border-color: var(--tscn-accent-light);
+        }
+
+        .tscn-o-thong-ke.o-tong .so {
+            color: var(--tscn-accent);
+        }
+
+        .tscn-o-thong-ke.o-chua-phan-loai .nhan,
+        .tscn-o-thong-ke.o-chua-phan-loai .so {
+            color: #dc2626;
+        }
+
+        .tscn-o-thong-ke.active {
+            border-color: var(--tscn-accent);
+            background: #eff6ff;
+            box-shadow: 0 0 0 1px var(--tscn-accent);
+        }
 </style>
 
 @* Không kéo âm lề trên nữa: tiêu đề trang đã bỏ, mà margin âm khiến nút "Ẩn lọc"
@@ -283,7 +328,7 @@
                 <h4 class="tscn-title"><span class="tscn-title-icon"><i class="fa fa-desktop"></i></span>Danh sách máy tính</h4>
                 <div class="input-group input-group-sm tscn-o-tim">
                     <span class="input-group-text bg-white text-secondary border-end-0"><i class="fa fa-search"></i></span>
-                    <input type="text" id="txtTimKiemMay" class="form-control border-start-0 ps-0" placeholder="Tìm tên máy..." />
+                    <input type="text" id="txtTimKiemMay" class="form-control border-start-0 ps-0" placeholder="Tìm tên máy / serial..." />
                 </div>
 
                 <div class="dropdown">
@@ -356,6 +401,9 @@
         </div>
     </div>
 
+    @* Thống kê tổng + từng loại thiết bị, vẽ bởi wwwroot/js/tscn-thong-ke-loai.js *@
+    <div id="divThongKeLoai" class="tscn-thong-ke mb-2"></div>
+
     <div class="card tscn-main-card">
         <div class="card-body p-0">
             <div id="alertTinNhan" class="alert alert-danger m-3" style="display: none;" role="alert"></div>
@@ -408,6 +456,7 @@
     <script src="~/js/fixed-page-layout.js?v=202610270831" defer></script>
     <script src="~/js/kiemke-chan-thietbi.js"></script>
     <script src="~/js/kiemke-chitiet-tab.js"></script>
+    <script src="~/js/tscn-thong-ke-loai.js?v=202611171000"></script>
     <script>
         $(document).ready(function () {
         var danhSachGocCache = [];
@@ -573,6 +622,7 @@
         // Đồng bộ lại cache gốc để lọc/tìm kiếm và badge Hình hộp phản ánh đúng giá trị mới
         var itemCache = danhSachGocCache.find(function (x) { return x.idMay === idMay; });
         if (itemCache) itemCache.loaiThietBi = loaiMoi;
+        TscnThongKeLoai.ve(danhSachGocCache);
         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã cập nhật loại thiết bị', showConfirmButton: false, timer: 1500 });
         } else {
         Swal.fire('Lỗi', res.message || 'Không thể cập nhật loại thiết bị.', 'error');
@@ -956,8 +1006,9 @@
         danhSachDaLoc = $.grep(danhSachGocCache, function (item) {
         var matchText = true;
         if (tuKhoa !== "") {
-        // Tìm kiếm nhanh chỉ đối chiếu Tên máy (theo yêu cầu nghiệp vụ), không quét serial/dòng máy/nhân sự nữa
-        matchText = !!(item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1);
+        // Tìm nhanh theo Tên máy hoặc Số serial (IT hay cầm serial dán trên máy để tra); không quét dòng máy/nhân sự
+        matchText = !!((item.tenMay && item.tenMay.toLowerCase().indexOf(tuKhoa) !== -1)
+            || (item.seriMay && item.seriMay.toLowerCase().indexOf(tuKhoa) !== -1));
         }
 
         var vLoai = item.loaiThietBi || "";
@@ -1027,6 +1078,7 @@
         // Thực hiện lát cắt mảng dữ liệu (Slice Array) dựa trên số trang đang đứng để hiển thị
         function thucThiRenderTheoTrang() {
         $("#lblTongSoMay").text("Tổng số thiết bị: " + danhSachDaLoc.length);
+        TscnThongKeLoai.ve(danhSachGocCache);
 
         // Đảm bảo trang hiện tại an toàn sau khi mảng thay đổi độ dài do bộ lọc thay đổi
         var maxTrang = Math.ceil(danhSachDaLoc.length / kichThuocTrang) || 1;
