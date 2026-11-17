@@ -385,6 +385,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         // Tra nhân viên theo mã để form tủ tự điền họ tên. Ưu tiên dữ liệu HRM (đủ nhân viên, kể cả người chưa có tài khoản E-Form),
         // không có thì tìm trong User.
         [HttpGet("/FormHR/QuanLyTuDienThoai/NhanVien")]
+        [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("tra-nhan-vien")] // chống gõ lần lượt mã NV để gom danh sách
         public async Task<IActionResult> TimNhanVien(string? ma)
         {
             // Hộp gán người dùng chung cho người thuộc bộ phận → ai có bộ phận là tra được, người ngoài thì không

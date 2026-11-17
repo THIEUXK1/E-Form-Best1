@@ -247,6 +247,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         /// Mã nhân viên trong bảng User là duy nhất nên tra 1-1.
         /// </summary>
         [HttpGet("/QLCCDC/TraCuuNhanVien")]
+        [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("tra-nhan-vien")] // chống gõ lần lượt mã NV để gom danh sách
         public async Task<IActionResult> TraCuuNhanVien(string? maNv)
         {
             if (!CoQuyen()) return Json(new { success = false, message = "Bạn không có quyền tra cứu." });

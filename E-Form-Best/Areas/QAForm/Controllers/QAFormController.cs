@@ -254,6 +254,7 @@ namespace E_Form_Best.Areas.QAForm.Controllers
 
         // Tra tên người mượn trước khi xác nhận (mã NV hoặc tài khoản, bỏ người đã nghỉ)
         [HttpGet("/QAForm/NhanVien")]
+        [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("tra-nhan-vien")] // chống gõ lần lượt mã NV để gom danh sách
         public async Task<IActionResult> TimNhanVien(string? ma, CancellationToken ct = default)
         {
             var nv = await _thung.TimNhanVienAsync(ma, ct);

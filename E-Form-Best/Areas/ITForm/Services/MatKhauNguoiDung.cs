@@ -33,6 +33,17 @@ namespace E_Form_Best.Areas.ITForm.Services
         }
 
         /// <summary>
+        /// Kéo mọi phản hồi đăng nhập THẤT BẠI lên tối thiểu ~1 giây (+ nhiễu ngẫu nhiên). Tài khoản liên kết Domain
+        /// phải gọi AD nên chậm hơn hẳn tên không tồn tại; không đệm thì đo độ trễ là lọc ra được tài khoản thật.
+        /// </summary>
+        public static async Task DemThoiGianThatBaiAsync(System.Diagnostics.Stopwatch dongHo)
+        {
+            int toiThieuMs = 1000 + RandomNumberGenerator.GetInt32(0, 250);
+            int conLai = toiThieuMs - (int)dongHo.ElapsedMilliseconds;
+            if (conLai > 0) await Task.Delay(conLai);
+        }
+
+        /// <summary>
         /// Trả true nếu mật khẩu đúng. Khi đúng mà user vừa được chuyển sang băm (hoặc bản băm cần nâng cấp)
         /// thì entity đã bị sửa — canLuu = true, nơi gọi phải SaveChanges.
         /// </summary>

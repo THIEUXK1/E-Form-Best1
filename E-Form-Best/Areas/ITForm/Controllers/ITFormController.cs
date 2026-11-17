@@ -83,6 +83,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             UserDomainAuth? domainAuth = null;
             bool isDomainAuth = false;
             bool isAuthenticated = false;
+            var dongHo = System.Diagnostics.Stopwatch.StartNew(); // đệm thời gian phản hồi thất bại, chống dò user qua độ trễ
 
             // A. Tìm kiếm User và thông tin liên kết Domain
             // LƯU Ý EF CORE: Tại tầng IQueryable này, ta bỏ .ToLower() trên DB field và giá trị truyền vào.
@@ -110,9 +111,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             // B. Kiểm tra user tồn tại
             if (user == null)
             {
-                MatKhauNguoiDung.GiaLapKiemTra(matKhau);
+                // Tên không tồn tại vẫn bị "khoá giả" sau 5 lần sai như tài khoản thật → không dò được qua thông báo khoá
+                var (dangKhoaGia, thongBaoGia) = await NhatKyDangNhapLoi.XetKhoaGiaAsync(_context, email);
+                if (!dangKhoaGia) MatKhauNguoiDung.GiaLapKiemTra(matKhau);
+                ViewBag.Error = thongBaoGia;
                 await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, email, null, NhatKyDangNhapLoi.KhongTonTai, "DangNhap");
-                ViewBag.Error = MatKhauNguoiDung.ThongBaoSai;
+                await MatKhauNguoiDung.DemThoiGianThatBaiAsync(dongHo);
                 return View();
             }
 
@@ -121,6 +125,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             {
                 await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, email, user.IdNguoiDung, NhatKyDangNhapLoi.DangKhoa, "DangNhap");
                 ViewBag.Error = MatKhauNguoiDung.ThongBaoKhoa;
+                await MatKhauNguoiDung.DemThoiGianThatBaiAsync(dongHo);
                 return View();
             }
 
@@ -180,6 +185,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 await _context.SaveChangesAsync();
                 await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, email, user.IdNguoiDung,
                     user.FailedAttempts >= 5 ? NhatKyDangNhapLoi.VuaKhoa : NhatKyDangNhapLoi.SaiMatKhau, "DangNhap");
+                await MatKhauNguoiDung.DemThoiGianThatBaiAsync(dongHo);
                 return View();
             }
 
@@ -394,18 +400,23 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             // Tên action đang gọi (XacThucAdmin, XacNhanTaiSanMaMay...) để biết lần sai đến từ cửa nào
             string noiGoi = ControllerContext.ActionDescriptor?.ActionName ?? "XacThucHybrid";
+            var dongHo = System.Diagnostics.Stopwatch.StartNew();
 
             if (user == null)
             {
-                MatKhauNguoiDung.GiaLapKiemTra(matkhau);
+                // Cùng cơ chế khoá giả + đệm thời gian như DangNhap: cửa phụ không được lộ tài khoản nào có thật
+                var (dangKhoaGia, thongBaoGia) = await NhatKyDangNhapLoi.XetKhoaGiaAsync(_context, taikhoan);
+                if (!dangKhoaGia) MatKhauNguoiDung.GiaLapKiemTra(matkhau);
                 await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, taikhoan, null, NhatKyDangNhapLoi.KhongTonTai, noiGoi);
-                return (null, MatKhauNguoiDung.ThongBaoSai);
+                await MatKhauNguoiDung.DemThoiGianThatBaiAsync(dongHo);
+                return (null, thongBaoGia);
             }
 
             // Đang trong thời gian bị khoá: từ chối ngay, không đụng tới mật khẩu / AD.
             if (user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.Now)
             {
                 await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, taikhoan, user.IdNguoiDung, NhatKyDangNhapLoi.DangKhoa, noiGoi);
+                await MatKhauNguoiDung.DemThoiGianThatBaiAsync(dongHo);
                 return (null, MatKhauNguoiDung.ThongBaoKhoa);
             }
 
@@ -457,6 +468,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 await _context.SaveChangesAsync();
                 await NhatKyDangNhapLoi.GhiAsync(_context, HttpContext, taikhoan, user.IdNguoiDung,
                     user.FailedAttempts >= 5 ? NhatKyDangNhapLoi.VuaKhoa : NhatKyDangNhapLoi.SaiMatKhau, noiGoi);
+                await MatKhauNguoiDung.DemThoiGianThatBaiAsync(dongHo);
                 return (null, thongBao);
             }
 
@@ -7873,7 +7885,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 return Forbid();
             }
             // Truyền User list sang View để đổ vào Dropdown Người Dùng
-            ViewBag.Users = _context.Users.OrderBy(u => u.HoTen).ToList();
+            // Chỉ lấy 3 cột view cần — không kéo mật khẩu băm, SecurityStamp… của cả công ty lên bộ nhớ view
+            ViewBag.Users = _context.Users.AsNoTracking().OrderBy(u => u.HoTen)
+                .Select(u => new User { IdNguoiDung = u.IdNguoiDung, HoTen = u.HoTen, Tk = u.Tk }).ToList();
             // 5 ký tự cuối các key MAK công ty - cột Key Windows ở bảng cần để phân biệt MAK công ty với MAK lạ (xem LaKeyDatChuanCongTy)
             ViewBag.MakKeyCongTy = string.Join(",", _config.GetSection("BanQuyenWindows:MakKeyCongTy").Get<string[]>() ?? Array.Empty<string>());
             return View("IndexThietBi"); // Bạn cần tạo file IndexThietBi.cshtml trong thư mục Views
@@ -8340,6 +8354,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // trùng thì chỉ Cập nhật khi thiết bị đang đứng tên đúng người này hoặc người nhập đã xác nhận (IdGhiDe); không trùng thì Thêm mới.
         [HttpPost("/QLKiemKe/ThemNhanhTaiSanKhac")]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("dang-nhap")] // nhận tài khoản/mật khẩu → cùng giới hạn theo IP như trang đăng nhập
         public async Task<IActionResult> ThemNhanhTaiSanKhac(string taikhoan, string matkhau, int? idCongTy, int? idBoPhan, [FromForm] List<ThemNhanhTaiSanRow> rows, string? maNhanVien = null, int? idViTriDiaLy = null)
         {
             // Chặn người chưa đăng nhập gọi thẳng URL này (xem ChanNeuChuaDangNhap)
@@ -11016,7 +11031,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // Tra cứu nhanh nhân viên theo mã để modal Xác nhận tài sản hiện Họ tên đối chiếu ngay khi gõ xong mã
+        // Mở cho mọi người đã đăng nhập → KHÔNG trả Tk (tên đăng nhập) / IdNguoiDung: gõ lần lượt mã NV sẽ gom được
+        // danh sách tài khoản để dò mật khẩu. Họ tên + phòng ban là đủ để đối chiếu; thêm giới hạn tần suất theo người.
         [HttpGet("/QLKiemKe/TimNhanVienTheoMa")]
+        [EnableRateLimiting("tra-nhan-vien")]
         public async Task<IActionResult> TimNhanVienTheoMa(string? maNhanVien)
         {
             var chuaDangNhap = ChanNeuChuaDangNhap();
@@ -11028,13 +11046,14 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return Json(new
             {
                 success = true,
-                data = new { nv.IdNguoiDung, nv.MaNhanVien, nv.HoTen, nv.Tk, nv.PhongBan }
+                data = new { nv.MaNhanVien, nv.HoTen, nv.PhongBan }
             });
         }
 
         // ACTION MỚI: Xử lý khi ấn xác nhận tài sản, nhận toàn bộ dữ liệu phần cứng từ Client
         // Giữ IgnoreAntiforgeryToken như thiết kế ban đầu (endpoint tự xác thực lại bằng tài khoản/mật khẩu).
         [IgnoreAntiforgeryToken]
+        [EnableRateLimiting("dang-nhap")] // nhận tài khoản/mật khẩu → cùng giới hạn theo IP như trang đăng nhập
         [HttpPost("/QLKiemKe/XacNhanTaiSanMaMay")]
         public async Task<IActionResult> XacNhanTaiSanMaMay(
             string taikhoan,

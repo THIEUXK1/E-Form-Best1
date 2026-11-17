@@ -411,6 +411,28 @@ builder.Services.AddRateLimiter(options =>
         });
     });
 
+    // API tra nhân viên theo mã (họ tên/phòng ban): người thật gõ vài mã/phút; tool gõ lần lượt mã NV để gom
+    // danh sách nhân viên thì vướng ngay. Phân vùng theo PHIÊN đăng nhập để cả xưởng chung một IP NAT không chặn nhau.
+    // UseRateLimiter đứng trước UseAuthentication nên HttpContext.User còn rỗng → lấy băm cookie xác thực làm khoá;
+    // không có cookie thì theo IP (request đó cũng bị action trả 401).
+    options.AddPolicy("tra-nhan-vien", httpContext =>
+    {
+        string? cookie = httpContext.Request.Cookies["ITForm_Auth_Cookie"];
+        // Cookie nhiều quyền vượt 4KB bị chia khúc: giá trị gốc chỉ là "chunks-N" (ai cũng giống) → lấy khúc đầu
+        if (cookie != null && cookie.StartsWith("chunks-", StringComparison.Ordinal))
+            cookie = httpContext.Request.Cookies["ITForm_Auth_CookieC1"];
+        string khoa = !string.IsNullOrEmpty(cookie)
+            ? "ck:" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(cookie)))
+            : "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "khong-ro");
+
+        return RateLimitPartition.GetFixedWindowLimiter(khoa, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
+    });
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
     // Trả kèm Retry-After để client biết chờ bao lâu, và một câu tiếng Việt cho người dùng thật
