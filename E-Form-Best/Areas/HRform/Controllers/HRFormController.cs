@@ -2882,6 +2882,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         // ACTION XUẤT BIỂU MẪU (EXCEL, WORD, PDF)
         // ============================================================
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Excel đơn HR")]
         [HttpGet("/FormHR/ExportExcel/{id}")]
         public async Task<IActionResult> ExportExcel(int id)
         {
@@ -3283,6 +3284,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             }
         }
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Word đơn HR")]
         [HttpGet("/FormHR/ExportWord/{id}")]
         public async Task<IActionResult> ExportWord(int id)
         {
@@ -3313,6 +3315,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
             return File(byteArray, "application/msword", $"Don_EFormHR_{id}.doc");
         }
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất PDF đơn HR")]
         [HttpGet("/FormHR/ExportPDF/{id}")]
         public async Task<IActionResult> ExportPDF(int id)
         {
@@ -5310,6 +5313,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         /// <summary>
         /// Xuất dữ liệu ra Excel CHI TIẾT các đơn ĐÃ HOÀN TẤT
         /// </summary>
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Excel báo cáo đơn HR")]
         [HttpGet("/FormHR/ExportExcelHR")]
         public async Task<IActionResult> ExportExcelHR(DateTime? tuNgay, DateTime? denNgay, string loaiDon)
         {

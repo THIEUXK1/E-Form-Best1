@@ -747,6 +747,7 @@ namespace E_Form_Best.Areas.HRform.Controllers
         }
 
         // Xuất danh sách đang hiển thị (cùng bộ lọc với trang). Ai xem được danh sách thì xuất được, phạm vi bộ phận do LocTuAsync chặn.
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Excel tủ điện thoại")]
         [HttpGet("/FormHR/QuanLyTuDienThoai/XuatExcel")]
         public async Task<IActionResult> XuatExcel(int? idBoPhan, string? tuKhoa, string? trangThai)
         {

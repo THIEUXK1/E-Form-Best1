@@ -4394,6 +4394,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // ACTION XUẤT BIỂU MẪU IT (EXCEL, WORD, PDF)
         // ============================================================
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Excel đơn IT")]
         [HttpGet("/FormIT/ExportExcel/{id}")]
         public async Task<IActionResult> ExportExcel(int id)
         {
@@ -4549,6 +4550,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             }
         }
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Word đơn IT")]
         [HttpGet("/FormIT/ExportWord/{id}")]
         public async Task<IActionResult> ExportWord(int id)
         {
@@ -4577,6 +4579,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return File(byteArray, "application/msword", $"Don_EFormIT_{id}.doc");
         }
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất PDF đơn IT")]
         [HttpGet("/FormIT/ExportPDF/{id}")]
         public async Task<IActionResult> ExportPDF(int id)
         {
@@ -6343,6 +6346,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // 3. Action lấy danh sách chi tiết có bộ lọc, phân trang & SẮP XẾP
         [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Danh sách MAC Wi-Fi nhân viên")]
         [HttpGet("/FormIT/GetDanhSachMacWifi")]
         public async Task<IActionResult> GetDanhSachMacWifi(
             int page = 1, int pageSize = 50,
@@ -6446,6 +6450,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // 4. Action Xuất file Excel
         [Authorize(Roles = "AdminIT,All")] // menu Thống kê báo cáo IT chỉ AdminIT/All
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Excel MAC Wi-Fi")]
         [HttpGet("/FormIT/ExportExcelMacWifi")]
         public async Task<IActionResult> ExportExcelMacWifi(
             string? idForm = null, string? tenNguoiNv = null, string? boPhan = null,
@@ -7048,6 +7053,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // 2. HÀM NÀY DÙNG ĐỂ ĐỔ DỮ LIỆU VÀO BẢNG & XUẤT EXCEL (Đã thêm WinLicense và OfficeLicense)
         [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Danh sách thiết bị (trang thống kê)")]
         [HttpGet("/QLKiemKe/GetKkThietBiss")]
         public IActionResult GetKkThietBiss()
         {
@@ -7873,6 +7879,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return View("IndexThietBi"); // Bạn cần tạo file IndexThietBi.cshtml trong thư mục Views
         }
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Danh sách toàn bộ thiết bị (kiểm kê)")]
         [HttpGet("/QLKiemKe/GetKkThietBis")]
         public IActionResult GetKkThietBis()
         {
@@ -9067,6 +9074,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // HÀM 1: Lấy cục bộ dữ liệu JSON chi tiết đầy đủ phục vụ hiển thị nhanh qua Modal/API AJAX
         [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Chi tiết thiết bị (key bản quyền)")]
         [HttpGet("/QLKiemKe/GetChiTietThietBi")]
         public IActionResult GetChiTietThietBi(int idThietBi)
         {
@@ -9833,10 +9841,12 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         // khác nhau nếu người dùng có quyền "All") trên giao diện.
         // Bản POST: danh sách vài nghìn thiết bị thì chuỗi ids vượt giới hạn độ dài URL của trình duyệt/Kestrel,
         // nên trang Thiết bị gửi bằng form ẩn. Chỉ đọc dữ liệu rồi trả file nên không cần khác gì bản GET.
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất biên bản tài sản bộ phận")]
         [HttpPost("/QLKiemKe/ExportBienBanTaiSanBoPhan")]
         public IActionResult ExportBienBanTaiSanBoPhanPost([FromForm] string? ids, [FromForm] string? dinhDang)
             => ExportBienBanTaiSanBoPhan(ids, dinhDang);
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất biên bản tài sản bộ phận")]
         [HttpGet("/QLKiemKe/ExportBienBanTaiSanBoPhan")]
         public IActionResult ExportBienBanTaiSanBoPhan(string? ids, string? dinhDang = null)
         {
@@ -10624,6 +10634,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         }
 
         // Tra cứu Máy tính + Màn hình rời theo Serial trong KK_ThietBi để biết đang thuộc về ai, kèm toàn bộ Tài sản khác của đúng người đó
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Tra người dùng máy theo serial")]
         [HttpGet("/QLKiemKe/GetThongTinSoHuuTheoSeri")]
         public IActionResult GetThongTinSoHuuTheoSeri(string? seriMay, string? seriManHinh)
         {
@@ -11742,6 +11753,7 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
         // 4. API bốc tách chuyên sâu cấu hình theo ID máy, liên kết toàn bộ Sub-Tables
         [Authorize(Roles = "KKTS-PFVN,AdminIT,All")] // khu Kiểm kê: menu chỉ KKTS-PFVN/AdminIT/All
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Cấu hình chi tiết máy tính")]
         [HttpGet("/QLKiemKe/ChiTietMayTinhTheoId")]
         public IActionResult ChiTietMayTinhTheoId(int idMay)
         {

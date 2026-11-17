@@ -1,0 +1,87 @@
+/* Trang Nhật ký bảo mật (/NhatKyBaoMat) — cùng tông tối với MenuA */
+:root {
+    --nkbm-nen: #000c18;
+    --nkbm-the: rgba(255, 255, 255, 0.05);
+    --nkbm-vien: rgba(0, 212, 255, 0.2);
+    --nkbm-chu: #e2e8f0;
+    --nkbm-mo: #94a3b8;
+    --nkbm-nhan: #00d4ff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: radial-gradient(circle at top, #062039 0%, var(--nkbm-nen) 60%);
+    color: var(--nkbm-chu);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+}
+
+.nkbm-trang { max-width: 1400px; margin: 0 auto; padding: 24px 16px 48px; }
+
+.nkbm-dau { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+.nkbm-dau > div { flex: 1; min-width: 240px; }
+.nkbm-dau h1 { margin: 0; color: var(--nkbm-nhan); font-size: 26px; font-weight: 800; letter-spacing: 1px; }
+.nkbm-dau p { margin: 4px 0 0; color: var(--nkbm-mo); font-size: 13px; }
+.nkbm-ve { color: var(--nkbm-chu); text-decoration: none; font-size: 13px; font-weight: 600; padding: 8px 12px; border: 1px solid var(--nkbm-vien); border-radius: 10px; }
+.nkbm-ve:hover { border-color: var(--nkbm-nhan); color: var(--nkbm-nhan); }
+
+.nkbm-nut { background: var(--nkbm-the); color: var(--nkbm-chu); border: 1px solid var(--nkbm-vien); border-radius: 10px; padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.nkbm-nut:hover:not(:disabled) { border-color: var(--nkbm-nhan); color: var(--nkbm-nhan); }
+.nkbm-nut:disabled { opacity: 0.4; cursor: not-allowed; }
+.nkbm-nut-chinh { background: var(--nkbm-nhan); color: #001424; border-color: var(--nkbm-nhan); }
+.nkbm-nut-chinh:hover:not(:disabled) { color: #001424; filter: brightness(1.1); }
+
+.nkbm-tong { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.nkbm-o { background: var(--nkbm-the); border: 1px solid var(--nkbm-vien); border-left-width: 4px; border-radius: 14px; padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: transform 0.15s; }
+.nkbm-o:hover { transform: translateY(-2px); }
+.nkbm-so { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.nkbm-nhan { font-size: 12px; color: var(--nkbm-mo); font-weight: 600; }
+.nkbm-o-do { border-left-color: #ef4444; }
+.nkbm-o-cam { border-left-color: #f97316; }
+.nkbm-o-tim { border-left-color: #a855f7; }
+.nkbm-o-vang { border-left-color: #eab308; }
+.nkbm-o-xanh { border-left-color: #10b981; }
+.nkbm-ghi-chu { grid-column: 1 / -1; margin: 0; font-size: 11px; color: var(--nkbm-mo); }
+
+.nkbm-ip { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.nkbm-ip-khoi { background: var(--nkbm-the); border: 1px solid var(--nkbm-vien); border-radius: 14px; padding: 14px 16px; }
+.nkbm-ip-khoi h2 { margin: 0 0 8px; font-size: 13px; color: var(--nkbm-nhan); font-weight: 700; }
+.nkbm-ds-ip { margin: 0; padding-left: 20px; font-size: 13px; }
+.nkbm-ds-ip li { padding: 3px 0; }
+.nkbm-ds-ip .nkbm-ip-so { color: #fca5a5; font-weight: 700; margin-left: 6px; }
+.nkbm-ds-ip .nkbm-ip-luc { color: var(--nkbm-mo); font-size: 11px; margin-left: 6px; }
+.nkbm-ds-ip a { color: var(--nkbm-chu); }
+
+.nkbm-tab { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.nkbm-tab-nut { background: transparent; color: var(--nkbm-mo); border: 1px solid transparent; border-radius: 10px; padding: 9px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.nkbm-tab-nut:hover { color: var(--nkbm-chu); }
+.nkbm-tab-nut.dang-chon { color: var(--nkbm-nhan); border-color: var(--nkbm-vien); background: var(--nkbm-the); }
+
+.nkbm-loc { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
+.nkbm-loc label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--nkbm-mo); font-weight: 600; }
+.nkbm-loc-rong { flex: 1; min-width: 200px; }
+.nkbm-loc input, .nkbm-loc select { background: rgba(0, 0, 0, 0.3); color: var(--nkbm-chu); border: 1px solid var(--nkbm-vien); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 13px; color-scheme: dark; }
+
+.nkbm-loi { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4); color: #fecaca; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+
+.nkbm-bang-khung { overflow-x: auto; border: 1px solid var(--nkbm-vien); border-radius: 14px; background: var(--nkbm-the); }
+.nkbm-bang { width: 100%; border-collapse: collapse; font-size: 13px; }
+.nkbm-bang th { text-align: left; padding: 10px 12px; color: var(--nkbm-nhan); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--nkbm-vien); white-space: nowrap; position: sticky; top: 0; background: #031a2e; }
+.nkbm-bang td { padding: 8px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: top; }
+.nkbm-bang tr:hover td { background: rgba(0, 212, 255, 0.04); }
+.nkbm-bang .nkbm-gio { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--nkbm-mo); }
+.nkbm-bang .nkbm-duong-dan { font-family: Consolas, monospace; font-size: 12px; word-break: break-all; max-width: 420px; }
+.nkbm-bang .nkbm-ua { color: var(--nkbm-mo); font-size: 11px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nkbm-trong { text-align: center; color: var(--nkbm-mo); padding: 28px 12px !important; }
+
+.nkbm-the-loai { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.loai-ChuaDangNhap { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+.loai-KhongDuQuyen { background: rgba(249, 115, 22, 0.18); color: #fdba74; }
+.loai-DuLieuNhayCam { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; }
+.loai-loi { background: rgba(234, 179, 8, 0.18); color: #fde047; }
+.loai-ok { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; }
+
+.nkbm-phan-trang { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--nkbm-mo); flex-wrap: wrap; }
+.nkbm-phan-trang > div { display: flex; align-items: center; gap: 10px; }

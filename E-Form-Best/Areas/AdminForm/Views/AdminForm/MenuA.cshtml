@@ -346,6 +346,17 @@
                     <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Quality Assurance</small>
                 </a>
             }
+
+            @* Nhật ký bảo mật: chỉ quyền All — NhatKyBaoMatController cũng chặn [Authorize(Roles = "All")] *@
+            @if (User?.IsInRole("All") == true)
+            {
+                <a href="/NhatKyBaoMat" class="menu-card"
+                   style="width: 220px; height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border-radius: 30px; border: 1px solid rgba(239, 68, 68, 0.35); color: white; text-decoration: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;">
+                    <div class="icon-emoji" style="font-size: 50px; margin-bottom: 10px;">🛡️</div>
+                    <span style="font-size: 22px; font-weight: 800; letter-spacing: 2px;">BẢO MẬT</span>
+                    <small style="font-size: 11px; opacity: 0.7; margin-top: 5px; text-transform: uppercase;">Security Log</small>
+                </a>
+            }
         </div>
 
         <p class="footer-text" style="margin-top: 80px; color: #00d4ff; opacity: 0.5; font-size: 13px; letter-spacing: 1px; text-align: center;">

@@ -625,6 +625,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         // ACTION XUẤT BIỂU MẪU SHD (EXCEL, WORD, PDF)
         // ============================================================
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Excel đơn SHD")]
         [HttpGet("/FormSHD/ExportExcel/{id}")]
         public async Task<IActionResult> ExportExcel(int id)
         {
@@ -754,6 +755,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             }
         }
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Word đơn SHD")]
         [HttpGet("/FormSHD/ExportWord/{id}")]
         public async Task<IActionResult> ExportWord(int id)
         {
@@ -773,6 +775,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
             return File(byteArray, "application/msword", $"Don_EFormSHD_{id}.doc");
         }
 
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất PDF đơn SHD")]
         [HttpGet("/FormSHD/ExportPDF/{id}")]
         public async Task<IActionResult> ExportPDF(int id)
         {
@@ -2198,6 +2201,7 @@ namespace E_Form_Best.Areas.SHDForm.Controllers
         /// <summary>
         /// Xuất dữ liệu ra Excel CHI TIẾT các đơn ĐÃ HOÀN TẤT
         /// </summary>
+        [E_Form_Best.Areas.ITForm.Services.GhiNhatKyBaoMat("Xuất Excel báo cáo đơn SHD")]
         [HttpGet("/FormSHD/ExportExcelSHD")]
         public async Task<IActionResult> ExportExcelSHD(DateTime? tuNgay, DateTime? denNgay, string loaiDon)
         {

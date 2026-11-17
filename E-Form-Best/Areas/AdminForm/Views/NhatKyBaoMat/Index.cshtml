@@ -1,0 +1,98 @@
+@{
+    // Trang độc lập (không _Layout) giống MenuA; dữ liệu do nhat-ky-bao-mat.js tải qua /NhatKyBaoMat/DuLieu
+    ViewData["Title"] = "Nhật ký bảo mật";
+    var homNay = DateTime.Today.ToString("yyyy-MM-dd");
+    var bayNgayTruoc = DateTime.Today.AddDays(-6).ToString("yyyy-MM-dd");
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>E-Form - @ViewData["Title"]</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/nhat-ky-bao-mat.css?v=1" />
+</head>
+<body>
+    <div class="nkbm-trang">
+        <header class="nkbm-dau">
+            <a href="/" class="nkbm-ve" title="Về trang chủ"><i class="fa fa-arrow-left"></i> Trang chủ</a>
+            <div>
+                <h1><i class="fa fa-shield"></i> Nhật ký bảo mật</h1>
+                <p>Lần bị chặn, lần lấy dữ liệu nhạy cảm, đăng nhập lỗi và lịch sử đăng nhập. Chỉ quyền All xem được.</p>
+            </div>
+            <button type="button" id="nkbmLamMoi" class="nkbm-nut"><i class="fa fa-refresh"></i> Làm mới</button>
+        </header>
+
+        <section class="nkbm-tong" aria-label="Tổng quan 24 giờ qua">
+            <div class="nkbm-o nkbm-o-do" data-tab="baomat" data-loai="ChuaDangNhap">
+                <span class="nkbm-so" id="soChuaDangNhap">–</span><span class="nkbm-nhan">Chưa đăng nhập bị chặn</span>
+            </div>
+            <div class="nkbm-o nkbm-o-cam" data-tab="baomat" data-loai="KhongDuQuyen">
+                <span class="nkbm-so" id="soKhongDuQuyen">–</span><span class="nkbm-nhan">Thiếu quyền bị chặn</span>
+            </div>
+            <div class="nkbm-o nkbm-o-tim" data-tab="baomat" data-loai="DuLieuNhayCam">
+                <span class="nkbm-so" id="soDuLieuNhayCam">–</span><span class="nkbm-nhan">Lấy dữ liệu nhạy cảm</span>
+            </div>
+            <div class="nkbm-o nkbm-o-vang" data-tab="dangnhaploi" data-loai="">
+                <span class="nkbm-so" id="soDangNhapLoi">–</span><span class="nkbm-nhan">Đăng nhập lỗi</span>
+            </div>
+            <div class="nkbm-o nkbm-o-xanh" data-tab="truycap" data-loai="">
+                <span class="nkbm-so" id="soDangNhap">–</span><span class="nkbm-nhan">Lượt đăng nhập</span>
+            </div>
+            <p class="nkbm-ghi-chu">Số liệu 24 giờ qua · bấm vào ô để lọc</p>
+        </section>
+
+        <section class="nkbm-ip">
+            <div class="nkbm-ip-khoi">
+                <h2>IP bị chặn nhiều nhất (24 giờ)</h2>
+                <ol id="dsIpBiChan" class="nkbm-ds-ip"><li class="nkbm-trong">Đang tải…</li></ol>
+            </div>
+            <div class="nkbm-ip-khoi">
+                <h2>IP đăng nhập lỗi nhiều nhất (24 giờ)</h2>
+                <ol id="dsIpDangNhapLoi" class="nkbm-ds-ip"><li class="nkbm-trong">Đang tải…</li></ol>
+            </div>
+        </section>
+
+        <nav class="nkbm-tab" role="tablist">
+            <button type="button" role="tab" class="nkbm-tab-nut dang-chon" data-tab="baomat">Bị chặn &amp; dữ liệu nhạy cảm</button>
+            <button type="button" role="tab" class="nkbm-tab-nut" data-tab="dangnhaploi">Đăng nhập lỗi</button>
+            <button type="button" role="tab" class="nkbm-tab-nut" data-tab="truycap">Lịch sử đăng nhập</button>
+        </nav>
+
+        <form id="nkbmLoc" class="nkbm-loc" autocomplete="off">
+            <label>Từ ngày <input type="date" name="tuNgay" value="@bayNgayTruoc" max="@homNay"></label>
+            <label>Đến ngày <input type="date" name="denNgay" value="@homNay" max="@homNay"></label>
+            <label id="nhanLoai">Loại
+                <select name="loai" id="chonLoai">
+                    <option value="">Tất cả</option>
+                </select>
+            </label>
+            <label class="nkbm-loc-rong">Từ khoá <input type="search" name="q" placeholder="Tài khoản, họ tên, IP, đường dẫn…"></label>
+            <button type="submit" class="nkbm-nut nkbm-nut-chinh"><i class="fa fa-filter"></i> Lọc</button>
+        </form>
+
+        <div id="nkbmLoi" class="nkbm-loi" hidden></div>
+
+        <div class="nkbm-bang-khung">
+            <table class="nkbm-bang">
+                <thead id="nkbmDauBang"></thead>
+                <tbody id="nkbmThanBang"><tr><td class="nkbm-trong">Đang tải…</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="nkbm-phan-trang">
+            <span id="nkbmTongDong"></span>
+            <div>
+                <button type="button" class="nkbm-nut" id="nkbmTruoc" disabled><i class="fa fa-chevron-left"></i></button>
+                <span id="nkbmSoTrang">1 / 1</span>
+                <button type="button" class="nkbm-nut" id="nkbmSau" disabled><i class="fa fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/js/nhat-ky-bao-mat.js?v=1"></script>
+</body>
+</html>

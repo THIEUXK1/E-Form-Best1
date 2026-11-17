@@ -335,8 +335,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
             // FallbackPolicy chặn người chưa đăng nhập: trình duyệt mở trang thì chuyển sang đăng nhập như cũ,
             // còn AJAX (fetch/$.ajax, POST) trả 401 JSON — redirect 302 sẽ ra HTML trang đăng nhập làm res.json() vỡ.
-            OnRedirectToLogin = context =>
+            OnRedirectToLogin = async context =>
             {
+                await NhatKyBaoMat.GhiAsync(context.HttpContext, NhatKyBaoMat.ChuaDangNhap);
                 var req = context.Request;
                 bool laTrangHtml = HttpMethods.IsGet(req.Method)
                     && req.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase)
@@ -344,10 +345,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 if (laTrangHtml)
                 {
                     context.Response.Redirect(context.RedirectUri);
-                    return Task.CompletedTask;
+                    return;
                 }
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return context.Response.WriteAsJsonAsync(new
+                await context.Response.WriteAsJsonAsync(new
                 {
                     success = false,
                     thanhCong = false,
@@ -357,8 +358,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             },
 
             // [Authorize(Roles=...)] không đủ quyền: AJAX nhận 403 JSON để JS báo lỗi tại chỗ; trang HTML giữ hành vi cũ
-            OnRedirectToAccessDenied = context =>
+            OnRedirectToAccessDenied = async context =>
             {
+                await NhatKyBaoMat.GhiAsync(context.HttpContext, NhatKyBaoMat.KhongDuQuyen);
                 var req = context.Request;
                 bool laTrangHtml = HttpMethods.IsGet(req.Method)
                     && req.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase)
@@ -366,10 +368,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 if (laTrangHtml)
                 {
                     context.Response.Redirect(context.RedirectUri);
-                    return Task.CompletedTask;
+                    return;
                 }
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                return context.Response.WriteAsJsonAsync(new
+                await context.Response.WriteAsJsonAsync(new
                 {
                     success = false,
                     thanhCong = false,
