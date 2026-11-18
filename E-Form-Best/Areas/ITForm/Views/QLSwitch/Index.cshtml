@@ -90,7 +90,7 @@
                             <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="swLanCuoi">–</div><div class="cam-tile-phu" id="kiemTraGanNhat"></div></div>
                         </div>
 
-                        <div class="row g-2 mb-2">
+                        <div class="row g-2 mb-2" id="swHangBieuDo">
                             <div class="col-lg-7">
                                 <div class="cam-khung">
                                     <div class="d-flex align-items-center mb-1">
@@ -123,6 +123,8 @@
                         </div>
 
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            @* Ẩn/hiện cả hàng biểu đồ + bảng nhóm vai trò cho bảng danh sách rộng chỗ; nhớ theo từng máy *@
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-an-hien="#swHangBieuDo" data-khoa="anBieuDo.switch" title="Ẩn biểu đồ"><i class="fas fa-eye-slash me-1"></i><span>Ẩn biểu đồ</span></button>
                             <input type="search" id="filterTuKhoa" autocomplete="off" class="form-control form-control-sm" style="max-width:260px;"
                                    placeholder="Tìm tên, mã, IP, MAC, model, vai trò, vị trí...">
 
@@ -691,4 +693,5 @@
     <script src="/js/fixed-page-layout.js?v=202610270831" defer></script>
     <script src="/js/switch-quanly.js?v=20261026a"></script>
     <script src="/js/switch-suc-khoe.js?v=20261110b"></script>
+    <script src="/js/an-hien-bieu-do.js?v=20261118a"></script>
 }

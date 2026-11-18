@@ -89,7 +89,7 @@
                             <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="gsLanCuoi">–</div><div class="cam-tile-phu" id="gsLanCuoiTrangThai"></div></div>
                         </div>
 
-                        <div class="row g-2 mb-2">
+                        <div class="row g-2 mb-2" id="gsHangBieuDo">
                             <div class="col-lg-7">
                                 <div class="cam-khung">
                                     <div class="d-flex align-items-center mb-1">
@@ -121,6 +121,8 @@
                         </div>
 
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            @* Ẩn/hiện cả hàng biểu đồ + bảng đầu ghi cho bảng camera rộng chỗ; nhớ theo từng máy *@
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-an-hien="#gsHangBieuDo" data-khoa="anBieuDo.camera" title="Ẩn biểu đồ"><i class="fas fa-eye-slash me-1"></i><span>Ẩn biểu đồ</span></button>
                             <input type="text" id="gsTuKhoa" class="form-control form-control-sm" style="max-width:280px;"
                                    placeholder="Tìm tên camera, IP, đầu ghi, khu vực...">
                             <select id="gsTrangThai" class="form-select form-select-sm w-auto">
@@ -761,4 +763,5 @@
     <script src="/js/camera-lich-su.js?v=20261007b"></script>
     <script src="/js/camera-dau-ghi.js?v=20261007b"></script>
     <script src="/js/camera-nho-tab.js?v=20261013a"></script>
+    <script src="/js/an-hien-bieu-do.js?v=20261118a"></script>
 }

@@ -53,7 +53,13 @@ if (-not $len) {
     exit 1
 }
 
-try { $ma = (Invoke-WebRequest -Uri "$($url)Logo" -UseBasicParsing -TimeoutSec 30).StatusCode } catch { $ma = "loi: $($_.Exception.Message)" }
+# Từ 17/11/2026 FallbackPolicy bắt đăng nhập mọi endpoint -> 401/302 nghĩa là app đã lên, chỉ chưa đăng nhập.
+try { $ma = (Invoke-WebRequest -Uri "$($url)Logo" -UseBasicParsing -TimeoutSec 30).StatusCode }
+catch {
+    $r = $_.Exception.Response
+    if ($r) { $ma = [int]$r.StatusCode; if ($ma -in 401,302) { $ma = "$ma (chua dang nhap, app da len)" } }
+    else { $ma = "loi: $($_.Exception.Message)" }
+}
 $app = (Get-NetTCPConnection -LocalPort $cong -State Listen).OwningProcess | Select-Object -First 1
 if (-not $KhongMo) { Start-Process $url }
 

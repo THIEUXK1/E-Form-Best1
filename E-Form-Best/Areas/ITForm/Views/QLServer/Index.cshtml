@@ -69,7 +69,7 @@
                             <div class="cam-tile"><div class="cam-tile-nhan">Kiểm tra gần nhất</div><div class="cam-tile-so cam-tile-so-nho" id="svLanCuoi">–</div><div class="cam-tile-phu" id="kiemTraGanNhat"></div></div>
                         </div>
 
-                        <div class="row g-2 mb-2">
+                        <div class="row g-2 mb-2" id="svHangBieuDo">
                             <div class="col-lg-7">
                                 <div class="cam-khung">
                                     <div class="d-flex align-items-center mb-1">
@@ -102,6 +102,8 @@
                         </div>
 
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            @* Ẩn/hiện cả hàng biểu đồ + bảng nhóm cho bảng danh sách rộng chỗ *@
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-an-hien="#svHangBieuDo" data-khoa="anBieuDo.server" title="Ẩn biểu đồ"><i class="fas fa-eye-slash me-1"></i><span>Ẩn biểu đồ</span></button>
                             @* Nhóm: Server (server + máy ảo) / Lưu trữ (NAS + SAN) *@
                             <div class="btn-group btn-group-sm" role="group" aria-label="Nhóm thiết bị">
                                 <button type="button" class="btn btn-outline-secondary active" data-sv-nhom="">Tất cả <span class="sv-dem" id="demTatCa">0</span></button>
@@ -515,5 +517,6 @@
     @* Cùng Chart.js với trang AP / camera (dùng lại cache trình duyệt); CDN lỗi thì chỉ mất biểu đồ *@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/fixed-page-layout.js?v=202610270831" defer></script>
-    <script src="/js/server-quanly.js?v=20261026a"></script>
+    <script src="/js/server-quanly.js?v=20261118c"></script>
+    <script src="/js/an-hien-bieu-do.js?v=20261118a"></script>
 }
