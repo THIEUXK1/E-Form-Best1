@@ -54,6 +54,26 @@ namespace E_Form_Best.Areas.QAForm.Controllers
             return View();
         }
 
+        // Check xuất hàng: barcode / mã lot / phiếu xuất / hoá đơn -> dữ liệu xuất kho NH-WMS + thông tin đơn hàng NH-MES
+        [HttpGet("/QAForm/CheckXuatHang")]
+        public IActionResult CheckXuatHang()
+        {
+            return View();
+        }
+
+        [HttpGet("/QAForm/CheckXuatHang/DuLieu")]
+        public async Task<IActionResult> CheckXuatHangDuLieu([FromServices] CheckXuatHangService svc, string? ma,
+            CheckXuatHangService.LoaiMa loai = CheckXuatHangService.LoaiMa.TuNhan, CancellationToken ct = default)
+        {
+            var kq = await svc.TraCuuAsync(ma ?? "", loai, ct);
+            return Json(new
+            {
+                thanhCong = kq.ThanhCong,
+                thongBao = kq.ThongBao,
+                duLieu = kq.ThanhCong ? new { loai = kq.Loai.ToString(), dsLot = kq.DsLot, dsXuat = kq.DsXuat, tongXuat = kq.TongXuat, canhBao = kq.CanhBao } : null
+            });
+        }
+
         // Đọc từ bản sao DB (job đồng bộ MES); mã chưa có trong DB thì gọi MES trực tiếp
         [HttpGet("/QAForm/TraCuuMes/DuLieu")]
         public Task<IActionResult> TraCuuMesDuLieu(string? maPhoiMau, string? maKhachHang, string? maHang, CancellationToken ct = default)

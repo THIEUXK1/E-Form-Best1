@@ -698,3 +698,9 @@ tr.qa-ls-khoiphuc td { color: #047857; }
 .qa-quet-cam { margin-top: 8px; }
 .qa-thung-quet { white-space: nowrap; }
 @media (max-width: 767.98px) { .qa-quet-nen { padding: 8px; align-items: flex-start; } .qa-quet-hop { margin-top: 8px; } }
+
+/* Check xuất hàng: số canh phải, cột chính in đậm, lot không thấy đơn MES tô nhạt cảnh báo */
+.qa-mes-bang td.qa-xh-so { text-align: right; font-variant-numeric: tabular-nums; }
+.qa-mes-bang td.qa-xh-dam { font-weight: 600; }
+.qa-mes-bang tr.qa-xh-thieu td { background: #fff7ed; }
+#qa-xh-chep { margin-left: auto; }

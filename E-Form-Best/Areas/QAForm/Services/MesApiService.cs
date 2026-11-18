@@ -98,6 +98,8 @@ namespace E_Form_Best.Areas.QAForm.Services
         }
 
         private string BaseUrl => (_configuration["MesApi:BaseUrl"] ?? "https://nhmes.bestpacific.cn/nhmes").Trim().TrimEnd('/');
+        // NH-WMS (kho thành phẩm, 出仓查询) dùng chung SSO OA với MES nên dùng lại tài khoản + cookie phiên của service này
+        private string WmsBaseUrl => (_configuration["MesApi:WmsBaseUrl"] ?? "https://nhwms.bestpacific.cn/nhwms").Trim().TrimEnd('/');
         private string SsoUrl => (_configuration["MesApi:SsoUrl"] ?? "https://oa.bestpacific.cn").Trim().TrimEnd('/');
         private string FactoryCode => (_configuration["MesApi:FactoryCode"] ?? "BPVN").Trim();
 
@@ -175,7 +177,7 @@ namespace E_Form_Best.Areas.QAForm.Services
             {
                 for (int lan = 0; lan < 2; lan++)
                 {
-                    var (ok, json) = await GoiApiAsync("/ePackBatch/report2List", body, ct);
+                    var (ok, json) = await GoiApiAsync(BaseUrl + "/ePackBatch/report2List", body, ct);
                     if (ok)
                     {
                         var (tong, dong) = DocTrangMes(json!);
@@ -184,7 +186,7 @@ namespace E_Form_Best.Areas.QAForm.Services
                     // Không phải JSON = phiên MES đã hết -> đăng nhập lại rồi thử thêm 1 lần.
                     if (lan == 0)
                     {
-                        var loi = await DangNhapAsync(ct);
+                        var loi = await DangNhapAsync(BaseUrl, ct);
                         if (loi != null) return new(false, loi);
                     }
                 }
@@ -201,9 +203,47 @@ namespace E_Form_Best.Areas.QAForm.Services
             }
         }
 
-        private async Task<(bool ok, string? json)> GoiApiAsync(string duongDan, string body, CancellationToken ct)
+        public record KetQuaJson(bool ThanhCong, string ThongBao, string? Json = null);
+
+        /// <summary>
+        /// POST JSON tới 1 API của NH-MES (wms=false) hoặc NH-WMS (wms=true), tự đăng nhập SSO lại 1 lần khi phiên hết.
+        /// Trả nguyên chuỗi JSON để nơi gọi tự đọc các trường cần.
+        /// </summary>
+        public async Task<KetQuaJson> GoiJsonAsync(bool wms, string duongDan, object body, CancellationToken ct)
         {
-            using var req = new HttpRequestMessage(HttpMethod.Post, BaseUrl + duongDan)
+            if (!CoCauHinh) return new(false, "Chưa cấu hình tài khoản MES (MesApi__User / MesApi__Pass trong .env).");
+            var goc = wms ? WmsBaseUrl : BaseUrl;
+            var ten = wms ? "NH-WMS" : "NH-MES";
+            var noiDung = JsonSerializer.Serialize(body);
+            try
+            {
+                for (int lan = 0; lan < 2; lan++)
+                {
+                    var (ok, json) = await GoiApiAsync(goc + duongDan, noiDung, ct);
+                    if (ok) return new(true, "", json);
+                    if (lan == 0)
+                    {
+                        var loi = await DangNhapAsync(goc, ct);
+                        if (loi != null) return new(false, loi);
+                    }
+                }
+                // Đăng nhập OA được mà vẫn không vào được = tài khoản kỹ thuật chưa có quyền hệ thống/menu này
+                return new(false, $"{ten} không trả dữ liệu sau khi đăng nhập lại (tài khoản MesApi có thể chưa được cấp quyền {ten}).");
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                return new(false, $"{ten} phản hồi quá lâu, thử lại sau.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi gọi {He} {DuongDan}", ten, duongDan);
+                return new(false, $"Không kết nối được {ten}: " + ex.Message);
+            }
+        }
+
+        private async Task<(bool ok, string? json)> GoiApiAsync(string url, string body, CancellationToken ct)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json")
             };
@@ -215,18 +255,23 @@ namespace E_Form_Best.Areas.QAForm.Services
             return text.TrimStart().StartsWith('{') ? (true, text) : (false, null);
         }
 
-        /// <summary>Đăng nhập SSO OA giống trình duyệt. Trả null nếu thành công, ngược lại là thông báo lỗi.</summary>
-        private async Task<string?> DangNhapAsync(CancellationToken ct)
+        /// <summary>
+        /// Đăng nhập SSO OA giống trình duyệt cho hệ thống ở goc (MES hoặc WMS). Trả null nếu thành công, ngược lại là thông báo lỗi.
+        /// OA còn phiên (đã đăng nhập cho hệ kia) thì bước mở SSO tự cấp ticket về luôn, không cần gửi mật khẩu.
+        /// </summary>
+        private async Task<string?> DangNhapAsync(string goc, CancellationToken ct)
         {
             await _khoaDangNhap.WaitAsync(ct);
             try
             {
-                var service = BaseUrl.Replace("https://", "http://") + "/shiro-cas";
+                var service = goc.Replace("https://", "http://") + "/shiro-cas";
                 var vaoSso = $"{SsoUrl}/pro/sso/proSsoRequest.do?method=login&service={service}";
                 var redirectTo = $"/pro/sso/proSsoRequest.do?method=login&service={service}";
 
                 // 1) Mở trang login để OA cấp phiên (JSESSIONID); 2) lấy session id làm khoá mã hoá mật khẩu.
-                await DiTheoAsync(new HttpRequestMessage(HttpMethod.Get, vaoSso), ct);
+                var sauSso = await DiTheoAsync(new HttpRequestMessage(HttpMethod.Get, vaoSso), ct);
+                if (sauSso != null && !sauSso.Host.StartsWith("oa.", StringComparison.OrdinalIgnoreCase))
+                    return null;
                 using var sesRes = await _http.GetAsync($"{SsoUrl}/resource/js/session.jsp?_={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}", ct);
                 var sesJs = await sesRes.Content.ReadAsStringAsync(ct);
                 var m = Regex.Match(sesJs, "return\\s*\"([^\"]*)\"");

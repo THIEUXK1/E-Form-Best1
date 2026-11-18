@@ -150,6 +150,7 @@ builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.QaThungService>();
 builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.QaKeService>();
 // Bản sao dữ liệu đóng gói MES trong DB (QA_MesDongGoi) + job kéo theo ngày đóng gói. Tắt job bằng MesDongBo__Bat=false
 builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.MesKhoService>();
+builder.Services.AddScoped<E_Form_Best.Areas.QAForm.Services.CheckXuatHangService>();
 builder.Services.AddHostedService<E_Form_Best.Areas.QAForm.Services.MesDongBoWorker>();
 // Ai vào được /QAForm: quyền All hoặc quyền bộ phận QA_VIEW (trừ MEGA) — logic ở QaQuyen.CoQuyenQa
 builder.Services.AddAuthorization(o =>

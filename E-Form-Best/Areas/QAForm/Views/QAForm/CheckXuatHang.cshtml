@@ -1,0 +1,105 @@
+@{
+    ViewData["Title"] = "Check xuất hàng";
+    Layout = "~/Areas/QAForm/Views/Shared/_Layout.cshtml";
+}
+
+<div class="qa-card qa-mes-tim-card">
+    <div class="qa-ke-dau-tieude qa-mes-dau"><span class="qa-ke-dau-ic qa-mes-ic"><i class="fa fa-truck"></i></span>Check xuất hàng <small>NH-WMS + NH-MES</small></div>
+    <form id="qa-xh-form" class="qa-mes-form" autocomplete="off">
+        <div class="qa-mes-o">
+            <label for="qa-xh-ma" class="qa-mes-label">Mã cần tra</label>
+            <input id="qa-xh-ma" name="ma" type="text" class="form-control" maxlength="50" required placeholder="Barcode / mã lot / phiếu xuất / hoá đơn" />
+        </div>
+        <div class="qa-mes-o">
+            <label for="qa-xh-loai" class="qa-mes-label">Loại mã</label>
+            <select id="qa-xh-loai" name="loai" class="form-select">
+                <option value="TuNhan" selected>Tự nhận</option>
+                <option value="Barcode">Barcode 条码号</option>
+                <option value="MaLot">Mã lot 制单号</option>
+                <option value="PhieuXuat">Phiếu xuất 出仓单号 (VCH…)</option>
+                <option value="HoaDon">Hoá đơn 发票号 (VN…)</option>
+            </select>
+        </div>
+        <button type="submit" id="qa-xh-nut" class="btn qa-btn"><i class="fa fa-search"></i> Tra cứu</button>
+    </form>
+    <div id="qa-xh-thongbao" class="qa-mes-thongbao" role="status"></div>
+</div>
+
+<div class="qa-card qa-mes-ketqua">
+    <div class="qa-mes-tom">
+        <span class="qa-ke-dau-tieude qa-mes-tong-dau"><span class="qa-ke-dau-ic qa-thung-ic"><i class="fa fa-file-text-o"></i></span>Thông tin cho báo cáo khiếu nại</span>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="qa-xh-chep" disabled title="Chép các dòng (cột 制衣厂 → 出货数量) để dán vào file khiếu nại, bắt đầu từ cột 制衣厂"><i class="fa fa-clipboard"></i> Chép dòng khiếu nại</button>
+        <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-xh-bang-lot" data-ten-file="check-xuat-hang-lot"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
+    </div>
+    <div class="qa-ke-thongke gon" id="qa-xh-thongke"></div>
+    <div class="qa-mes-bang-wrap">
+        <table class="qa-mes-bang" id="qa-xh-bang-lot">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nhà máy 制衣厂</th>
+                    <th>Khách cuối 终客</th>
+                    <th>PO</th>
+                    <th>Mã lot 制单号</th>
+                    <th>Mã hàng 货号</th>
+                    <th>Khổ rộng 宽度</th>
+                    <th>Màu KH 颜色</th>
+                    <th>Màu nội bộ 内部色号</th>
+                    <th>SL xuất (Y) 出货数量</th>
+                    <th>SL khách (M)</th>
+                    <th>Số cuộn</th>
+                    <th>Hoá đơn</th>
+                    <th>Ngày xuất</th>
+                    <th>Mã hàng KH</th>
+                    <th>Mùa</th>
+                    <th>Trạng thái đơn</th>
+                </tr>
+            </thead>
+            <tbody id="qa-xh-tbody-lot">
+                <tr><td colspan="17" class="qa-mes-trong">Nhập mã rồi bấm Tra cứu.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="qa-card qa-mes-ketqua">
+    <div class="qa-mes-tom">
+        <span class="qa-ke-dau-tieude qa-mes-tong-dau"><span class="qa-ke-dau-ic qa-thung-ic"><i class="fa fa-barcode"></i></span><span id="qa-xh-tong-xuat">Chi tiết xuất kho (出仓)</span></span>
+        <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-xh-bang-xuat" data-ten-file="check-xuat-hang-chi-tiet"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
+    </div>
+    <div class="qa-mes-bang-wrap">
+        <table class="qa-mes-bang" id="qa-xh-bang-xuat">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Hoá đơn</th>
+                    <th>Phiếu xuất</th>
+                    <th>Barcode</th>
+                    <th>Mã lot</th>
+                    <th>Khách hàng</th>
+                    <th>Khách cuối</th>
+                    <th>Mã hàng</th>
+                    <th>Màu</th>
+                    <th>Loại</th>
+                    <th>SL xuất (Y)</th>
+                    <th>SL khách (M)</th>
+                    <th>KL tịnh (kg)</th>
+                    <th>Ngày nhập kho</th>
+                    <th>Ngày xuất</th>
+                    <th>Loại xuất</th>
+                    <th>Vị trí</th>
+                    <th>Giao hàng</th>
+                </tr>
+            </thead>
+            <tbody id="qa-xh-tbody-xuat">
+                <tr><td colspan="18" class="qa-mes-trong">Chưa có dữ liệu.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/qa-the-so-lieu.js?v=1"></script>
+    <script src="~/js/qa-check-xuat-hang.js?v=1"></script>
+    <script src="~/js/qa-xuat-excel.js?v=4"></script>
+}
