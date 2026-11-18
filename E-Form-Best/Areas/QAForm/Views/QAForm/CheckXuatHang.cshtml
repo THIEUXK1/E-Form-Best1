@@ -71,7 +71,11 @@
 @* Lưới kiểu Excel: qa-khieu-nai.js vẽ tiêu đề + dòng từ /QAForm/CheckXuatHang/KhieuNai.
    Ô sửa trực tiếp, rời ô là lưu; cột nền vàng nhạt = tự điền từ MES/WMS khi nhập mã lot. *@
 <div class="qa-card qa-mes-ketqua" id="qa-kn-the" data-tab="kn">
-    <div class="qa-ke-thongke gon" id="qa-kn-thongke"></div>
+    @* Đầu mỗi cột: ô gõ lọc + nút ▼ lọc/sắp xếp kiểu Excel; lọc + phân trang làm trên trình duyệt *@
+    <div class="qa-kn-thanh-tren">
+        <div class="qa-ke-thongke gon" id="qa-kn-thongke"></div>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="qa-kn-xoa-loc" hidden title="Bỏ mọi ô lọc, lọc ▼ và sắp xếp ở đầu cột"><i class="fa fa-times"></i> Xoá lọc cột</button>
+    </div>
     <div class="qa-mes-bang-wrap qa-kn-wrap">
         <table class="qa-kn-bang" id="qa-kn-bang">
             <thead id="qa-kn-thead"></thead>
@@ -79,6 +83,19 @@
                 <tr><td class="qa-mes-trong">Đang tải…</td></tr>
             </tbody>
         </table>
+    </div>
+    @* Phân trang phía trình duyệt: qa-khieu-nai.js vẽ nút trang *@
+    <div class="qa-mes-phantrang" id="qa-kn-phantrang" hidden>
+        <span id="qa-kn-trang-tt" class="qa-mes-trang-tt"></span>
+        <div id="qa-kn-trang-nut" class="qa-mes-trang-nut"></div>
+        <label class="qa-mes-trang-co">Mỗi trang
+            <select id="qa-kn-trang-co" class="form-select form-select-sm">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+                <option value="500">500</option>
+            </select>
+        </label>
     </div>
     <datalist id="qa-kn-goiy-chungloai"></datalist>
 </div>
@@ -160,6 +177,6 @@
 @section Scripts {
     <script src="~/js/qa-the-so-lieu.js?v=1"></script>
     <script src="~/js/qa-check-xuat-hang.js?v=3"></script>
-    <script src="~/js/qa-khieu-nai.js?v=5"></script>
+    <script src="~/js/qa-khieu-nai.js?v=8"></script>
     <script src="~/js/qa-xuat-excel.js?v=4"></script>
 }

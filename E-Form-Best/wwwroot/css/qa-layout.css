@@ -759,3 +759,59 @@ tr.qa-ls-khoiphuc td { color: #047857; }
 /* Ô chữ dài: 1 dòng như Excel khi không sửa, bấm vào mới bung ra nhiều dòng */
 .qa-kn-o.qa-kn-dai { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: none; }
 .qa-kn-o.qa-kn-dai:focus { white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
+/* Bảng khiếu nại: ô lọc + nút ▼ trong tiêu đề cột, thanh số liệu + nút xoá lọc */
+.qa-kn-thanh-tren { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.qa-kn-thanh-tren > .qa-ke-thongke { flex: 1 1 auto; margin-bottom: 0; }
+#qa-kn-the > .qa-kn-thanh-tren { margin-bottom: 10px; }
+.qa-kn-loc { display: flex; align-items: center; gap: 2px; margin-top: 4px; }
+.qa-kn-loc-o { flex: 1 1 auto; min-width: 0; width: 100%; height: 24px; padding: 1px 6px; font-size: .75rem; font-weight: 400;
+    border: 1px solid #cbd5e1; border-radius: 6px; background: rgba(255, 255, 255, .85); color: #0f172a; }
+.qa-kn-loc-o:focus { outline: 0; border-color: #10b981; background: #fff; box-shadow: 0 0 0 2px rgba(16, 185, 129, .2); }
+.qa-kn-loc-o.dang-loc { border-color: #f59e0b; background: #fffbeb; font-weight: 600; }
+.qa-kn-bang thead .qa-loc-nut { color: #475569; margin-left: 0; height: 24px; }
+.qa-kn-bang thead .qa-loc-nut.dang-loc { background: #f59e0b; color: #fff; }
+#qa-kn-phantrang { margin-top: 8px; }
+/* ===== Bảng khiếu nại — bản gọn (18/11): cột cố định độ rộng, tiêu đề 2 dòng, ô lọc thẳng hàng ===== */
+.qa-kn-bang { table-layout: fixed; min-width: 0; font-size: .8rem; }
+.qa-kn-bang thead th { min-width: 0 !important; padding: 5px 6px 6px; vertical-align: bottom; text-align: left; white-space: normal; border-bottom: 2px solid #94a3b8; }
+.qa-kn-bang thead th.qa-kn-vang { background: #fef3c7; }
+.qa-kn-bang thead th.qa-kn-xanh { background: #e0ecff; }
+.qa-kn-td { display: block; overflow: hidden; }
+.qa-kn-td b, .qa-kn-td small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qa-kn-td b { font-size: .78rem; font-weight: 700; color: #1e293b; }
+.qa-kn-td small { font-size: .7rem; font-weight: 500; color: #475569; margin-top: 1px; }
+.qa-kn-set { color: #d97706; font-size: .7rem; margin-left: 4px; }
+.qa-kn-bang thead th.qa-kn-stt, .qa-kn-bang thead th.qa-kn-nut-cot { text-align: center; vertical-align: middle; }
+.qa-kn-loc { margin-top: 5px; }
+.qa-kn-loc-o { height: 22px; font-size: .72rem; border-radius: 5px; }
+.qa-kn-bang thead .qa-loc-nut { height: 22px; padding: 0 5px; flex: 0 0 auto; }
+/* Ô dữ liệu: 1 dòng, cắt "…" theo độ rộng cột; bấm vào mới bung */
+.qa-kn-bang td { overflow: hidden; }
+.qa-kn-o, .qa-kn-input, .qa-kn-tt { max-width: none; min-height: 28px; padding: 4px 7px; }
+.qa-kn-o.qa-kn-dai { min-width: 0; max-width: none; }
+.qa-kn-input { min-width: 0; }
+.qa-kn-tt { min-width: 0; padding: 3px 4px; }
+.qa-kn-o:focus { position: relative; z-index: 1; }
+.qa-kn-bang .qa-kn-stt { font-size: .75rem; padding: 5px 2px; }
+.qa-kn-bang .qa-kn-nut-cot { padding: 2px; }
+.qa-kn-nut { width: 24px; height: 24px; font-size: .8rem; }
+/* Thẻ số liệu nhỏ gọn trên bảng khiếu nại */
+#qa-kn-thongke .qa-ke-tk { padding: 6px 12px; min-height: 0; }
+#qa-kn-thongke .qa-ke-tk b { font-size: 1.05rem; }
+#qa-kn-thongke .qa-ke-tk i { width: 28px; height: 28px; font-size: .85rem; }
+#qa-kn-thongke .qa-ke-tk span { font-size: .72rem; }
+/* Phân trang */
+#qa-kn-phantrang { justify-content: space-between; padding-top: 10px; }
+#qa-kn-trang-nut { display: inline-flex; gap: 4px; }
+.qa-kn-trang { min-width: 32px; height: 30px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #334155; font-size: .82rem; font-weight: 600; }
+.qa-kn-trang:hover:not(:disabled):not(.active) { background: #ecfdf5; border-color: #10b981; color: #065f46; }
+.qa-kn-trang.active { background: #065f46; border-color: #065f46; color: #fff; }
+.qa-kn-trang:disabled { opacity: .4; cursor: default; }
+#qa-kn-phantrang .qa-mes-trang-co { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+#qa-kn-phantrang .qa-mes-trang-co select { width: auto; }
+/* Thanh lọc bảng khiếu nại: ô ngày / trạng thái vừa khung (trước đây input 210px tràn khung 170px, đè ô bên cạnh) */
+#qa-kn-loc .qa-kn-o-ngay { width: 158px; max-width: none; flex: 0 0 auto; }
+#qa-kn-loc .qa-kn-o-tt { width: 124px; max-width: none; flex: 0 0 auto; }
+#qa-kn-loc .qa-kn-o-ngay .form-control, #qa-kn-loc .qa-kn-o-tt .form-select { width: 100%; min-width: 0; }
+#qa-kn-loc .qa-kn-o-ngay .form-control { padding-right: 8px; }
+#qa-kn-loc .qa-kn-o-ngay .form-control::-webkit-calendar-picker-indicator { margin-left: 2px; cursor: pointer; opacity: .6; }

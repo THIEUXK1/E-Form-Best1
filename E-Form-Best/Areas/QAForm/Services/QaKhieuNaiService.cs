@@ -62,7 +62,7 @@ namespace E_Form_Best.Areas.QAForm.Services
         public record KetQua(bool ThanhCong, string ThongBao, Dictionary<string, object?>? Dong = null);
         public record LocDs(DateTime? TuNgay, DateTime? DenNgay, string? TrangThai, string? TuKhoa);
 
-        private const int TranDong = 5000;
+        private const int TranDong = 20000;
 
         private readonly ITFormContext _db;
         private readonly CheckXuatHangService _xuatHang;
@@ -102,8 +102,8 @@ namespace E_Form_Best.Areas.QAForm.Services
                 q = q.Where(x => x.MaLot!.Contains(k) || x.Po!.Contains(k) || x.NhaMay!.Contains(k) || x.KhachCuoi!.Contains(k)
                     || x.MaHang!.Contains(k) || x.KhoRong!.Contains(k) || x.MauKhach!.Contains(k) || x.MaMauNoiBo!.Contains(k)
                     || x.ChungLoai!.Contains(k) || x.VanDe!.Contains(k) || x.GhiChu!.Contains(k) || x.CarNo!.Contains(k));
-            // Giữ thứ tự như file: theo ngày khiếu nại rồi thứ tự nhập; dòng chưa có ngày (vừa thêm) xuống cuối
-            return q.OrderBy(x => x.NgayKhieuNai == null).ThenBy(x => x.NgayKhieuNai).ThenBy(x => x.IdKhieuNai);
+            // Ngày khiếu nại mới nhất lên đầu, cùng ngày thì dòng nhập sau lên trước; dòng không đọc được ngày xuống cuối
+            return q.OrderBy(x => x.NgayKhieuNai == null).ThenByDescending(x => x.NgayKhieuNai).ThenByDescending(x => x.IdKhieuNai);
         }
 
         public async Task<(List<Dictionary<string, object?>> ds, int tong)> DanhSachAsync(LocDs loc, CancellationToken ct)
