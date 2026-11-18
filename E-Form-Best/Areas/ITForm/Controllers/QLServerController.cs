@@ -558,6 +558,9 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 var kq = await ServerSnmpService.DocAsync(ip, com, het.Token);
                 if (kq == null)
                     return Json(new { thanhCong = false, thongBao = $"{ip} không trả lời SNMP: sai community, thiết bị chưa bật SNMP v2c, hoặc máy chủ web ({Environment.MachineName}) không thông mạng tới thiết bị." });
+                // MSA: lấy thêm dung lượng pool / RAID qua API để điền form
+                if (kq.Nguon == "HPE MSA" && MsaApiService.TaiKhoan(_configuration, cty) is { } tk)
+                    await MsaApiService.BoSungAsync(kq, ip, tk.User, tk.Pass, het.Token);
 
                 return Json(new
                 {

@@ -191,6 +191,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                     }
                 }
                 if (kq == null) loi = $"Không đọc được SNMP từ {string.Join(", ", dsIp)} (community sai, chưa bật SNMP hoặc không thông mạng).";
+
+                // MSA: SNMP không có ổ cứng / pool → bổ sung qua API HTTPS nếu đã cấu hình tài khoản monitor
+                if (kq?.Nguon == "HPE MSA" && MsaApiService.TaiKhoan(cfg, sv.CongTy) is { } tk)
+                    await MsaApiService.BoSungAsync(kq, kq.Ip!, tk.User, tk.Pass, ct);
             }
 
             if (kq != null) await DienThongTinTrongAsync(db, idServer, kq, ct);
