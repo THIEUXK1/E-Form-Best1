@@ -66,6 +66,51 @@ button.sv-sk:hover { filter: brightness(.95); }
 .sv-sk-chi-tiet > div { display: flex; justify-content: space-between; gap: 8px; }
 .sv-sk-su-kien { max-height: 320px; overflow-y: auto; }
 
+/* ---------- Tủ đĩa HPE MSA: thẻ số lượng, sơ đồ khay, pool ---------- */
+.sv-msa-the-hang { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.sv-msa-the { flex: 1 1 90px; min-width: 90px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 10px; background: #f8fafc; }
+.sv-msa-the-so { font-size: 1.25rem; font-weight: 800; line-height: 1.2; color: #1e293b; }
+.sv-msa-the-nhan { font-size: .75rem; color: #64748b; }
+.sv-msa-the-du-lieu { background: #ecfdf5; border-color: #bbf7d0; }
+.sv-msa-the-du-phong { background: #eff6ff; border-color: #bfdbfe; }
+.sv-msa-the-trong { background: #fff; border-style: dashed; }
+.sv-msa-the-ok .sv-msa-the-so { color: #16a34a; }
+.sv-msa-the-cb { background: #fffbeb; border-color: #fde68a; }
+.sv-msa-the-cb .sv-msa-the-so { color: #b45309; }
+.sv-msa-the-loi { background: #fef2f2; border-color: #fecaca; }
+.sv-msa-the-loi .sv-msa-the-so { color: #dc2626; }
+
+.sv-msa-khung-dau { display: flex; align-items: center; margin: 8px 0 4px; }
+.sv-msa-khung-cuon { overflow-x: auto; padding-bottom: 2px; }
+.sv-msa-khung { display: grid; gap: 3px; padding: 6px; border-radius: 8px; background: #334155; }
+.sv-msa-khay {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    min-height: 54px; padding: 3px 4px; border-radius: 4px; border: 2px solid transparent;
+    font-size: .72rem; line-height: 1.2; cursor: pointer; overflow: hidden; transition: opacity .15s, box-shadow .15s;
+}
+.sv-msa-khung-hep .sv-msa-khay { min-height: 96px; padding: 3px 0; }
+.sv-msa-khe { font-weight: 800; }
+.sv-msa-khay-nhom { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.sv-msa-khung-hep .sv-msa-khay-nhom { writing-mode: vertical-rl; transform: rotate(180deg); margin-top: 4px; max-height: 70px; }
+.sv-msa-khay-phu { color: inherit; opacity: .8; }
+.sv-khay-du-lieu { background: #22c55e; color: #052e16; }
+.sv-khay-du-phong { background: #60a5fa; color: #0c1f3f; }
+.sv-khay-chua-dung { background: #cbd5e1; color: #1e293b; }
+.sv-khay-bi-loai { background: #ef4444; color: #fff; }
+.sv-khay-trong { background: transparent; border: 2px dashed #64748b; color: #94a3b8; cursor: default; }
+.sv-khay-cb { background: #f59e0b; color: #451a03; border-color: #fff; }
+.sv-khay-loi { background: #ef4444; color: #fff; border-color: #fff; animation: sv-khay-nhay 1.2s infinite; }
+@keyframes sv-khay-nhay { 50% { box-shadow: 0 0 0 3px rgba(239, 68, 68, .55); } }
+.sv-khay-chon { border-color: #fff; box-shadow: 0 0 0 2px #0ea5e9; }
+.sv-khay-mo { opacity: .25; }
+.sv-khay-to { border-color: #fff; }
+.sv-msa-chu-giai { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; }
+.sv-msa-chu-giai span { display: inline-flex; align-items: center; gap: 5px; }
+.sv-msa-o { display: inline-block; width: 12px; height: 12px; border-radius: 3px; animation: none; }
+.sv-msa-ct { margin-top: 8px; padding: 8px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: .8rem; }
+.sv-msa-pool-luoi { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.sv-msa-pool { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 10px; }
+
 /* Bấm cả dòng để mở chi tiết */
 #svTableBody tr { cursor: pointer; }
 

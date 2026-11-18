@@ -63,6 +63,8 @@ namespace E_Form_Best.Areas.ITForm.Services
             public decimal? DungLuongTb { get; set; }
             public decimal? DaDungTb { get; set; }
             public string? GhiChu { get; set; }
+            /// <summary>HPE MSA đọc thêm qua API: sơ đồ khay ổ, disk group, pool (null = không phải MSA / chưa cấu hình API).</summary>
+            public MsaApiService.ThongTin? Msa { get; set; }
         }
 
         private const string SysDescr = "1.3.6.1.2.1.1.1.0", SysObjectId = "1.3.6.1.2.1.1.2.0", SysName = "1.3.6.1.2.1.1.5.0";

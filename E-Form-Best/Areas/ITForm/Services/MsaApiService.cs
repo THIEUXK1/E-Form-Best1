@@ -8,8 +8,9 @@ namespace E_Form_Best.Areas.ITForm.Services
     /// <summary>
     /// Bổ sung sức khoẻ tủ đĩa HPE MSA qua API HTTPS (XML) — SNMP của MSA không đưa ổ cứng / pool ra.
     /// Dùng tài khoản role monitor (chỉ đọc) trong .env: MsaApi__User / MsaApi__Pass (ghi đè: MsaApi__BPVN__User ...).
-    /// Đăng nhập: /api/login/{băm "user_pass"} — MSA 2050/2060 băm SHA-256, MSA 2040 băm MD5 → thử lần lượt.
-    /// Đọc: show system / disks / disk-groups / pools, rồi /api/exit để không giữ phiên trên controller.
+    /// Đăng nhập: /api/login/{băm "user_pass"} — MSA 2060 băm SHA-256, MSA 2040 băm MD5 → thử lần lượt.
+    /// Đọc: show system / enclosures / disks / disk-groups / pools, rồi /api/exit để không giữ phiên trên controller.
+    /// Kết quả: vài mục tóm tắt vào DsMuc (để tính trạng thái + nhật ký) và KetQua.Msa (sơ đồ khay ổ, disk group, pool cho trang).
     /// </summary>
     public static class MsaApiService
     {
@@ -22,6 +23,31 @@ namespace E_Form_Best.Areas.ITForm.Services
         { Timeout = TimeSpan.FromSeconds(30) };
 
         private const decimal MotTb = 1024m * 1024 * 1024 * 1024;
+
+        // ===== Dữ liệu cho sơ đồ trên trang (serialize vào KK_ServerSucKhoe.du_lieu, khoá "msa") =====
+
+        /// <summary>Khung đĩa (enclosure): SoCot x SoHang khe, đánh số khe từ 1 trái → phải, trên → dưới.</summary>
+        public record Khung(int Id, string? MoTa, int SoKhe, int SoCot, int SoHang, string TrangThai);
+
+        /// <summary>1 ổ trong khe. VaiTro: DuLieu / DuPhong / ChuaDung / BiLoai.</summary>
+        public record Khay(int IdKhung, int Khe, string VaiTro, string TrangThai, string? DiskGroup, string? Pool,
+            string? DungLuong, string? Loai, string? NhietDo, Dictionary<string, string> ChiTiet);
+
+        public record DiskGroup(string Ten, string? Pool, string? Raid, int SoO, string? DungLuong, string? Trong, string TrangThai, string MoTa);
+
+        public record Pool(string Ten, decimal? TongTb, decimal? DaDungTb, string TrangThai, int SoDiskGroup);
+
+        /// <summary>Thành phần MSA tự báo không khoẻ (unhealthy-component): cổng mạng, quạt, nguồn...</summary>
+        public record ThanhPhanLoi(string Ten, string TrangThai, string? LyDo, string? KhuyenNghi);
+
+        public class ThongTin
+        {
+            public List<Khung> DsKhung { get; } = new();
+            public List<Khay> DsKhay { get; } = new();
+            public List<DiskGroup> DsDiskGroup { get; } = new();
+            public List<Pool> DsPool { get; } = new();
+            public List<ThanhPhanLoi> DsThanhPhanLoi { get; } = new();
+        }
 
         /// <summary>Tài khoản theo công ty, rồi cấu hình chung; null = chưa cấu hình → chỉ dùng SNMP.</summary>
         public static (string User, string Pass)? TaiKhoan(IConfiguration cfg, string? congTy)
@@ -41,7 +67,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             var goc = $"https://{ip}/api/";
             string? khoa;
             try { khoa = await DangNhapAsync(goc, user, pass, ct); }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Xml.XmlException && !ct.IsCancellationRequested)
             {
                 return ThemLoi(kq, $"Không kết nối được API HTTPS {ip}: {ex.Message}");
             }
@@ -50,16 +76,19 @@ namespace E_Form_Best.Areas.ITForm.Services
             try
             {
                 var system = await DocAsync(goc, "show/system", khoa, ct);
+                var enclosures = await DocAsync(goc, "show/enclosures", khoa, ct);
                 var disks = await DocAsync(goc, "show/disks", khoa, ct);
                 var dgs = await DocAsync(goc, "show/disk-groups", khoa, ct);
                 var pools = await DocAsync(goc, "show/pools", khoa, ct);
 
+                var tt = new ThongTin();
+                kq.Msa = tt;
                 kq.GhiChu = null;
-                if (!kq.Nguon!.Contains("API")) kq.Nguon += " (SNMP + API)";
-                HeThong(kq, system);
-                OCung(kq, disks);
-                DiskGroupVaPool(kq, dgs, pools);
-                if (disks.Count == 0) kq.DsMuc.Add(new ServerSnmpService.Muc("Ổ cứng", "Danh sách ổ", ServerSnmpService.KhongRo, "API không trả ổ nào"));
+                HeThong(kq, DsDoiTuong(system, "system"));
+                ThanhPhanKhongKhoe(kq, tt, DsDoiTuong(system, "unhealthy-component").Concat(DsDoiTuong(enclosures, "unhealthy-component")));
+                KhungDia(tt, DsDoiTuong(enclosures, "enclosures"));
+                OCung(kq, tt, DsDoiTuong(disks, "drives"));
+                DiskGroupVaPool(kq, tt, DsDoiTuong(dgs, "disk-groups"), DsDoiTuong(pools, "pools"));
                 return null;
             }
             catch (Exception ex) when (ex is HttpRequestException or System.Xml.XmlException or TaskCanceledException && !ct.IsCancellationRequested)
@@ -85,8 +114,7 @@ namespace E_Form_Best.Areas.ITForm.Services
             {
                 using var r = await GuiAsync(goc + "login/" + Convert.ToHexString(bam).ToLowerInvariant(), null, ct);
                 if (!r.IsSuccessStatusCode) continue;
-                var ds = DsDoiTuong(XDocument.Parse(await r.Content.ReadAsStringAsync(ct)), "status");
-                var st = ds.FirstOrDefault();
+                var st = DsDoiTuong(XDocument.Parse(await r.Content.ReadAsStringAsync(ct)), "status").FirstOrDefault();
                 if (st != null && st.GetValueOrDefault("response-type-numeric") == "0" && !string.IsNullOrWhiteSpace(st.GetValueOrDefault("response")))
                     return st["response"];
             }
@@ -105,16 +133,14 @@ namespace E_Form_Best.Areas.ITForm.Services
             return await Http.SendAsync(req, ct);
         }
 
-        private static async Task<List<Dictionary<string, string>>> DocAsync(string goc, string lenh, string khoa, CancellationToken ct)
+        private static async Task<XDocument> DocAsync(string goc, string lenh, string khoa, CancellationToken ct)
         {
             using var r = await GuiAsync(goc + lenh, khoa, ct);
             r.EnsureSuccessStatusCode();
-            var xml = XDocument.Parse(await r.Content.ReadAsStringAsync(ct));
-            var basetype = lenh[(lenh.LastIndexOf('/') + 1)..] switch { "disks" => "drives", var x => x };
-            return DsDoiTuong(xml, basetype);
+            return XDocument.Parse(await r.Content.ReadAsStringAsync(ct));
         }
 
-        /// <summary>Mỗi OBJECT basetype=... → từ điển PROPERTY name → giá trị.</summary>
+        /// <summary>Mỗi OBJECT basetype=... (kể cả lồng trong object khác) → từ điển PROPERTY name → giá trị.</summary>
         private static List<Dictionary<string, string>> DsDoiTuong(XDocument xml, string basetype)
             => xml.Descendants("OBJECT").Where(o => (string?)o.Attribute("basetype") == basetype)
                 .Select(o => o.Elements("PROPERTY")
@@ -131,112 +157,169 @@ namespace E_Form_Best.Areas.ITForm.Services
             _ => ServerSnmpService.KhongRo
         };
 
+        private static string Nang(string a, string b)
+        {
+            int Hang(string x) => x switch { ServerSnmpService.Loi => 3, ServerSnmpService.CanhBao => 2, ServerSnmpService.Ok => 1, _ => 0 };
+            return Hang(a) >= Hang(b) ? a : b;
+        }
+
         private static string? Gt(Dictionary<string, string> d, string khoa)
             => d.TryGetValue(khoa, out var v) && !string.IsNullOrWhiteSpace(v) && v != "N/A" ? v : null;
+
+        private static int So(Dictionary<string, string> d, string khoa) => int.TryParse(Gt(d, khoa), out var n) ? n : 0;
 
         private static void HeThong(ServerSnmpService.KetQua kq, List<Dictionary<string, string>> ds)
         {
             var s = ds.FirstOrDefault();
             if (s == null) return;
-            var ten = Gt(s, "system-name");
-            if (ten != null) kq.ThongTin["Tên hệ thống (MSA)"] = ten;
+            if (Gt(s, "system-name") is { } ten) kq.ThongTin["Tên hệ thống (MSA)"] = ten;
             if (Gt(s, "product-id") is { } model) kq.Model ??= model;
             if (Gt(s, "midplane-serial-number") is { } sn) kq.Serial ??= sn;
             kq.Hang ??= Gt(s, "vendor-name");
             var tt = TrangThaiHealth(Gt(s, "health"));
-            var lyDo = Gt(s, "health-reason");
             kq.DsMuc.Add(new ServerSnmpService.Muc("Tổng thể", "Tình trạng hệ thống (API)", tt,
-                tt == ServerSnmpService.Ok ? "OK" : Noi(Gt(s, "health"), lyDo, Gt(s, "health-recommendation"))));
+                tt == ServerSnmpService.Ok ? "OK" : Noi(Gt(s, "health"), Gt(s, "health-reason"))));
         }
 
-        /// <summary>Từng ổ: health + usage (LEFTOVR / FAILED = ổ bị loại khỏi mảng).</summary>
-        private static void OCung(ServerSnmpService.KetQua kq, List<Dictionary<string, string>> ds)
+        /// <summary>MSA tự liệt kê thành phần không khoẻ kèm lý do + khuyến nghị — đây là chỗ giải thích "Degraded".</summary>
+        private static void ThanhPhanKhongKhoe(ServerSnmpService.KetQua kq, ThongTin tt, IEnumerable<Dictionary<string, string>> ds)
         {
+            foreach (var c in ds.GroupBy(x => Gt(x, "component-id") ?? Gt(x, "primary-key") ?? "").Select(g => g.First()))
+            {
+                var ten = Gt(c, "component-id") ?? Gt(c, "component-type") ?? "Thành phần";
+                var t = TrangThaiHealth(Gt(c, "health"));
+                if (t == ServerSnmpService.KhongRo) t = ServerSnmpService.CanhBao;
+                var lyDo = Gt(c, "health-reason");
+                tt.DsThanhPhanLoi.Add(new ThanhPhanLoi(ten, t, lyDo, Gt(c, "health-recommendation")));
+                kq.DsMuc.Add(new ServerSnmpService.Muc("Tổng thể", ten, t, lyDo ?? Gt(c, "health")));
+            }
+        }
+
+        private static void KhungDia(ThongTin tt, List<Dictionary<string, string>> ds)
+        {
+            foreach (var e in ds.OrderBy(x => So(x, "enclosure-id")))
+            {
+                var soKhe = So(e, "slots");
+                if (soKhe <= 0) soKhe = So(e, "number-of-disks");
+                var cot = So(e, "columns");
+                var hang = So(e, "rows");
+                if (cot <= 0 || hang <= 0) { cot = soKhe; hang = 1; }
+                tt.DsKhung.Add(new Khung(So(e, "enclosure-id"), Gt(e, "description") ?? Gt(e, "model"), soKhe, cot, hang, TrangThaiHealth(Gt(e, "health"))));
+            }
+        }
+
+        /// <summary>Từng ổ: health + usage (VIRTUAL POOL / GLOBAL SP / DEDICATED SP / AVAIL / LEFTOVR / FAILED).</summary>
+        private static void OCung(ServerSnmpService.KetQua kq, ThongTin tt, List<Dictionary<string, string>> ds)
+        {
+            var tong = ServerSnmpService.Ok;
             foreach (var d in ds.OrderBy(x => ViTri(Gt(x, "location"))))
             {
                 var viTri = Gt(d, "location") ?? Gt(d, "durable-id") ?? "?";
-                var usage = Gt(d, "usage") ?? "";
-                var tt = TrangThaiHealth(Gt(d, "health"));
-                var uU = usage.ToUpperInvariant();
-                if (uU.Contains("LEFTOVR") || uU.Contains("FAILED")) tt = ServerSnmpService.Loi;
+                var usage = (Gt(d, "usage") ?? "").ToUpperInvariant();
+                var t = TrangThaiHealth(Gt(d, "health"));
+                var vaiTro = usage switch
+                {
+                    var u when u.Contains("LEFTOVR") || u.Contains("FAILED") => "BiLoai",
+                    var u when u.EndsWith(" SP") || u.Contains("SPARE") => "DuPhong",
+                    "AVAIL" => "ChuaDung",
+                    _ => "DuLieu"
+                };
+                if (vaiTro == "BiLoai") t = ServerSnmpService.Loi;
                 var job = Gt(d, "current-job") ?? Gt(d, "job-running");
                 // Dựng lại RAID trên ổ (RCON / CPYBK) = mảng đang thiếu ổ, cảnh báo cho tới khi xong
-                if (tt == ServerSnmpService.Ok && job != null && (job.Contains("RCON") || job.Contains("CPYBK"))) tt = ServerSnmpService.CanhBao;
-
-                var dungLuong = Gt(d, "size");
-                var nhom = Gt(d, "disk-group");
-                var vaiTro = uU switch
-                {
-                    var u when u.Contains("SPARE") => "ổ dự phòng",
-                    "AVAIL" => "chưa dùng",
-                    _ => null
-                };
-                var giaTri = Noi(dungLuong, Gt(d, "description"), nhom ?? vaiTro, Gt(d, "temperature"),
-                    tt == ServerSnmpService.Ok ? null : Noi(Gt(d, "health"), Gt(d, "health-reason")));
+                if (t == ServerSnmpService.Ok && job != null && (job.Contains("RCON") || job.Contains("CPYBK"))) t = ServerSnmpService.CanhBao;
 
                 var chiTiet = new Dictionary<string, string>();
                 void Them(string nhan, string? v) { if (!string.IsNullOrWhiteSpace(v)) chiTiet[nhan] = v; }
+                Them("Vị trí", viTri);
                 Them("Hãng / model", Noi(Gt(d, "vendor"), Gt(d, "model")));
                 Them("Serial", Gt(d, "serial-number"));
-                Them("Dung lượng", dungLuong);
+                Them("Dung lượng", Gt(d, "size"));
                 Them("Loại", Noi(Gt(d, "description"), Gt(d, "storage-tier")));
-                Them("Disk group / pool", Noi(nhom, Gt(d, "storage-pool-name")));
-                Them("Vai trò", usage);
-                Them("Trạng thái", Noi(Gt(d, "status"), (Gt(d, "led-status") ?? "").Trim()));
+                Them("Disk group / pool", Noi(Gt(d, "disk-group"), Gt(d, "storage-pool-name")));
+                Them("Vai trò", Gt(d, "usage"));
+                Them("Trạng thái", Noi(Gt(d, "status"), Gt(d, "led-status")));
                 Them("Sức khoẻ", Noi(Gt(d, "health"), Gt(d, "health-reason")));
-                Them("Khuyến nghị", Gt(d, "health-recommendation"));
+                if (t != ServerSnmpService.Ok) Them("Khuyến nghị", Gt(d, "health-recommendation"));
                 Them("Nhiệt độ", Gt(d, "temperature"));
                 if (long.TryParse(Gt(d, "power-on-hours"), out var gio)) Them("Giờ hoạt động", $"{gio:N0} giờ (~{gio / 8760.0:0.#} năm)");
                 Them("SSD còn lại", Gt(d, "ssd-life-left"));
                 Them("Tác vụ đang chạy", job);
                 if (long.TryParse(Gt(d, "error"), out var loi) && loi > 0) Them("Lỗi", loi.ToString());
 
-                kq.DsMuc.Add(new ServerSnmpService.Muc("Ổ cứng", "Ổ " + viTri, tt, giaTri, chiTiet.Count > 0 ? chiTiet : null));
+                var (khung, khe) = ViTri(viTri);
+                tt.DsKhay.Add(new Khay(khung, khe, vaiTro, t, Gt(d, "disk-group"), Gt(d, "storage-pool-name"),
+                    Gt(d, "size"), Gt(d, "description"), Gt(d, "temperature"), chiTiet));
+
+                // Chỉ ổ bất thường mới thành mục riêng (để vào tóm tắt + nhật ký); ổ tốt xem trên sơ đồ khay
+                if (t != ServerSnmpService.Ok)
+                {
+                    kq.DsMuc.Add(new ServerSnmpService.Muc("Ổ cứng", "Ổ " + viTri, t,
+                        Noi(Gt(d, "size"), Gt(d, "disk-group"), Gt(d, "health"), Gt(d, "health-reason"), vaiTro == "BiLoai" ? "bị loại khỏi mảng" : null), chiTiet));
+                    tong = Nang(tong, t);
+                }
             }
+
+            var soDuPhong = tt.DsKhay.Count(x => x.VaiTro == "DuPhong");
+            var soLoi = tt.DsKhay.Count(x => x.TrangThai != ServerSnmpService.Ok);
+            kq.DsMuc.Add(new ServerSnmpService.Muc("Ổ cứng", "Tổng số ổ", ds.Count == 0 ? ServerSnmpService.KhongRo : tong,
+                Noi($"{ds.Count} ổ", $"{tt.DsKhay.Count(x => x.VaiTro == "DuLieu")} dữ liệu", $"{soDuPhong} dự phòng",
+                    tt.DsKhay.Count(x => x.VaiTro == "ChuaDung") is > 0 and var cd ? $"{cd} chưa dùng" : null,
+                    soLoi > 0 ? $"{soLoi} bất thường" : null)));
+            // Không còn ổ dự phòng = hỏng ổ tiếp theo phải chờ thay tay mới dựng lại RAID
+            kq.DsMuc.Add(new ServerSnmpService.Muc("Ổ cứng", "Ổ dự phòng", soDuPhong > 0 ? ServerSnmpService.Ok : ServerSnmpService.CanhBao,
+                soDuPhong > 0 ? $"{soDuPhong} ổ sẵn sàng" : "Không có ổ dự phòng"));
         }
 
-        /// <summary>Pool → bảng RAID (mỗi pool 1 khối, disk group là ổ logic); dung lượng tủ = tổng pool.</summary>
-        private static void DiskGroupVaPool(ServerSnmpService.KetQua kq, List<Dictionary<string, string>> dgs, List<Dictionary<string, string>> pools)
+        /// <summary>Disk group + pool → bảng trên sơ đồ; dung lượng tủ = tổng pool.</summary>
+        private static void DiskGroupVaPool(ServerSnmpService.KetQua kq, ThongTin tt, List<Dictionary<string, string>> dgs, List<Dictionary<string, string>> pools)
         {
+            var ttRaid = ServerSnmpService.Ok;
+            foreach (var g in dgs.OrderBy(x => Gt(x, "pool")).ThenBy(x => Gt(x, "name")))
+            {
+                var (t, moTa) = TrangThaiDiskGroup(g);
+                var ten = Gt(g, "name") ?? "?";
+                tt.DsDiskGroup.Add(new DiskGroup(ten, Gt(g, "pool"), Gt(g, "raidtype"), So(g, "diskcount"), Gt(g, "size"), Gt(g, "freespace"), t, moTa));
+                if (t != ServerSnmpService.Ok)
+                {
+                    kq.DsMuc.Add(new ServerSnmpService.Muc("RAID", "Disk group " + ten, t, Noi(Gt(g, "raidtype"), moTa)));
+                    ttRaid = Nang(ttRaid, t);
+                }
+            }
+            if (dgs.Count > 0)
+                kq.DsMuc.Add(new ServerSnmpService.Muc("RAID", "Disk group", ttRaid,
+                    $"{dgs.Count} disk group" + (ttRaid == ServerSnmpService.Ok ? " — bình thường" : $" — {tt.DsDiskGroup.Count(x => x.TrangThai != ServerSnmpService.Ok)} bất thường")));
+
             decimal tong = 0, trong = 0;
-            var tomTat = new List<string>();
             foreach (var p in pools.OrderBy(x => Gt(x, "name")))
             {
                 var ten = Gt(p, "name") ?? "?";
-                var ttPool = TrangThaiHealth(Gt(p, "health"));
-                var dsO = new List<ServerSnmpService.ORaid>();
-                foreach (var g in dgs.Where(x => Gt(x, "pool") == ten).OrderBy(x => Gt(x, "name")))
-                {
-                    var (tt, moTa) = TrangThaiDiskGroup(g);
-                    if (tt == ServerSnmpService.Loi || (tt == ServerSnmpService.CanhBao && ttPool == ServerSnmpService.Ok)) ttPool = tt;
-                    dsO.Add(new ServerSnmpService.ORaid(
-                        $"{Gt(g, "name")} ({Gt(g, "diskcount")} ổ)", Gt(g, "raidtype"), Gt(g, "size"), tt, moTa));
-                    tomTat.Add(Gt(g, "raidtype") ?? "");
-                }
-                kq.DsRaid.Add(new ServerSnmpService.BoDieuKhienRaid("Pool " + ten, null, ttPool, dsO));
-
+                var t = TrangThaiHealth(Gt(p, "health"));
+                foreach (var g in tt.DsDiskGroup.Where(x => x.Pool == ten)) t = Nang(t, g.TrangThai);
+                decimal? tongTb = null, dungTb = null;
                 // *-numeric tính theo block 512 byte
-                if (decimal.TryParse(Gt(p, "total-size-numeric"), NumberStyles.Number, CultureInfo.InvariantCulture, out var t) &&
-                    decimal.TryParse(Gt(p, "total-avail-numeric"), NumberStyles.Number, CultureInfo.InvariantCulture, out var a) && t > 0)
+                if (decimal.TryParse(Gt(p, "total-size-numeric"), NumberStyles.Number, CultureInfo.InvariantCulture, out var ts) &&
+                    decimal.TryParse(Gt(p, "total-avail-numeric"), NumberStyles.Number, CultureInfo.InvariantCulture, out var ta) && ts > 0)
                 {
-                    tong += t * 512;
-                    trong += a * 512;
-                    var tyLe = (t - a) / t;
-                    // Pool thin-provisioning đầy là volume ghi lỗi ngay, ngưỡng high-threshold MSA ~ 96–99 % nên tự cảnh báo sớm ở 90 %
+                    tong += ts * 512;
+                    trong += ta * 512;
+                    tongTb = Math.Round(ts * 512 / MotTb, 2);
+                    dungTb = Math.Round((ts - ta) * 512 / MotTb, 2);
+                    var tyLe = (ts - ta) / ts;
+                    // Pool thin-provisioning đầy là volume ghi lỗi ngay; ngưỡng MSA ~ 96–99 % nên tự cảnh báo sớm ở 90 %
                     var ttDl = tyLe >= 0.95m ? ServerSnmpService.Loi : tyLe >= 0.9m ? ServerSnmpService.CanhBao : ServerSnmpService.Ok;
-                    kq.DsMuc.Add(new ServerSnmpService.Muc("Dung lượng", "Pool " + ten, ttDl,
-                        $"{(t - a) * 512 / MotTb:0.##} / {t * 512 / MotTb:0.##} TB ({tyLe:P0})"));
+                    t = Nang(t, ttDl);
+                    kq.DsMuc.Add(new ServerSnmpService.Muc("Dung lượng", "Pool " + ten, ttDl, $"{dungTb:0.##} / {tongTb:0.##} TB ({tyLe:P0})"));
                 }
-                kq.DsMuc.Add(new ServerSnmpService.Muc("RAID", "Pool " + ten, ttPool,
-                    ttPool == ServerSnmpService.Ok ? $"{dsO.Count} disk group — bình thường"
-                        : string.Join("; ", dsO.Where(x => x.TrangThai != ServerSnmpService.Ok).Select(x => $"{x.Ten}: {x.MoTa}"))));
+                tt.DsPool.Add(new Pool(ten, tongTb, dungTb, t, tt.DsDiskGroup.Count(x => x.Pool == ten)));
             }
             if (tong > 0)
             {
                 kq.DungLuongTb = Math.Round(tong / MotTb, 2);
                 kq.DaDungTb = Math.Round((tong - trong) / MotTb, 2);
             }
-            if (tomTat.Count > 0) kq.RaidTomTat ??= string.Join(" + ", tomTat.GroupBy(x => x).Select(g => g.Count() > 1 ? $"{g.Key} x{g.Count()}" : g.Key));
+            var dsRaid = tt.DsDiskGroup.Select(x => x.Raid).Where(x => x != null).ToList();
+            if (dsRaid.Count > 0) kq.RaidTomTat ??= string.Join(" + ", dsRaid.GroupBy(x => x).Select(g => g.Count() > 1 ? $"{g.Key} x{g.Count()}" : g.Key));
         }
 
         /// <summary>status: FTOL bình thường; FTDN thiếu ổ còn chịu lỗi; CRIT thiếu ổ hết chịu lỗi; OFFL / QTxx / STOP mất mảng.</summary>
@@ -247,11 +330,10 @@ namespace E_Form_Best.Areas.ITForm.Services
             var tienDo = Gt(g, "current-job-completion");
             var (tt, moTa) = st switch
             {
-                "FTOL" => (ServerSnmpService.Ok, "Bình thường"),
+                "FTOL" or "UP" => (ServerSnmpService.Ok, "Bình thường"),
                 "FTDN" => (ServerSnmpService.CanhBao, "Suy giảm — thiếu ổ, vẫn chịu lỗi"),
                 "CRIT" => (ServerSnmpService.Loi, "NGUY CẤP — hỏng thêm 1 ổ là mất dữ liệu"),
                 "OFFL" or "STOP" or "QTOF" or "QTCR" or "QTDN" => (ServerSnmpService.Loi, "Mất mảng / offline (" + st + ")"),
-                "UP" => (ServerSnmpService.Ok, "Bình thường"),
                 _ => (TrangThaiHealth(Gt(g, "health")), st.Length > 0 ? st : "Không rõ")
             };
             // VRSC/MDRC = quét lỗi định kỳ (scrub), không đáng lo; RCON = đang dựng lại sau khi thay ổ
@@ -265,11 +347,10 @@ namespace E_Form_Best.Areas.ITForm.Services
             };
             if (tenJob == "đang dựng lại RAID" && tt == ServerSnmpService.Ok) tt = ServerSnmpService.CanhBao;
             if (tenJob != null) moTa += $" · {tenJob}" + (tienDo != null ? $" {tienDo}" : "");
-            if (Gt(g, "freespace") is { } trong) moTa += $" · trống {trong}";
             return (tt, moTa);
         }
 
-        /// <summary>"1.10" → (1, 10) để sắp đúng thứ tự khay.</summary>
+        /// <summary>"1.10" → (1, 10).</summary>
         private static (int, int) ViTri(string? s)
         {
             var p = (s ?? "").Split('.');

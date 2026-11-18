@@ -161,6 +161,131 @@
             }).join('') + '</div></div>';
     }
 
+    // ===== Tủ đĩa HPE MSA (đọc qua API): số lượng ổ, sơ đồ khay, disk group, pool, thành phần lỗi =====
+    var msaDangXem = null;
+    var VAI_TRO_KHAY = {
+        DuLieu: { nhan: 'Dữ liệu', lop: 'sv-khay-du-lieu' },
+        DuPhong: { nhan: 'Dự phòng', lop: 'sv-khay-du-phong' },
+        ChuaDung: { nhan: 'Chưa dùng', lop: 'sv-khay-chua-dung' },
+        BiLoai: { nhan: 'Bị loại', lop: 'sv-khay-bi-loai' }
+    };
+
+    function lopTrangThai(tt) { return tt === 'LOI' ? 'text-danger fw-bold' : tt === 'CANH_BAO' ? 'text-warning fw-bold' : ''; }
+
+    function veMsa(msa) {
+        msaDangXem = msa || null;
+        if (!msa || !msa.dsKhay) return '';
+        var dsKhay = msa.dsKhay, dsKhung = msa.dsKhung || [];
+        var dem = function (f) { return dsKhay.filter(f).length; };
+        var soKhe = dsKhung.reduce(function (s, k) { return s + (k.soKhe || 0); }, 0);
+        var soLoi = dem(function (k) { return k.trangThai === 'LOI'; });
+        var soCb = dem(function (k) { return k.trangThai === 'CANH_BAO'; });
+        var the = function (nhan, so, lop, tieuDe) {
+            return '<div class="sv-msa-the ' + (lop || '') + '"' + (tieuDe ? ' title="' + esc(tieuDe) + '"' : '') + '><div class="sv-msa-the-so">' + so + '</div><div class="sv-msa-the-nhan">' + esc(nhan) + '</div></div>';
+        };
+
+        var html = '<div class="sv-sk-nhom mb-3"><div class="sv-sk-nhom-dau"><span><i class="fas fa-hard-drive me-2"></i>Tủ đĩa — ổ cứng, RAID, pool (API MSA)</span>'
+            + '<span class="small text-muted">bấm 1 khay để xem chi tiết ổ</span></div>';
+
+        // Thành phần MSA tự báo không khoẻ (giải thích vì sao Degraded)
+        (msa.dsThanhPhanLoi || []).forEach(function (c) {
+            html += '<div class="alert ' + (c.trangThai === 'LOI' ? 'alert-danger' : 'alert-warning') + ' py-2 small mb-2">'
+                + '<div class="fw-bold"><i class="fas fa-triangle-exclamation me-1"></i>' + esc(c.ten) + '</div>'
+                + (c.lyDo ? '<div>' + esc(c.lyDo) + '</div>' : '')
+                + (c.khuyenNghi ? '<details class="mt-1"><summary class="text-muted">Khuyến nghị của HPE</summary><div style="white-space:pre-line;">' + esc(c.khuyenNghi) + '</div></details>' : '')
+                + '</div>';
+        });
+
+        html += '<div class="sv-msa-the-hang">'
+            + the('Tổng số ổ', dsKhay.length, '', soKhe ? dsKhay.length + ' / ' + soKhe + ' khe có ổ' : '')
+            + the('Dữ liệu', dem(function (k) { return k.vaiTro === 'DuLieu'; }), 'sv-msa-the-du-lieu')
+            + the('Dự phòng', dem(function (k) { return k.vaiTro === 'DuPhong'; }), dem(function (k) { return k.vaiTro === 'DuPhong'; }) ? 'sv-msa-the-du-phong' : 'sv-msa-the-cb', 'Ổ dự phòng toàn cục: tự thay vào khi 1 ổ trong disk group hỏng')
+            + (dem(function (k) { return k.vaiTro === 'ChuaDung'; }) ? the('Chưa dùng', dem(function (k) { return k.vaiTro === 'ChuaDung'; }), '') : '')
+            + (soKhe ? the('Khe trống', Math.max(0, soKhe - dsKhay.length), 'sv-msa-the-trong') : '')
+            + the('Bất thường', soLoi + soCb, soLoi ? 'sv-msa-the-loi' : soCb ? 'sv-msa-the-cb' : 'sv-msa-the-ok')
+            + '</div>';
+
+        // Sơ đồ khay theo từng khung (enclosure): SFF 24 khe 1 hàng dọc, LFF 12 khe 4 x 3
+        dsKhung.forEach(function (kh) {
+            var nk = nhanSk(kh.trangThai);
+            var hep = kh.soCot >= 12;
+            html += '<div class="sv-msa-khung-dau"><span class="sv-sk-cham ' + nk.lop + ' me-1" title="' + esc(nk.nhan) + '"></span>'
+                + '<span class="fw-bold">Khung ' + kh.id + '</span><span class="small text-muted ms-2">' + esc(kh.moTa || '') + ' · ' + kh.soKhe + ' khe</span></div>'
+                + '<div class="sv-msa-khung-cuon"><div class="sv-msa-khung' + (hep ? ' sv-msa-khung-hep' : '') + '" style="grid-template-columns:repeat(' + kh.soCot + ',minmax(' + (hep ? 26 : 90) + 'px,1fr));">';
+            for (var khe = 1; khe <= kh.soKhe; khe++) {
+                var o = dsKhay.filter(function (k) { return k.idKhung === kh.id && k.khe === khe; })[0];
+                if (!o) { html += '<div class="sv-msa-khay sv-khay-trong" title="Khe ' + kh.id + '.' + khe + ': trống"><span class="sv-msa-khe">' + khe + '</span></div>'; continue; }
+                var vt = VAI_TRO_KHAY[o.vaiTro] || VAI_TRO_KHAY.DuLieu;
+                var nhom = o.vaiTro === 'DuLieu' ? (o.diskGroup || '') : vt.nhan;
+                var tieuDe = 'Ổ ' + kh.id + '.' + khe + ' · ' + vt.nhan + (o.diskGroup ? ' · ' + o.diskGroup : '')
+                    + ' · ' + (o.dungLuong || '') + (o.nhietDo ? ' · ' + o.nhietDo : '') + ' · ' + nhanSk(o.trangThai).nhan;
+                html += '<div class="sv-msa-khay ' + vt.lop + (o.trangThai === 'LOI' ? ' sv-khay-loi' : o.trangThai === 'CANH_BAO' ? ' sv-khay-cb' : '') + '"'
+                    + ' data-khung="' + kh.id + '" data-khe="' + khe + '" data-dg="' + esc(o.diskGroup || '') + '" title="' + esc(tieuDe) + '">'
+                    + '<span class="sv-msa-khe">' + khe + '</span>'
+                    + '<span class="sv-msa-khay-nhom">' + esc(nhom) + '</span>'
+                    + (hep ? '' : '<span class="sv-msa-khay-phu">' + esc(o.dungLuong || '') + '</span>')
+                    + '</div>';
+            }
+            html += '</div></div>';
+        });
+        html += '<div class="sv-msa-chu-giai small text-muted">'
+            + '<span><i class="sv-msa-o sv-khay-du-lieu"></i>Dữ liệu</span><span><i class="sv-msa-o sv-khay-du-phong"></i>Dự phòng</span>'
+            + '<span><i class="sv-msa-o sv-khay-chua-dung"></i>Chưa dùng</span><span><i class="sv-msa-o sv-khay-trong"></i>Khe trống</span>'
+            + '<span><i class="sv-msa-o sv-khay-du-lieu sv-khay-cb"></i>Cảnh báo</span><span><i class="sv-msa-o sv-khay-du-lieu sv-khay-loi"></i>Lỗi</span></div>';
+        html += '<div class="sv-msa-ct d-none"></div>';
+
+        // Pool: dung lượng + số disk group
+        var dsPool = msa.dsPool || [];
+        if (dsPool.length) {
+            html += '<div class="fw-bold small mt-3 mb-1"><i class="fas fa-database me-1"></i>Pool</div><div class="sv-msa-pool-luoi">'
+                + dsPool.map(function (p) {
+                    var np = nhanSk(p.trangThai);
+                    var tyLe = p.tongTb ? p.daDungTb / p.tongTb : 0;
+                    var phan = Math.round(tyLe * 100);
+                    return '<div class="sv-msa-pool"><div class="d-flex align-items-center gap-1"><span class="sv-sk-cham ' + np.lop + '" title="' + esc(np.nhan) + '"></span>'
+                        + '<span class="fw-bold">Pool ' + esc(p.ten) + '</span><span class="small text-muted ms-auto">' + p.soDiskGroup + ' disk group</span></div>'
+                        + (p.tongTb ? '<div class="d-flex justify-content-between small mt-1"><span>' + esc(soTb(p.daDungTb)) + ' / ' + esc(soTb(p.tongTb)) + ' TB</span>'
+                            + '<span class="fw-bold ' + (tyLe >= 0.9 ? 'text-danger' : '') + '">' + phan + '%</span></div>'
+                            + '<div class="sv-thanh"><div class="sv-thanh-dung ' + (tyLe >= 0.9 ? 'sv-thanh-day' : tyLe >= 0.75 ? 'sv-thanh-vua' : '') + '" style="width:' + Math.min(100, phan) + '%;"></div></div>' : '')
+                        + '</div>';
+                }).join('') + '</div>';
+        }
+
+        // Disk group (cụm RAID): bấm dòng để tô các khay thuộc nhóm trên sơ đồ
+        var dsDg = msa.dsDiskGroup || [];
+        if (dsDg.length) {
+            html += '<div class="fw-bold small mt-3 mb-1"><i class="fas fa-layer-group me-1"></i>Disk group (cụm RAID) <span class="fw-normal text-muted">— bấm dòng để tô khay trên sơ đồ</span></div>'
+                + '<div class="table-responsive"><table class="table table-sm table-hover small mb-0 align-middle"><thead><tr>'
+                + '<th>Disk group</th><th>Pool</th><th>RAID</th><th class="text-end">Số ổ</th><th class="text-end">Dung lượng</th><th class="text-end">Trống</th><th>Trạng thái</th></tr></thead><tbody>'
+                + dsDg.map(function (g) {
+                    var ng = nhanSk(g.trangThai);
+                    return '<tr class="sv-msa-dg" data-dg="' + esc(g.ten) + '" style="cursor:pointer;">'
+                        + '<td class="fw-semibold"><span class="sv-sk-cham ' + ng.lop + ' me-1"></span>' + esc(g.ten) + '</td>'
+                        + '<td>' + esc(g.pool || '') + '</td><td>' + esc(g.raid || '') + '</td>'
+                        + '<td class="text-end">' + g.soO + '</td><td class="text-end text-nowrap">' + esc(g.dungLuong || '') + '</td>'
+                        + '<td class="text-end text-nowrap">' + esc(g.trong || '') + '</td>'
+                        + '<td class="' + lopTrangThai(g.trangThai) + '">' + esc(g.moTa || ng.nhan) + '</td></tr>';
+                }).join('') + '</tbody></table></div>';
+        }
+        return html + '</div>';
+    }
+
+    // Bấm khay: hiện chi tiết ổ ngay dưới sơ đồ; bấm lại thì đóng
+    function moChiTietKhay($khay) {
+        var $ct = $khay.closest('.sv-sk-nhom').find('.sv-msa-ct');
+        var khung = +$khay.attr('data-khung'), khe = +$khay.attr('data-khe');
+        if ($khay.hasClass('sv-khay-chon')) { $khay.removeClass('sv-khay-chon'); $ct.addClass('d-none').empty(); return; }
+        var o = msaDangXem && msaDangXem.dsKhay.filter(function (k) { return k.idKhung === khung && k.khe === khe; })[0];
+        if (!o) return;
+        $('#skNoiDung .sv-msa-khay').removeClass('sv-khay-chon');
+        $khay.addClass('sv-khay-chon');
+        var ct = o.chiTiet || {};
+        $ct.removeClass('d-none').html('<div class="fw-bold mb-1">Ổ ' + khung + '.' + khe + ' <span class="' + lopTrangThai(o.trangThai) + '">· ' + esc(nhanSk(o.trangThai).nhan) + '</span></div>'
+            + '<div class="sv-tt-luoi">' + Object.keys(ct).map(function (k) {
+                return '<div><span class="text-muted">' + esc(k) + '</span><span class="fw-semibold">' + esc(ct[k]) + '</span></div>';
+            }).join('') + '</div>');
+    }
+
     // RAID: mỗi bộ điều khiển một tiêu đề + bảng ổ logic (mức RAID, dung lượng, trạng thái)
     function veRaid(ds) {
         if (!ds || !ds.length) return '';
@@ -243,6 +368,7 @@
         if (sk.loi) html += '<div class="alert alert-warning py-2 small">' + esc(sk.loi) + (dsMuc.length ? ' — đang hiện số liệu lần đọc được gần nhất.' : '') + '</div>';
         if (dl && dl.ghiChu) html += '<div class="small text-muted mb-2"><i class="fas fa-circle-info me-1"></i>' + esc(dl.ghiChu) + '</div>';
         html += veThongTinSnmp(dl && dl.thongTin);
+        html += veMsa(dl && dl.msa);
         var dsRaid = dl && dl.dsRaid ? dl.dsRaid : [];
         html += veRaid(dsRaid);
 
@@ -811,6 +937,19 @@
         $('#btnKiemTraSk').on('click', kiemTraSucKhoe);
         $(document).on('click', '#skNoiDung .sv-sk-mo-duoc', function () {
             $(this).toggleClass('mo').find('.sv-sk-chi-tiet').toggleClass('d-none');
+        });
+        $(document).on('click', '#skNoiDung .sv-msa-khay[data-khe]', function () { moChiTietKhay($(this)); });
+        // Bấm dòng disk group: tô các khay thuộc nhóm, bấm lại thì bỏ
+        $(document).on('click', '#skNoiDung .sv-msa-dg', function () {
+            var dg = $(this).attr('data-dg');
+            var dangTo = $(this).hasClass('table-active');
+            $('#skNoiDung .sv-msa-dg').removeClass('table-active');
+            $('#skNoiDung .sv-msa-khay').removeClass('sv-khay-mo sv-khay-to');
+            if (dangTo) return;
+            $(this).addClass('table-active');
+            $('#skNoiDung .sv-msa-khay').each(function () {
+                $(this).addClass($(this).attr('data-dg') === dg ? 'sv-khay-to' : 'sv-khay-mo');
+            });
         });
 
         $(document).on('click', '#paneLichSu [data-ls-che-do]', function () {
