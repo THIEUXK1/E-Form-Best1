@@ -704,3 +704,58 @@ tr.qa-ls-khoiphuc td { color: #047857; }
 .qa-mes-bang td.qa-xh-dam { font-weight: 600; }
 .qa-mes-bang tr.qa-xh-thieu td { background: #fff7ed; }
 #qa-xh-chep { margin-left: auto; }
+@media (min-width: 992px) {
+    /* Check xuất hàng: bảng lot thường ít dòng -> cao vừa nội dung (tối đa ~40%), bảng chi tiết cuộn lấy phần còn lại */
+    .qa-trang-co-dinh > #qa-xh-the-lot { flex: 0 1 auto; max-height: 42%; }
+    .qa-trang-co-dinh > #qa-xh-the-lot > .qa-mes-bang-wrap { min-height: 90px; }
+}
+
+/* ===== Check xuất hàng: tab + bảng khiếu nại kiểu Excel (qa-khieu-nai.js) ===== */
+.qa-kn-dau { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.qa-kn-dau .qa-mes-dau { margin-bottom: 0; }
+.qa-kn-tab { display: inline-flex; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 3px; gap: 3px; }
+.qa-kn-tab-nut { border: 0; background: transparent; color: #065f46; font-weight: 600; font-size: .88rem; padding: 6px 14px; border-radius: 8px; }
+.qa-kn-tab-nut.active { background: #065f46; color: #fff; }
+.qa-kn-o-ngay { max-width: 170px; }
+.qa-kn-o-tt { max-width: 130px; }
+.qa-kn-wrap { flex: 1 1 auto; overflow: auto; border: 1px solid #cbd5e1; border-radius: 8px; }
+.qa-kn-bang { border-collapse: separate; border-spacing: 0; font-size: .82rem; width: max-content; min-width: 100%; }
+.qa-kn-bang th, .qa-kn-bang td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 0; vertical-align: top; background: #fff; }
+.qa-kn-bang thead th { position: sticky; top: 0; z-index: 3; padding: 6px 8px; font-weight: 700; color: #1e293b; text-align: center;
+    white-space: pre-line; line-height: 1.25; min-width: 96px; border-bottom: 2px solid #94a3b8; }
+.qa-kn-bang thead th small { display: block; font-weight: 500; font-size: .7rem; color: #64748b; margin-top: 2px; }
+.qa-kn-bang thead th.qa-kn-vang { background: #fef08a; }
+.qa-kn-bang thead th.qa-kn-xanh { background: #dbeafe; }
+.qa-kn-bang thead th.qa-kn-tudong small { color: #b45309; font-weight: 700; }
+.qa-kn-bang thead th.qa-kn-dai { min-width: 220px; }
+/* 2 cột đầu (# và nút) đứng yên khi cuộn ngang */
+.qa-kn-bang .qa-kn-co-dinh { position: sticky; z-index: 2; }
+.qa-kn-bang thead .qa-kn-co-dinh { z-index: 4; background: #e2e8f0; min-width: 0; }
+.qa-kn-bang .qa-kn-stt { left: 0; width: 44px; min-width: 44px; text-align: center; color: #64748b; padding: 6px 4px; background: #f8fafc; }
+.qa-kn-bang .qa-kn-nut-cot { left: 44px; width: 62px; min-width: 62px; text-align: center; padding: 3px 2px; white-space: nowrap; background: #f8fafc; }
+.qa-kn-nut { border: 0; background: transparent; color: #0f766e; width: 26px; height: 26px; border-radius: 6px; }
+.qa-kn-nut:hover { background: #ccfbf1; }
+.qa-kn-nut.xoa { color: #dc2626; }
+.qa-kn-nut.xoa:hover { background: #fee2e2; }
+.qa-kn-bang td.qa-kn-tudong { background: #fefce8; }
+.qa-kn-o, .qa-kn-input, .qa-kn-tt { display: block; width: 100%; min-height: 30px; padding: 5px 8px; border: 0; outline: 0; background: transparent;
+    font: inherit; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.qa-kn-o.qa-kn-dai { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 220px; max-width: 320px; max-height: 96px; overflow-y: auto; }
+.qa-kn-o.qa-kn-so { text-align: right; font-variant-numeric: tabular-nums; }
+.qa-kn-input { min-width: 120px; }
+.qa-kn-o:focus, .qa-kn-input:focus, .qa-kn-tt:focus { box-shadow: inset 0 0 0 2px #10b981; background: #fff; white-space: pre-wrap; overflow: visible; text-overflow: clip; }
+.qa-kn-o.dang-luu, .qa-kn-input.dang-luu, .qa-kn-tt.dang-luu { background: #e0f2fe; }
+.qa-kn-o.loi, .qa-kn-input.loi { box-shadow: inset 0 0 0 2px #dc2626; background: #fef2f2; }
+.qa-kn-tt { font-weight: 700; cursor: pointer; min-width: 92px; color: #b45309; }
+.qa-kn-bang tr:hover > td:not(.qa-kn-co-dinh) { background-color: #f0fdf4; }
+.qa-kn-bang tr.qa-kn-close > td { color: #475569; }
+.qa-kn-bang tr.qa-kn-close .qa-kn-tt { color: #059669; }
+.qa-kn-bang tr.qa-kn-close > td.qa-kn-stt { background: #dcfce7; }
+@media (min-width: 992px) {
+    .qa-trang-co-dinh > #qa-kn-the > .qa-kn-wrap { min-height: 160px; }
+}
+.qa-kn-bang td.qa-mes-trong { text-align: left; }
+.qa-kn-bang td.qa-mes-trong > span { position: sticky; left: 24px; }
+/* Ô chữ dài: 1 dòng như Excel khi không sửa, bấm vào mới bung ra nhiều dòng */
+.qa-kn-o.qa-kn-dai { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: none; }
+.qa-kn-o.qa-kn-dai:focus { white-space: pre-wrap; max-height: 160px; overflow-y: auto; }

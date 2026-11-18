@@ -74,6 +74,92 @@ namespace E_Form_Best.Areas.QAForm.Controllers
             });
         }
 
+        // ---- Bảng khiếu nại khách hàng (QA_KhieuNai) trên trang Check xuất hàng ----
+        public record KhieuNaiThemVao(string? KhoaTao);
+        public record KhieuNaiSuaVao(string? Truong, string? GiaTri);
+
+        [HttpGet("/QAForm/CheckXuatHang/KhieuNai")]
+        public async Task<IActionResult> KhieuNaiDanhSach([FromServices] QaKhieuNaiService svc, DateTime? tuNgay, DateTime? denNgay,
+            string? trangThai, string? tuKhoa, CancellationToken ct = default)
+        {
+            try
+            {
+                var (ds, tong) = await svc.DanhSachAsync(new(tuNgay, denNgay, trangThai, tuKhoa), ct);
+                var goiY = await svc.GoiYChungLoaiAsync(ct);
+                var cot = QaKhieuNaiService.DsCot.Select(c => new
+                {
+                    khoa = c.Khoa, cotExcel = c.CotExcel, tieuDe = c.TieuDe, kieu = c.Kieu.ToString(), doDai = c.DoDai, tuDong = c.TuDong, vang = c.Vang
+                });
+                return Json(new { thanhCong = true, thongBao = "", duLieu = new { cot, ds, tong, goiYChungLoai = goiY } });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi đọc bảng khiếu nại QA");
+                return Json(new { thanhCong = false, thongBao = "Không đọc được bảng khiếu nại: " + ex.Message });
+            }
+        }
+
+        [HttpPost("/QAForm/CheckXuatHang/KhieuNai/Them")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> KhieuNaiThem([FromServices] QaKhieuNaiService svc, [FromBody] KhieuNaiThemVao vao, CancellationToken ct = default)
+            => KhieuNaiGhiAsync(() => svc.ThemAsync(vao.KhoaTao, NguoiDung, ct), "thêm dòng");
+
+        [HttpPost("/QAForm/CheckXuatHang/KhieuNai/{id:int}/Sua")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> KhieuNaiSua([FromServices] QaKhieuNaiService svc, int id, [FromBody] KhieuNaiSuaVao vao, CancellationToken ct = default)
+            => KhieuNaiGhiAsync(() => svc.SuaAsync(id, vao.Truong, vao.GiaTri, NguoiDung, ct), "lưu ô");
+
+        [HttpPost("/QAForm/CheckXuatHang/KhieuNai/{id:int}/DienLai")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> KhieuNaiDienLai([FromServices] QaKhieuNaiService svc, int id, CancellationToken ct = default)
+            => KhieuNaiGhiAsync(() => svc.DienLaiAsync(id, NguoiDung, ct), "lấy lại từ MES");
+
+        [HttpPost("/QAForm/CheckXuatHang/KhieuNai/{id:int}/Xoa")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> KhieuNaiXoa([FromServices] QaKhieuNaiService svc, int id, CancellationToken ct = default)
+            => KhieuNaiGhiAsync(() => svc.XoaAsync(id, NguoiDung, ct), "xoá dòng");
+
+        [HttpPost("/QAForm/CheckXuatHang/KhieuNai/NhapExcel")]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(20_000_000)]
+        public async Task<IActionResult> KhieuNaiNhapExcel([FromServices] QaKhieuNaiService svc, IFormFile? tep, CancellationToken ct = default)
+        {
+            if (tep == null || tep.Length == 0) return Json(new { thanhCong = false, thongBao = "Chưa chọn file." });
+            if (!tep.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+                return Json(new { thanhCong = false, thongBao = "Chỉ nhận file .xlsx." });
+            await using var st = tep.OpenReadStream();
+            return await KhieuNaiGhiAsync(() => svc.NhapExcelAsync(st, NguoiDung, ct), "nhập Excel");
+        }
+
+        // Đồng bộ ngay thư mục QA trên file server (job nền cũng tự chạy 30 phút/lần); đọc lại mọi file
+        [HttpPost("/QAForm/CheckXuatHang/KhieuNai/DongBoThuMuc")]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> KhieuNaiDongBoThuMuc([FromServices] QaKhieuNaiService svc, CancellationToken ct = default)
+            => KhieuNaiGhiAsync(() => svc.DongBoThuMucAsync(QaKhieuNaiService.ThuMucDongBo(_configuration), tatCa: true, NguoiDung, ct), "đồng bộ thư mục QA");
+
+        [HttpGet("/QAForm/CheckXuatHang/KhieuNai/XuatExcel")]
+        public async Task<IActionResult> KhieuNaiXuatExcel([FromServices] QaKhieuNaiService svc, DateTime? tuNgay, DateTime? denNgay,
+            string? trangThai, string? tuKhoa, CancellationToken ct = default)
+        {
+            var file = await svc.XuatExcelAsync(new(tuNgay, denNgay, trangThai, tuKhoa), ct);
+            return File(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"CUSTOMER COMPLAINT SUMMARY {DateTime.Now:yyyyMMdd-HHmm}.xlsx");
+        }
+
+        private async Task<IActionResult> KhieuNaiGhiAsync(Func<Task<QaKhieuNaiService.KetQua>> lam, string viec)
+        {
+            try
+            {
+                var kq = await lam();
+                return Json(new { thanhCong = kq.ThanhCong, thongBao = kq.ThongBao, duLieu = kq.Dong });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi {Viec} bảng khiếu nại QA", viec);
+                return Json(new { thanhCong = false, thongBao = $"Lỗi {viec}: " + ex.Message });
+            }
+        }
+
         // Đọc từ bản sao DB (job đồng bộ MES); mã chưa có trong DB thì gọi MES trực tiếp
         [HttpGet("/QAForm/TraCuuMes/DuLieu")]
         public Task<IActionResult> TraCuuMesDuLieu(string? maPhoiMau, string? maKhachHang, string? maHang, CancellationToken ct = default)

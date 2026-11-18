@@ -3,9 +3,52 @@
     Layout = "~/Areas/QAForm/Views/Shared/_Layout.cshtml";
 }
 
+@Html.AntiForgeryToken()
+
+@* Trang khoá cuộn (màn hình rộng): chỉ vùng bảng cuộn — xem .qa-trang-co-dinh trong qa-layout.css.
+   2 tab: "Bảng khiếu nại" (qa-khieu-nai.js) và "Tra xuất hàng" (qa-check-xuat-hang.js); phần tử data-tab ẩn/hiện theo tab. *@
+<div class="qa-trang-co-dinh">
 <div class="qa-card qa-mes-tim-card">
-    <div class="qa-ke-dau-tieude qa-mes-dau"><span class="qa-ke-dau-ic qa-mes-ic"><i class="fa fa-truck"></i></span>Check xuất hàng <small>NH-WMS + NH-MES</small></div>
-    <form id="qa-xh-form" class="qa-mes-form" autocomplete="off">
+    <div class="qa-kn-dau">
+        <div class="qa-ke-dau-tieude qa-mes-dau"><span class="qa-ke-dau-ic qa-mes-ic"><i class="fa fa-truck"></i></span>Check xuất hàng <small>NH-WMS + NH-MES</small></div>
+        <div class="qa-kn-tab" role="tablist">
+            <button type="button" class="qa-kn-tab-nut active" data-chon-tab="kn" role="tab"><i class="fa fa-table"></i> Bảng khiếu nại</button>
+            <button type="button" class="qa-kn-tab-nut" data-chon-tab="tra" role="tab"><i class="fa fa-search"></i> Tra xuất hàng</button>
+        </div>
+    </div>
+
+    <form id="qa-kn-loc" class="qa-mes-form" data-tab="kn" autocomplete="off">
+        <div class="qa-mes-o qa-kn-o-ngay">
+            <label for="qa-kn-tu" class="qa-mes-label">Từ ngày khiếu nại</label>
+            <input id="qa-kn-tu" name="tuNgay" type="date" class="form-control" />
+        </div>
+        <div class="qa-mes-o qa-kn-o-ngay">
+            <label for="qa-kn-den" class="qa-mes-label">Đến ngày</label>
+            <input id="qa-kn-den" name="denNgay" type="date" class="form-control" />
+        </div>
+        <div class="qa-mes-o qa-kn-o-tt">
+            <label for="qa-kn-tt" class="qa-mes-label">Trạng thái</label>
+            <select id="qa-kn-tt" name="trangThai" class="form-select">
+                <option value="">Tất cả</option>
+                <option value="pending">pending</option>
+                <option value="close">close</option>
+            </select>
+        </div>
+        <div class="qa-mes-o">
+            <label for="qa-kn-tukhoa" class="qa-mes-label">Tìm</label>
+            <input id="qa-kn-tukhoa" name="tuKhoa" type="text" class="form-control" maxlength="100" placeholder="Lot, PO, nhà máy, mã hàng, vấn đề…" />
+        </div>
+        <button type="submit" class="btn qa-btn"><i class="fa fa-filter"></i> Lọc</button>
+        <button type="button" class="btn btn-outline-primary" id="qa-kn-them" title="Thêm dòng mới (ngày hôm nay, pending). Nhập mã lot để tự điền các cột hệ thống"><i class="fa fa-plus"></i> Thêm dòng</button>
+        <label class="btn btn-outline-secondary mb-0" title="Nhập 1 hoặc nhiều file CUSTOMER COMPLAINT SUMMARY (.xlsx, sheet detail). Nhập lại không tạo trùng, dòng đã có chỉ điền ô trống">
+            <i class="fa fa-upload"></i> Nhập Excel <input type="file" id="qa-kn-nhap" accept=".xlsx" multiple hidden />
+        </label>
+        <button type="button" class="btn btn-outline-primary" id="qa-kn-dongbo" title="Đọc lại các file CUSTOMER COMPLAINT SUMMARY trong thư mục QA trên file server (hệ thống cũng tự đồng bộ 30 phút/lần)"><i class="fa fa-refresh"></i> Đồng bộ thư mục QA</button>
+        <a class="btn btn-outline-success" id="qa-kn-xuat" href="/QAForm/CheckXuatHang/KhieuNai/XuatExcel" title="Xuất các dòng theo bộ lọc, đúng bố cục file gốc"><i class="fa fa-file-excel-o"></i> Xuất Excel</a>
+    </form>
+    <div id="qa-kn-thongbao" class="qa-mes-thongbao" data-tab="kn" role="status"></div>
+
+    <form id="qa-xh-form" class="qa-mes-form" data-tab="tra" hidden autocomplete="off">
         <div class="qa-mes-o">
             <label for="qa-xh-ma" class="qa-mes-label">Mã cần tra</label>
             <input id="qa-xh-ma" name="ma" type="text" class="form-control" maxlength="50" required placeholder="Barcode / mã lot / phiếu xuất / hoá đơn" />
@@ -22,10 +65,25 @@
         </div>
         <button type="submit" id="qa-xh-nut" class="btn qa-btn"><i class="fa fa-search"></i> Tra cứu</button>
     </form>
-    <div id="qa-xh-thongbao" class="qa-mes-thongbao" role="status"></div>
+    <div id="qa-xh-thongbao" class="qa-mes-thongbao" data-tab="tra" hidden role="status"></div>
 </div>
 
-<div class="qa-card qa-mes-ketqua">
+@* Lưới kiểu Excel: qa-khieu-nai.js vẽ tiêu đề + dòng từ /QAForm/CheckXuatHang/KhieuNai.
+   Ô sửa trực tiếp, rời ô là lưu; cột nền vàng nhạt = tự điền từ MES/WMS khi nhập mã lot. *@
+<div class="qa-card qa-mes-ketqua" id="qa-kn-the" data-tab="kn">
+    <div class="qa-ke-thongke gon" id="qa-kn-thongke"></div>
+    <div class="qa-mes-bang-wrap qa-kn-wrap">
+        <table class="qa-kn-bang" id="qa-kn-bang">
+            <thead id="qa-kn-thead"></thead>
+            <tbody id="qa-kn-tbody">
+                <tr><td class="qa-mes-trong">Đang tải…</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <datalist id="qa-kn-goiy-chungloai"></datalist>
+</div>
+
+<div class="qa-card qa-mes-ketqua" id="qa-xh-the-lot" data-tab="tra" hidden>
     <div class="qa-mes-tom">
         <span class="qa-ke-dau-tieude qa-mes-tong-dau"><span class="qa-ke-dau-ic qa-thung-ic"><i class="fa fa-file-text-o"></i></span>Thông tin cho báo cáo khiếu nại</span>
         <button type="button" class="btn btn-sm btn-outline-primary" id="qa-xh-chep" disabled title="Chép các dòng (cột 制衣厂 → 出货数量) để dán vào file khiếu nại, bắt đầu từ cột 制衣厂"><i class="fa fa-clipboard"></i> Chép dòng khiếu nại</button>
@@ -62,7 +120,7 @@
     </div>
 </div>
 
-<div class="qa-card qa-mes-ketqua">
+<div class="qa-card qa-mes-ketqua" data-tab="tra" hidden>
     <div class="qa-mes-tom">
         <span class="qa-ke-dau-tieude qa-mes-tong-dau"><span class="qa-ke-dau-ic qa-thung-ic"><i class="fa fa-barcode"></i></span><span id="qa-xh-tong-xuat">Chi tiết xuất kho (出仓)</span></span>
         <button type="button" class="btn btn-sm btn-outline-success" data-xuat-excel="qa-xh-bang-xuat" data-ten-file="check-xuat-hang-chi-tiet"><i class="fa fa-file-excel-o"></i> Xuất Excel</button>
@@ -97,9 +155,11 @@
         </table>
     </div>
 </div>
+</div>
 
 @section Scripts {
     <script src="~/js/qa-the-so-lieu.js?v=1"></script>
-    <script src="~/js/qa-check-xuat-hang.js?v=1"></script>
+    <script src="~/js/qa-check-xuat-hang.js?v=3"></script>
+    <script src="~/js/qa-khieu-nai.js?v=5"></script>
     <script src="~/js/qa-xuat-excel.js?v=4"></script>
 }

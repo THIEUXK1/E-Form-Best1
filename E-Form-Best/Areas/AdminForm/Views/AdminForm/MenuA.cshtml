@@ -498,11 +498,23 @@
             // Cảnh báo QUYẾT LIỆT cho công việc chỉ định sắp quá hạn (còn dưới 24h) chưa xử lý xong.
             // Độc lập với cookie "đã đọc thông báo" nên KHÔNG bị mất chấm đỏ cho tới khi đơn được xử lý xong hoặc dời hạn,
             // và tự kiểm tra lại định kỳ (không chỉ 1 lần lúc tải trang) để luôn cảnh báo liên tục khi đang mở menu.
+            // Phiên hết hạn (401/403) thì dừng hẳn vòng lặp: tab bỏ treo cả ngày sẽ gọi 401 mỗi phút vô ích, làm nhiễu log WAF.
+            // Tab đang ẩn thì bỏ qua lượt, quay lại tab thì kiểm tra ngay.
+            var timerSapQuaHan = null;
             function checkSapQuaHanCongViec() {
+                if (document.hidden) return;
                 fetch('/FormCongViec/GetSoLuongSapQuaHan')
-                    .then(res => res.json())
+                    .then(res => {
+                        if (res.status === 401 || res.status === 403) {
+                            clearInterval(timerSapQuaHan);
+                            timerSapQuaHan = null;
+                            return null;
+                        }
+                        return res.ok ? res.json() : null;
+                    })
                     .then(data => {
-                        badgeWorkState.soSapQuaHan = data && data.success ? (data.count || 0) : 0;
+                        if (!data) return;
+                        badgeWorkState.soSapQuaHan = data.success ? (data.count || 0) : 0;
                         veBadgeWork();
                     }).catch(err => console.log(err));
             }
@@ -510,7 +522,10 @@
             document.addEventListener('DOMContentLoaded', function () {
                 checkUnreadNotifications();
                 checkSapQuaHanCongViec();
-                setInterval(checkSapQuaHanCongViec, 60000);
+                timerSapQuaHan = setInterval(checkSapQuaHanCongViec, 60000);
+            });
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden && timerSapQuaHan) checkSapQuaHanCongViec();
             });
     </script>
 @* Token chống giả mạo (CSRF) cho các lời gọi AJAX của layout này (vd lưu hiệu ứng nền theo tài khoản). *@
