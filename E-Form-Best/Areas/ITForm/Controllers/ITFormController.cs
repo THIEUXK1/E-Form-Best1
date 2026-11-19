@@ -8038,10 +8038,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
                 model.Ip = string.IsNullOrWhiteSpace(model.Ip) ? null : model.Ip.Trim();
 
                 // Loại nhận diện bằng IP (máy in - xem KiemKe:TrungTaiSanKhac): serial/hostname người nhập hay điền sai → chỉ kiểm trùng IP
-                bool laMayIn = LayQuyTacTrung(model.LoaiThietBi) == TrungTheoIp;
+                bool laMayIn = LayQuyTacTrungGoc(model.LoaiThietBi) == TrungTheoIp;
                 if (laMayIn)
                 {
-                    var trungIp = await TimTaiSanKhacTrung(model.LoaiThietBi!, null, model.Ip, model.IdThietBi);
+                    var trungIp = await TimTaiSanKhacTrung(model.LoaiThietBi!, null, model.Ip, model.IdThietBi, TrungTheoIp);
                     if (trungIp != null)
                         return Json(new { success = false, message = $"IP '{model.Ip}' đã được gán cho {trungIp.LoaiThietBi} #{trungIp.IdThietBi}{(string.IsNullOrWhiteSpace(trungIp.TenViTri) ? "" : " - " + trungIp.TenViTri)}. Vui lòng kiểm tra lại!" });
                 }
@@ -8236,7 +8236,8 @@ namespace E_Form_Best.Areas.ITForm.Controllers
         //   "KhongKiem" : không kiểm, luôn thêm mới (PDA)
         private const string TrungTheoSerial = "Serial", TrungTheoIp = "Ip", TrungKhongKiem = "KhongKiem";
 
-        private string LayQuyTacTrung(string? loai)
+        // Quy tắc gốc trong cấu hình — trang quản lý Thiết bị (IT nhập) vẫn kiểm máy in theo IP.
+        private string LayQuyTacTrungGoc(string? loai)
         {
             var theoLoai = _config.GetSection("KiemKe:TrungTaiSanKhac:TheoLoai").GetChildren()
                 .FirstOrDefault(x => string.Equals(x.Key.Trim(), (loai ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
@@ -8244,13 +8245,21 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             return quyTac is TrungTheoIp or TrungKhongKiem ? quyTac : TrungTheoSerial;
         }
 
+        // Quy tắc cho dòng "Tài sản khác" ở trang tự kiểm kê (/QLKiemKe/ViewCheckMayHienTai): người dùng không biết IP máy in
+        // nên từ 19/11/2026 không nhập IP nữa — loại "Ip" hạ về "Serial" (bắt buộc Serial, trùng theo Serial + Loại).
+        private string LayQuyTacTrung(string? loai)
+        {
+            var quyTac = LayQuyTacTrungGoc(loai);
+            return quyTac == TrungTheoIp ? TrungTheoSerial : quyTac;
+        }
+
         private string MoTaKhoaTrung(string loai, string? serial, string? ip)
             => LayQuyTacTrung(loai) == TrungTheoIp ? $"IP: {ip}" : $"Serial: {serial}";
 
         // Tìm thiết bị (chưa xoá mềm) trùng với dòng Tài sản khác theo quy tắc của loại đó; null = không trùng / loại không kiểm trùng
-        private async Task<KkThietBi?> TimTaiSanKhacTrung(string loai, string? serial, string? ip, int boQuaId = 0)
+        private async Task<KkThietBi?> TimTaiSanKhacTrung(string loai, string? serial, string? ip, int boQuaId = 0, string? quyTacGhiDe = null)
         {
-            string quyTac = LayQuyTacTrung(loai);
+            string quyTac = quyTacGhiDe ?? LayQuyTacTrung(loai);
             if (quyTac == TrungKhongKiem) return null;
 
             string khoa = ((quyTac == TrungTheoIp ? ip : serial) ?? "").Trim().ToLower();

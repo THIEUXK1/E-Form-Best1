@@ -54,6 +54,70 @@
         return td;
     }
 
+    // Giờ đậm ở trên, ngày nhạt ở dưới — quét cột theo giờ dễ hơn chuỗi dài một dòng
+    function oGio(s) {
+        const td = document.createElement('td');
+        td.className = 'nkbm-gio';
+        const d = s ? new Date(s) : null;
+        if (!d || isNaN(d)) {
+            td.textContent = s || '—';
+            if (!s) td.classList.add('nkbm-gio-trong');
+            return td;
+        }
+        const p = (n) => String(n).padStart(2, '0');
+        const b = document.createElement('b');
+        b.textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+        const span = document.createElement('span');
+        span.textContent = `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+        td.append(b, span);
+        return td;
+    }
+
+    function oNguoi(taiKhoan, hoTen, chuKhiTrong) {
+        const td = document.createElement('td');
+        td.className = 'nkbm-nguoi';
+        if (!taiKhoan) {
+            td.textContent = chuKhiTrong || '—';
+            td.classList.add('nkbm-nguoi-an');
+            return td;
+        }
+        const b = document.createElement('b');
+        b.textContent = taiKhoan;
+        td.appendChild(b);
+        if (hoTen) {
+            const span = document.createElement('span');
+            span.textContent = hoTen;
+            td.appendChild(span);
+        }
+        return td;
+    }
+
+    // IP bấm được → lọc ngay bảng hiện tại theo IP đó
+    function oIp(ip) {
+        const td = document.createElement('td');
+        if (!ip) { td.textContent = '—'; return td; }
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'nkbm-the-ip nkbm-loc-ip';
+        a.dataset.ip = ip;
+        a.dataset.tab = tab;
+        a.title = 'Lọc theo IP này';
+        a.textContent = ip;
+        td.appendChild(a);
+        return td;
+    }
+
+    function oPhuongThuc(pt) {
+        const td = document.createElement('td');
+        if (!pt) return td;
+        const span = document.createElement('span');
+        const ma = String(pt).toUpperCase();
+        span.className = 'nkbm-pt' + (/^[A-Z]+$/.test(ma) ? ' nkbm-pt-' + ma : '');
+        span.textContent = ma;
+        td.appendChild(span);
+        return td;
+    }
+
     function oTheLoai(loai, lopRieng) {
         const td = document.createElement('td');
         const span = document.createElement('span');
@@ -75,14 +139,46 @@
         el.hidden = !thongBao;
     }
 
-    function dongTrong(text) {
+    function dongTrong(text, icon) {
         const tb = $('nkbmThanBang');
         tb.replaceChildren();
         const tr = document.createElement('tr');
-        const td = o(text, 'nkbm-trong');
+        const td = o('', 'nkbm-trong');
         td.colSpan = COT[tab].length;
+        if (icon) {
+            const i = document.createElement('i');
+            i.className = 'fa ' + icon;
+            td.appendChild(i);
+        }
+        td.appendChild(document.createTextNode(text));
         tr.appendChild(td);
         tb.appendChild(tr);
+    }
+
+    // Khung chờ: vài dòng xám nhấp nháy đúng số cột, đỡ giật bảng khi đổi trang/tab
+    function dongCho() {
+        const dong = [];
+        for (let i = 0; i < 8; i++) {
+            const tr = document.createElement('tr');
+            tr.className = 'nkbm-xuong';
+            COT[tab].forEach((_, j) => {
+                const td = document.createElement('td');
+                const vach = document.createElement('i');
+                vach.style.width = (45 + ((i * 7 + j * 13) % 45)) + '%';
+                td.appendChild(vach);
+                tr.appendChild(td);
+            });
+            dong.push(tr);
+        }
+        $('nkbmThanBang').replaceChildren(...dong);
+    }
+
+    // Đánh dấu ô tổng quan khớp với tab + loại đang lọc
+    function danhDauOTong() {
+        const loai = LOAI_THEO_TAB[tab] ? $('chonLoai').value : '';
+        document.querySelectorAll('.nkbm-o').forEach((el) => {
+            el.classList.toggle('dang-chon', el.dataset.tab === tab && (el.dataset.loai || '') === loai);
+        });
     }
 
     function veDauBang() {
@@ -112,34 +208,41 @@
     function veDong(d) {
         const tr = document.createElement('tr');
         if (tab === 'baomat') {
-            tr.appendChild(o(dinhDangGio(d.thoiGian), 'nkbm-gio'));
+            tr.appendChild(oGio(d.thoiGian));
             tr.appendChild(oTheLoai(d.loai));
-            tr.appendChild(o(d.taiKhoan ? `${d.taiKhoan}${d.hoTen ? ' · ' + d.hoTen : ''}` : '(chưa đăng nhập)'));
-            tr.appendChild(o(d.phuongThuc));
+            tr.appendChild(oNguoi(d.taiKhoan, d.hoTen, 'Chưa đăng nhập'));
+            tr.appendChild(oPhuongThuc(d.phuongThuc));
             const td = o(d.duongDan, 'nkbm-duong-dan');
             if (d.moTa) {
                 const nho = document.createElement('div');
-                nho.className = 'nkbm-ua';
+                nho.className = 'nkbm-mo-ta';
                 nho.textContent = d.moTa;
                 td.appendChild(nho);
             }
             tr.appendChild(td);
-            tr.appendChild(o(d.ip));
+            tr.appendChild(oIp(d.ip));
             tr.appendChild(oUa(d.trinhDuyet));
         } else if (tab === 'dangnhaploi') {
-            tr.appendChild(o(dinhDangGio(d.thoiGian), 'nkbm-gio'));
+            tr.appendChild(oGio(d.thoiGian));
             tr.appendChild(oTheLoai(d.lyDo, 'loai-loi'));
-            tr.appendChild(o(d.taiKhoan));
-            tr.appendChild(o(d.noiGoi));
-            tr.appendChild(o(d.ip));
+            tr.appendChild(oNguoi(d.taiKhoan, '', '(trống)'));
+            tr.appendChild(o(d.noiGoi, 'nkbm-may'));
+            tr.appendChild(oIp(d.ip));
             tr.appendChild(oUa(d.trinhDuyet));
         } else {
-            tr.appendChild(o(dinhDangGio(d.thoiGian), 'nkbm-gio'));
-            tr.appendChild(o(dinhDangGio(d.dangXuat), 'nkbm-gio'));
-            tr.appendChild(o(d.taiKhoan ? `${d.taiKhoan}${d.hoTen ? ' · ' + d.hoTen : ''}` : ''));
-            tr.appendChild(o(d.mayTinh));
-            tr.appendChild(o(d.ip));
-            tr.appendChild(o(d.trangThai));
+            tr.appendChild(oGio(d.thoiGian));
+            tr.appendChild(oGio(d.dangXuat));
+            tr.appendChild(oNguoi(d.taiKhoan, d.hoTen, ''));
+            tr.appendChild(o(d.mayTinh, 'nkbm-may'));
+            tr.appendChild(oIp(d.ip));
+            const tdTt = document.createElement('td');
+            if (d.trangThai != null && d.trangThai !== '') {
+                const span = document.createElement('span');
+                span.className = 'nkbm-the-loai loai-trung';
+                span.textContent = String(d.trangThai);
+                tdTt.appendChild(span);
+            }
+            tr.appendChild(tdTt);
             tr.appendChild(oUa(d.trinhDuyet));
         }
         return tr;
@@ -159,7 +262,8 @@
         const nutLoc = form.querySelector('button[type=submit]');
         nutLoc.disabled = true;
         hienLoi('');
-        dongTrong('Đang tải…');
+        danhDauOTong();
+        dongCho();
         try {
             const p = new URLSearchParams(new FormData(form));
             p.set('nguon', tab);
@@ -168,7 +272,7 @@
             const kq = await layJson('/NhatKyBaoMat/DuLieu?' + p.toString());
             if (!kq.thanhCong) {
                 hienLoi(kq.thongBao || 'Không tải được nhật ký.');
-                dongTrong('Không có dữ liệu.');
+                dongTrong('Không có dữ liệu.', 'fa-inbox');
                 return;
             }
             const dl = kq.duLieu;
@@ -178,14 +282,14 @@
             $('nkbmTruoc').disabled = dl.trang <= 1;
             $('nkbmSau').disabled = dl.trang >= dl.soTrang;
             if (!dl.dong.length) {
-                dongTrong('Không có sự kiện nào trong khoảng đã chọn.');
+                dongTrong('Không có sự kiện nào trong khoảng đã chọn.', 'fa-check-circle');
                 return;
             }
             const tb = $('nkbmThanBang');
             tb.replaceChildren(...dl.dong.map(veDong));
         } catch (e) {
             hienLoi(e.message);
-            dongTrong('Không tải được dữ liệu.');
+            dongTrong('Không tải được dữ liệu.', 'fa-plug');
         } finally {
             dangTai = false;
             nutLoc.disabled = false;
@@ -202,8 +306,19 @@
             ol.appendChild(li);
             return;
         }
-        ds.forEach((x) => {
+        // Thanh nền theo tỷ lệ với IP nhiều nhất để nhìn ra chênh lệch ngay
+        const max = Math.max(...ds.map((x) => x.soLan || 0), 1);
+        ds.forEach((x, i) => {
             const li = document.createElement('li');
+            li.className = 'nkbm-dong-ip';
+            const thanh = document.createElement('span');
+            thanh.className = 'nkbm-ip-thanh';
+            thanh.style.width = Math.max(4, Math.round((x.soLan || 0) / max * 100)) + '%';
+            const hang = document.createElement('span');
+            hang.className = 'nkbm-ip-hang';
+            hang.textContent = String(i + 1);
+            const giua = document.createElement('span');
+            giua.className = 'nkbm-ip-giua';
             const a = document.createElement('a');
             a.href = '#';
             a.textContent = x.ip;
@@ -216,7 +331,8 @@
             const luc = document.createElement('span');
             luc.className = 'nkbm-ip-luc';
             luc.textContent = 'gần nhất ' + dinhDangGio(x.lanCuoi);
-            li.append(a, so, luc);
+            giua.append(a, luc);
+            li.append(thanh, hang, giua, so);
             ol.appendChild(li);
         });
     }
@@ -226,11 +342,16 @@
             const kq = await layJson('/NhatKyBaoMat/TongQuan');
             if (!kq.thanhCong) { hienLoi(kq.thongBao); return; }
             const d = kq.duLieu;
-            $('soChuaDangNhap').textContent = d.chuaDangNhap;
-            $('soKhongDuQuyen').textContent = d.khongDuQuyen;
-            $('soDuLieuNhayCam').textContent = d.duLieuNhayCam;
-            $('soDangNhapLoi').textContent = d.dangNhapLoi;
-            $('soDangNhap').textContent = d.dangNhap;
+            [['soChuaDangNhap', d.chuaDangNhap], ['soKhongDuQuyen', d.khongDuQuyen], ['soDuLieuNhayCam', d.duLieuNhayCam],
+             ['soDangNhapLoi', d.dangNhapLoi], ['soDangNhap', d.dangNhap]].forEach(([id, so]) => {
+                const el = $(id);
+                el.textContent = Number(so || 0).toLocaleString('vi-VN');
+                el.classList.toggle('co-so', Number(so) > 0);
+            });
+            const bayGio = new Date();
+            const p2 = (n) => String(n).padStart(2, '0');
+            $('nkbmCapNhat').lastElementChild.textContent =
+                `Cập nhật ${p2(bayGio.getHours())}:${p2(bayGio.getMinutes())}:${p2(bayGio.getSeconds())}`;
             veDsIp('dsIpBiChan', d.ipBiChan, 'baomat');
             veDsIp('dsIpDangNhapLoi', d.ipDangNhapLoi, 'dangnhaploi');
         } catch (e) {
@@ -265,7 +386,15 @@
 
         if (e.target.closest('#nkbmTruoc') && trang > 1) { trang--; taiDuLieu(); return; }
         if (e.target.closest('#nkbmSau') && trang < soTrang) { trang++; taiDuLieu(); return; }
-        if (e.target.closest('#nkbmLamMoi')) { taiTongQuan(); taiDuLieu(); }
+        const nutLamMoi = e.target.closest('#nkbmLamMoi');
+        if (nutLamMoi && !nutLamMoi.disabled) {
+            nutLamMoi.disabled = true;
+            nutLamMoi.classList.add('dang-quay');
+            Promise.all([taiTongQuan(), taiDuLieu()]).finally(() => {
+                nutLamMoi.disabled = false;
+                nutLamMoi.classList.remove('dang-quay');
+            });
+        }
     });
 
     form.addEventListener('submit', (e) => {
