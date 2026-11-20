@@ -16,9 +16,24 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
     public class AdminFormController : Controller
     {
         public ITFormContext _context;
-        public AdminFormController()
+        private readonly IConfiguration _cauHinh;
+        public AdminFormController(IConfiguration cauHinh)
         {
             _context = new ITFormContext();
+            _cauHinh = cauHinh;
+        }
+
+        /// <summary>Một ô trong bảng "Hệ thống liên quan" ở trang chủ (cấu hình HeThongLienQuan trong appsettings).</summary>
+        public class HeThongLienQuanMuc
+        {
+            public string Ten { get; set; } = "";
+            public string? MoTa { get; set; }
+            public string Url { get; set; } = "";
+            // Có ảnh thì bấm ô chỉ xem ảnh chụp màn hình, không mở hệ thống.
+            public string? Anh { get; set; }
+            public string? Icon { get; set; }
+            // Để trống = mọi người đã đăng nhập đều thấy; ghi tên vai trò (cách nhau dấu phẩy) = chỉ vai trò đó thấy.
+            public string? VaiTro { get; set; }
         }
 
         // Chống path traversal / absolute path: chỉ cho đọc file NẰM TRONG thư mục gốc.
@@ -55,6 +70,14 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                     ViewBag.AnhDaiDien = user.AnhDaiDien;
                 }
             }
+
+            // Lọc theo vai trò ở server: hệ thống nội bộ của IT không lộ link ra cho người dùng thường.
+            var dsHeThong = _cauHinh.GetSection("HeThongLienQuan").Get<List<HeThongLienQuanMuc>>() ?? new();
+            ViewBag.HeThongLienQuan = dsHeThong
+                .Where(h => !string.IsNullOrWhiteSpace(h.Ten) && (!string.IsNullOrWhiteSpace(h.Url) || !string.IsNullOrWhiteSpace(h.Anh)))
+                .Where(h => string.IsNullOrWhiteSpace(h.VaiTro)
+                         || h.VaiTro.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Any(User.IsInRole))
+                .ToList();
 
             return View();
         }

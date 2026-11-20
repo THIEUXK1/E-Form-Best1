@@ -33,6 +33,8 @@
     <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=21" />
     <script src="~/js/hieu-ung-mua.js?v=202611130826"></script>
     <script src="~/js/menu-tai-khoan.js?v=1" defer></script>
+    <link rel="stylesheet" href="~/css/he-thong-lien-quan.css?v=6" />
+    <script src="~/js/he-thong-lien-quan.js?v=2" defer></script>
 
     <style>
             /* ==========================================
@@ -203,6 +205,41 @@
                     </a>
                 </div>
                 </div>
+
+                @* Hệ thống liên quan — danh sách lấy từ appsettings HeThongLienQuan, server đã lọc theo vai trò *@
+                var dsHeThongLienQuan = ViewBag.HeThongLienQuan as List<E_Form_Best.Areas.AdminForm.Controllers.AdminFormController.HeThongLienQuanMuc>;
+                if (dsHeThongLienQuan != null && dsHeThongLienQuan.Count > 0)
+                {
+                    <div class="htlq">
+                        <button type="button" class="htlq-nut" title="Hệ thống liên quan" aria-haspopup="dialog" aria-expanded="false">
+                            <i class="fa fa-th"></i>
+                        </button>
+                        <div class="htlq-khung" role="dialog" aria-label="Hệ thống liên quan" hidden>
+                            <div class="htlq-tieu-de">
+                                <span><i class="fa fa-th"></i> Hệ thống liên quan</span>
+                                <button type="button" class="htlq-dong" aria-label="Đóng">&times;</button>
+                            </div>
+                            <div class="htlq-luoi">
+                                @foreach (var ht in dsHeThongLienQuan)
+                                {
+                                    @* Ô có ảnh: bấm chỉ xem ảnh (JS bắt data-anh); thuộc tính null thì Razor tự bỏ *@
+                                    bool coAnh = !string.IsNullOrWhiteSpace(ht.Anh);
+                                    <a class="htlq-o" href="@(coAnh ? "#" : ht.Url)"
+                                       target="@(coAnh ? null : "_blank")" rel="@(coAnh ? null : "noopener noreferrer")"
+                                       data-anh="@(coAnh ? ht.Anh : null)" data-ten="@ht.Ten"
+                                       title="@(coAnh ? "Xem ảnh" : ht.Url)">
+                                        <span class="htlq-icon"><i class="fa @(string.IsNullOrWhiteSpace(ht.Icon) ? "fa-external-link" : ht.Icon)"></i></span>
+                                        <span class="htlq-ten">@ht.Ten</span>
+                                        @if (!string.IsNullOrWhiteSpace(ht.MoTa))
+                                        {
+                                            <span class="htlq-mota">@ht.MoTa</span>
+                                        }
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
             }
             else
             {
