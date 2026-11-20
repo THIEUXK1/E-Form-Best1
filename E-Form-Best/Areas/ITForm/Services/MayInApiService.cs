@@ -254,8 +254,10 @@ namespace E_Form_Best.Areas.ITForm.Services
                     chiSo.DrumPhanTram = ketQua.DrumPhanTram;
                     chiSo.VatTuJson = GoiVatTuJson(ketQua.VatTu);
                 }
-                chiSo.TrangThaiThietBi = ketQua.TrangThaiThietBi;
-                chiSo.Nguon = ketQua.NguonDoc;
+                // Máy trả DeviceStatus dài tuỳ hãng — cắt cho vừa cột, không thì SaveChanges ném
+                // "String or binary data would be truncated" và mất luôn chỉ số đọc được của máy đó
+                chiSo.TrangThaiThietBi = CatChuoi(ketQua.TrangThaiThietBi, 50);
+                chiSo.Nguon = CatChuoi(ketQua.NguonDoc, 20) ?? "API";
             }
 
             await _context.SaveChangesAsync(ct);
@@ -400,6 +402,9 @@ namespace E_Form_Best.Areas.ITForm.Services
         /// Gói danh sách vật tư thành JSON để lưu một cột. Cột chỉ có 1000 ký tự nên máy nào báo
         /// quá nhiều vật tư thì cắt bớt, ưu tiên giữ mực và trống (thứ duy nhất cần theo dõi).
         /// </summary>
+        private static string? CatChuoi(string? s, int toiDa) =>
+            s is not null && s.Length > toiDa ? s[..toiDa] : s;
+
         private static string? GoiVatTuJson(IReadOnlyCollection<VatTuDoc> vatTu)
         {
             if (vatTu.Count == 0) return null;

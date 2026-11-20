@@ -1770,8 +1770,10 @@ namespace E_Form_Best.Areas.ITForm.Controllers
             var chan = KiemQuyen();
             if (chan != null) return chan;
 
+            // Bấm tay thì đọc mọi máy đang hoạt động có IP, kể cả máy chưa tích "Đọc tự động":
+            // cờ đó chỉ quyết định job nền có tự chụp hay không, người bấm nút muốn số của tất cả.
             var dsMay = await _context.MayIns
-                .Where(m => m.TheoDoiTuDong && m.DiaChiIp != null && m.TrangThai == "HoatDong")
+                .Where(m => m.DiaChiIp != null && m.DiaChiIp != "" && m.TrangThai == "HoatDong")
                 .ToListAsync();
 
             var thanhCong = 0;
@@ -1779,11 +1781,26 @@ namespace E_Form_Best.Areas.ITForm.Controllers
 
             await ChayHangLoatAsync(dsMay, async (dichVu, may, ct) =>
             {
-                var ketQua = await dichVu.DocVaLuuAsync(may, ct);
+                // Một máy lỗi lúc lưu (dữ liệu lạ, DB) chỉ ghi vào danh sách lỗi — không để cả
+                // lượt đọc vài chục máy đổ thành 500 rồi người bấm chỉ thấy "Lỗi kết nối máy chủ"
+                string? thongBaoLoi = null;
+                var docDuoc = false;
+                try
+                {
+                    var ketQua = await dichVu.DocVaLuuAsync(may, ct);
+                    docDuoc = ketQua.ThanhCong;
+                    if (!docDuoc) thongBaoLoi = ketQua.ThongBao;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    HttpContext.RequestServices.GetRequiredService<ILogger<QLMayInController>>().LogWarning(ex, "Đọc tất cả: lỗi lưu máy in {Id} ({Ip})", may.IdMayIn, may.DiaChiIp);
+                    thongBaoLoi = "Lỗi lưu chỉ số: " + (ex.InnerException?.Message ?? ex.Message);
+                }
+
                 lock (loi)
                 {
-                    if (ketQua.ThanhCong) thanhCong++;
-                    else if (loi.Count < 10) loi.Add($"{may.Serial} ({may.DiaChiIp}): {ketQua.ThongBao}");
+                    if (docDuoc) thanhCong++;
+                    else if (loi.Count < 10) loi.Add($"{may.Serial} ({may.DiaChiIp}): {thongBaoLoi}");
                 }
             });
 

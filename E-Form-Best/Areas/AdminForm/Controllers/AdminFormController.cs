@@ -29,8 +29,6 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             public string Ten { get; set; } = "";
             public string? MoTa { get; set; }
             public string Url { get; set; } = "";
-            // Có ảnh thì bấm ô chỉ xem ảnh chụp màn hình, không mở hệ thống.
-            public string? Anh { get; set; }
             public string? Icon { get; set; }
             // Để trống = mọi người đã đăng nhập đều thấy; ghi tên vai trò (cách nhau dấu phẩy) = chỉ vai trò đó thấy.
             public string? VaiTro { get; set; }
@@ -72,9 +70,20 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
             }
 
             // Lọc theo vai trò ở server: hệ thống nội bộ của IT không lộ link ra cho người dùng thường.
-            var dsHeThong = _cauHinh.GetSection("HeThongLienQuan").Get<List<HeThongLienQuanMuc>>() ?? new();
+            // Cả bảng chỉ mở cho vai trò / tài khoản trong HeThongLienQuanQuyen; người khác không thấy nút.
+            var vaiTroXem = (_cauHinh["HeThongLienQuanQuyen:VaiTro"] ?? "All")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var taiKhoanXem = (_cauHinh["HeThongLienQuanQuyen:TaiKhoan"] ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var maNv = User.FindFirst("MaNv")?.Value?.Trim() ?? "";
+            bool duocXemHeThong = vaiTroXem.Any(User.IsInRole)
+                || (maNv.Length > 0 && taiKhoanXem.Contains(maNv, StringComparer.OrdinalIgnoreCase));
+
+            var dsHeThong = duocXemHeThong
+                ? _cauHinh.GetSection("HeThongLienQuan").Get<List<HeThongLienQuanMuc>>() ?? new()
+                : new List<HeThongLienQuanMuc>();
             ViewBag.HeThongLienQuan = dsHeThong
-                .Where(h => !string.IsNullOrWhiteSpace(h.Ten) && (!string.IsNullOrWhiteSpace(h.Url) || !string.IsNullOrWhiteSpace(h.Anh)))
+                .Where(h => !string.IsNullOrWhiteSpace(h.Ten) && !string.IsNullOrWhiteSpace(h.Url))
                 .Where(h => string.IsNullOrWhiteSpace(h.VaiTro)
                          || h.VaiTro.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Any(User.IsInRole))
                 .ToList();

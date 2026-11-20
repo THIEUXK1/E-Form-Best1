@@ -33,8 +33,8 @@
     <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=21" />
     <script src="~/js/hieu-ung-mua.js?v=202611130826"></script>
     <script src="~/js/menu-tai-khoan.js?v=1" defer></script>
-    <link rel="stylesheet" href="~/css/he-thong-lien-quan.css?v=6" />
-    <script src="~/js/he-thong-lien-quan.js?v=2" defer></script>
+    <link rel="stylesheet" href="~/css/he-thong-lien-quan.css?v=7" />
+    <script src="~/js/he-thong-lien-quan.js?v=3" defer></script>
 
     <style>
             /* ==========================================
@@ -222,12 +222,7 @@
                             <div class="htlq-luoi">
                                 @foreach (var ht in dsHeThongLienQuan)
                                 {
-                                    @* Ô có ảnh: bấm chỉ xem ảnh (JS bắt data-anh); thuộc tính null thì Razor tự bỏ *@
-                                    bool coAnh = !string.IsNullOrWhiteSpace(ht.Anh);
-                                    <a class="htlq-o" href="@(coAnh ? "#" : ht.Url)"
-                                       target="@(coAnh ? null : "_blank")" rel="@(coAnh ? null : "noopener noreferrer")"
-                                       data-anh="@(coAnh ? ht.Anh : null)" data-ten="@ht.Ten"
-                                       title="@(coAnh ? "Xem ảnh" : ht.Url)">
+                                    <a class="htlq-o" href="@ht.Url" target="_blank" rel="noopener noreferrer" title="@ht.Url">
                                         <span class="htlq-icon"><i class="fa @(string.IsNullOrWhiteSpace(ht.Icon) ? "fa-external-link" : ht.Icon)"></i></span>
                                         <span class="htlq-ten">@ht.Ten</span>
                                         @if (!string.IsNullOrWhiteSpace(ht.MoTa))
@@ -384,8 +379,8 @@
                 </a>
             }
 
-            @* Nhật ký bảo mật: chỉ quyền All — NhatKyBaoMatController cũng chặn [Authorize(Roles = "All")] *@
-            @if (User?.IsInRole("All") == true)
+            @* Nhật ký bảo mật: quyền All hoặc NhatKyBaoMat — khớp [Authorize(Roles = "All,NhatKyBaoMat")] của NhatKyBaoMatController *@
+            @if (User?.IsInRole("All") == true || User?.IsInRole("NhatKyBaoMat") == true)
             {
                 <a href="/NhatKyBaoMat" class="menu-card"
                    style="width: 220px; height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border-radius: 30px; border: 1px solid rgba(239, 68, 68, 0.35); color: white; text-decoration: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;">

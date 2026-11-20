@@ -111,10 +111,14 @@
         $.post(duongDan)
             .done(function (res) {
                 var giay = Math.round((Date.now() - batDau) / 1000);
+                // Liệt kê tối đa 10 máy không đọc được để biết máy nào cần xem tận nơi
+                var dsLoi = (res.duLieu && res.duLieu.loi) || [];
+                $('#kqDongBo').attr('title', dsLoi.join('\n'));
                 $('#kqDongBo')
                     .removeClass('text-muted text-success text-danger')
                     .addClass(res.thanhCong ? 'text-success' : 'text-danger')
-                    .text((res.thongBao || '') + ' (' + giay + ' giây)');
+                    .text((res.thongBao || '') + ' (' + giay + ' giây)'
+                        + (dsLoi.length ? ' — rê chuột để xem máy lỗi' : ''));
 
                 taiDanhSach();
             })

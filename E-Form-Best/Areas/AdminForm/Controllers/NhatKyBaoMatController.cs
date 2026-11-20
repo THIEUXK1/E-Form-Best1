@@ -14,7 +14,8 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
     /// Chỉ đọc; các bảng LichSu* là append-only.
     /// </summary>
     [Area("AdminForm")]
-    [Authorize(Roles = "All")]
+    // NhatKyBaoMat: quyền cá nhân (bảng Quyen) để mở trang cho người không có siêu quyền All.
+    [Authorize(Roles = "All,NhatKyBaoMat")]
     public class NhatKyBaoMatController : Controller
     {
         private const int SoDongMoiTrang = 50;

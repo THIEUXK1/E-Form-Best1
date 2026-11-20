@@ -81,19 +81,3 @@
 .htlq-ten { color: #0f172a; font-size: 14px; font-weight: 600; line-height: 1.25; }
 .htlq-mota { color: #64748b; font-size: 11px; line-height: 1.3; }
 
-/* Lớp phủ xem ảnh chụp màn hình (ô có Anh trong cấu hình) */
-.htlq-xem-anh {
-    position: fixed; inset: 0; z-index: 2000;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-    padding: 30px; background: rgba(0, 0, 0, 0.8); cursor: zoom-out;
-}
-.htlq-xem-anh[hidden] { display: none; }
-.htlq-xem-anh-dau {
-    width: 100%; max-width: 1400px; display: flex; align-items: center; justify-content: space-between;
-    color: #fff; font: 600 16px 'Segoe UI', Roboto, Arial, sans-serif;
-}
-.htlq-xem-anh-dong { background: none; border: 0; color: #fff; font-size: 30px; line-height: 1; cursor: pointer; }
-.htlq-xem-anh img {
-    max-width: min(1400px, 100%); max-height: calc(100vh - 110px); object-fit: contain;
-    border-radius: 10px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); background: #fff; cursor: default;
-}
