@@ -243,6 +243,8 @@
             }
             o(tr, d.endCustCode, 'qa-cot-phu');
             o(tr, d.orderUcode, 'qa-copy');
+            o(tr, d.pbGh);
+            o(tr, ngay(d.pbDate));
             o(tr, d.custCode);
             o(tr, d.artCode);
             o(tr, d.colorCode);
@@ -257,9 +259,7 @@
             o(tr, d.manuStep, 'qa-cot-phu');
             o(tr, d.clNo, 'qa-cot-phu');
             o(tr, ngay(d.getDate), 'qa-cot-phu');
-            o(tr, ngay(d.pbDate));
             o(tr, d.packclNo, 'qa-cot-phu');
-            o(tr, d.pbGh);
             frag.appendChild(tr);
         });
         tbody.replaceChildren(frag);
