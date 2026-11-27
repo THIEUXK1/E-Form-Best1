@@ -81,3 +81,17 @@
 .htlq-ten { color: #0f172a; font-size: 14px; font-weight: 600; line-height: 1.25; }
 .htlq-mota { color: #64748b; font-size: 11px; line-height: 1.3; }
 
+
+/* Nút Nhà ăn cạnh nút Hệ thống liên quan — dạng viên thuốc cùng tông. */
+.nut-nha-an {
+    height: 44px; padding: 0 18px; border-radius: 50px;
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.2); color: #00d4ff;
+    font-size: 14px; font-weight: 700; text-decoration: none; transition: 0.3s;
+}
+.nut-nha-an i { font-size: 16px; }
+.nut-nha-an:hover {
+    background: rgba(0, 212, 255, 0.15); border-color: rgba(0, 212, 255, 0.5);
+    color: #00d4ff; text-decoration: none; transform: translateY(-2px);
+}

@@ -1,0 +1,66 @@
+@{
+    var tenNguoiDung = User.Identity?.Name ?? "";
+    var phongBan = User.FindFirst("PhongBan")?.Value ?? "";
+    var anhDaiDien = ViewBag.AnhDaiDien as string ?? User.FindFirst("AnhDaiDien")?.Value;
+    var urlCanteen = ViewBag.UrlCanteen as string;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Nhà ăn</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍱</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/nha-an.css?v=5" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="na-body">
+    <header class="na-header">
+        <div class="na-header-trong">
+            <a href="/NhaAn" class="na-brand">
+                <span class="na-brand-logo">🍱</span>
+                <span class="na-brand-chu">
+                    <span class="na-brand-ten">Nhà ăn</span>
+                    <span class="na-brand-phu">E-Form · Canteen</span>
+                </span>
+            </a>
+
+            <nav class="na-tabs" role="tablist">
+                @RenderSection("Tabs", required: false)
+            </nav>
+
+            <div class="na-header-phai">
+                @if (!string.IsNullOrWhiteSpace(urlCanteen))
+                {
+                    <a href="@urlCanteen" target="_blank" rel="noopener noreferrer" class="na-link-phu" title="Mở web canteen">
+                        <i class="fa fa-external-link"></i><span>Web canteen</span>
+                    </a>
+                }
+                <div class="na-nguoi-dung" title="@phongBan">
+                    @* Ảnh lưu ngoài wwwroot → lấy qua GetAvatar như trang chủ; ảnh mặc định không tồn tại → hiện chữ cái đầu *@
+                    @if (!string.IsNullOrWhiteSpace(anhDaiDien) && !anhDaiDien.Contains("default-avatar"))
+                    {
+                        <img src="/DonXetDuyet/GetAvatar?path=@Uri.EscapeDataString(anhDaiDien)" alt="" class="na-anh" />
+                    }
+                    else
+                    {
+                        <span class="na-anh na-anh-chu">@(tenNguoiDung.Length > 0 ? tenNguoiDung.Trim().Split(' ').Last()[..1].ToUpper() : "?")</span>
+                    }
+                    <span class="na-ten">@tenNguoiDung</span>
+                </div>
+                <a href="/" class="na-nut-ve" title="Về trang chủ E-Form"><i class="fa fa-home"></i></a>
+            </div>
+        </div>
+    </header>
+
+    <main class="na-main">
+        @RenderBody()
+    </main>
+
+    <div class="na-toast" id="na-toast" role="status" aria-live="polite" hidden></div>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

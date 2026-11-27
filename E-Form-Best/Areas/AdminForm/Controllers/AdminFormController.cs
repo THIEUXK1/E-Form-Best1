@@ -88,6 +88,10 @@ namespace E_Form_Best.Areas.AdminForm.Controllers
                          || h.VaiTro.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Any(User.IsInRole))
                 .ToList();
 
+            // Nút Nhà ăn không qua bộ lọc quyền ở trên: ai cũng cần đặt/xem suất ăn.
+            ViewBag.NhaAnUrl = _cauHinh["NhaAn:Url"];
+            ViewBag.NhaAnTen = _cauHinh["NhaAn:Ten"] ?? "Nhà ăn";
+
             return View();
         }
         #endregion

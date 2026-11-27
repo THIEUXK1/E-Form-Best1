@@ -254,6 +254,15 @@
             hat: { ky_tu: ["🎓", "📚", "✦"], mau: "#bfdbfe", toc_do: 0.4 }
         },
         {
+            // Ngày Văn hóa Việt Nam 24/11 (lập từ 2025). Cách 20/11 bốn ngày: hai đợt chồng nhau
+            // thì vòng quét ưu tiên lễ gần hôm nay hơn, nên từ 22/11 tự chuyển sang lễ này.
+            ten: "Văn hóa Việt Nam", bieuTuong: "🪷",
+            hop: d => d.getMonth() === 10 && d.getDate() === 24,
+            ngay: "radial-gradient(circle at 30% 20%, #7a5a1c, #5a4114 45%, #261a07)",
+            dem: "radial-gradient(circle at 30% 20%, #573f13, #3d2c0d 45%, #1a1205)",
+            hat: { ky_tu: ["🪷", "🥁", "✦"], mau: "#fcd34d", toc_do: 0.4 }
+        },
+        {
             ten: "Quân đội nhân dân", bieuTuong: "⭐",
             hop: d => d.getMonth() === 11 && d.getDate() === 22,
             ngay: "radial-gradient(circle at 30% 20%, #3d5a2a, #2b4020 45%, #121b0c)",
@@ -289,6 +298,7 @@
         "Quốc khánh": { loiChuc: "Mừng Quốc khánh 2/9", phao: ["#fde047", "#ef4444", "#ffffff"] },
         "Phụ nữ Việt Nam": { loiChuc: "Chúc mừng ngày Phụ nữ Việt Nam 20/10", phao: ["#fda4af", "#f472b6", "#fecdd3", "#ffffff"] },
         "Nhà giáo Việt Nam": { loiChuc: "Tri ân ngày Nhà giáo Việt Nam 20/11", phao: ["#bfdbfe", "#93c5fd", "#fde68a", "#ffffff"] },
+        "Văn hóa Việt Nam": { loiChuc: "Chào mừng Ngày Văn hóa Việt Nam 24/11", phao: ["#fcd34d", "#ef4444", "#f9a8d4", "#ffffff"] },
         "Quân đội nhân dân": { loiChuc: "Mừng ngày Quân đội nhân dân Việt Nam 22/12", phao: ["#fde047", "#86efac", "#ffffff"] },
         "Giáng sinh": { loiChuc: "Giáng sinh an lành — Merry Christmas", phao: ["#f87171", "#86efac", "#fde68a", "#e0f2fe"] }
     };

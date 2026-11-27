@@ -31,9 +31,9 @@
 
     @* Hiệu ứng nền theo mùa & ngày lễ — mặc định TẮT, bật bằng nút ở góc phải trên *@
     <link rel="stylesheet" href="~/css/hieu-ung-mua.css?v=21" />
-    <script src="~/js/hieu-ung-mua.js?v=202611130826"></script>
+    <script src="~/js/hieu-ung-mua.js?v=202611271000"></script>
     <script src="~/js/menu-tai-khoan.js?v=1" defer></script>
-    <link rel="stylesheet" href="~/css/he-thong-lien-quan.css?v=7" />
+    <link rel="stylesheet" href="~/css/he-thong-lien-quan.css?v=8" />
     <script src="~/js/he-thong-lien-quan.js?v=3" defer></script>
 
     <style>
@@ -234,6 +234,16 @@
                             </div>
                         </div>
                     </div>
+                }
+
+                @* Nút Nhà ăn — mở phân hệ /NhaAn (link từ appsettings NhaAn:Url), mọi người đã đăng nhập đều thấy *@
+                var nhaAnUrl = ViewBag.NhaAnUrl as string;
+                if (!string.IsNullOrWhiteSpace(nhaAnUrl))
+                {
+                    <a class="nut-nha-an" href="@nhaAnUrl" title="Thực đơn nhà ăn hôm nay và cả tuần">
+                        <i class="fa fa-cutlery"></i>
+                        <span>@ViewBag.NhaAnTen</span>
+                    </a>
                 }
             }
             else

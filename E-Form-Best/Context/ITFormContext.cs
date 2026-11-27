@@ -227,6 +227,11 @@ public partial class ITFormContext : DbContext
 
     public virtual DbSet<KkHeThongSuCoLichSu> KkHeThongSuCoLichSus { get; set; }
 
+    // Phân hệ Nhà ăn (/NhaAn) — bảng tạo bằng .claude/plans/sql/na-nha-an-20261127.sql
+    public virtual DbSet<NaThucDon> NaThucDons { get; set; }
+
+    public virtual DbSet<NaLichSu> NaLichSus { get; set; }
+
     public virtual DbSet<KkCcdcMuonTra> KkCcdcMuonTras { get; set; }
 
     public virtual DbSet<KkCongCuDungCu> KkCongCuDungCus { get; set; }

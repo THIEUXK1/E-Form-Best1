@@ -1,0 +1,90 @@
+@{
+    ViewData["Title"] = "Thực đơn";
+    Layout = "~/Areas/NhaAn/Views/Shared/_Layout.cshtml";
+    bool coQuyenQuanLy = ViewBag.CoQuyenQuanLy == true;
+}
+
+@section Tabs {
+    <button type="button" class="na-tab active" data-tab="tuan" role="tab"><i class="fa fa-cutlery"></i><span>Thực đơn</span></button>
+    <button type="button" class="na-tab" data-tab="datdoan" role="tab"><i class="fa fa-shopping-basket"></i><span>Đặt đồ ăn</span></button>
+    @if (coQuyenQuanLy)
+    {
+        <button type="button" class="na-tab" data-tab="quanly" role="tab"><i class="fa fa-pencil-square-o"></i><span>Sửa thực đơn</span></button>
+    }
+}
+
+<div id="na-app" data-quan-ly="@(coQuyenQuanLy ? "1" : "0")">
+    @Html.AntiForgeryToken()
+
+    @* Hôm nay: cố định đầu trang, không đổi khi chuyển tuần *@
+    <section class="na-hom-nay" id="na-hom-nay" hidden></section>
+
+    <div class="na-thanh-tuan" id="na-thanh-tuan">
+        <div class="na-tuan-dieu-huong">
+            <button type="button" class="na-nut-tron" data-tuan="-1" title="Tuần trước"><i class="fa fa-chevron-left"></i></button>
+            <div class="na-tuan-nhan">
+                <span class="na-tuan-tieu-de" id="na-tuan-tieu-de">Tuần này</span>
+                <span class="na-tuan-khoang" id="na-tuan-khoang"></span>
+            </div>
+            <button type="button" class="na-nut-tron" data-tuan="1" title="Tuần sau"><i class="fa fa-chevron-right"></i></button>
+            <button type="button" class="na-nut-vien" data-tuan="0">Hôm nay</button>
+        </div>
+        @if (coQuyenQuanLy)
+        {
+            <div class="na-tuan-tac-vu" id="na-tac-vu-quan-ly" hidden>
+                <button type="button" class="na-nut-vien" id="na-chep-tuan"><i class="fa fa-clone"></i> Chép thực đơn tuần trước</button>
+            </div>
+        }
+    </div>
+
+    @* Đặt đồ ăn: trưng bày danh sách món (dữ liệu ở wwwroot/js/nha-an-mon.js, sinh từ Excel thực đơn tháng) *@
+    <section class="na-pane na-qc" data-pane="datdoan" hidden>
+        <div class="na-qc-banner">
+            <div class="na-qc-banner-chu">
+                <div class="na-qc-nhan" id="na-qc-thang">Thực đơn tháng</div>
+                <h1 class="na-qc-tieu-de">Hôm nay ăn gì? <span>Chọn món ngon cho bạn</span></h1>
+                <p class="na-qc-mo-ta">Danh sách món của nhà ăn: cơm suất hằng ngày và cơm khách. Tên món song ngữ Việt – 中文.</p>
+                <div class="na-qc-so-lieu" id="na-qc-so-lieu"></div>
+            </div>
+            <div class="na-qc-banner-anh" aria-hidden="true">
+                <span>🍲</span><span>🍗</span><span>🦐</span><span>🥗</span><span>🍜</span><span>🍉</span>
+            </div>
+        </div>
+
+        <div class="na-qc-thanh">
+            <div class="na-qc-chon-loai" role="tablist">
+                <button type="button" class="active" data-qc-loai="comSuat"><i class="fa fa-cutlery"></i> Cơm suất <small>套餐</small></button>
+                <button type="button" data-qc-loai="comKhach"><i class="fa fa-star"></i> Cơm khách <small>客餐</small></button>
+            </div>
+            <label class="na-qc-tim">
+                <i class="fa fa-search"></i>
+                <input type="search" id="na-qc-tim" placeholder="Tìm món: gà, canh, 鱼…" autocomplete="off" />
+            </label>
+        </div>
+
+        <div class="na-qc-chip" id="na-qc-chip"></div>
+        <div id="na-qc-noi-dung"></div>
+    </section>
+
+    <section class="na-pane" data-pane="tuan">
+        <div class="na-luoi-tuan" id="na-luoi-tuan">
+            <div class="na-trang-thai">Đang tải thực đơn…</div>
+        </div>
+    </section>
+
+    @if (coQuyenQuanLy)
+    {
+        <section class="na-pane" data-pane="quanly" hidden>
+            <div class="na-bang-cuon">
+                <table class="na-bang-quan-ly" id="na-bang-quan-ly"></table>
+            </div>
+            <p class="na-chu-thich"><i class="fa fa-info-circle"></i> Mỗi dòng một món. Xoá hết món rồi lưu = bỏ thực đơn ô đó. Ctrl+Enter để lưu nhanh.</p>
+        </section>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/nha-an.js?v=5"></script>
+    <script src="~/js/nha-an-mon.js?v=1"></script>
+    <script src="~/js/nha-an-quang-cao.js?v=1"></script>
+}
